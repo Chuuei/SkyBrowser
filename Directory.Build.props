@@ -6,7 +6,7 @@
     <Deterministic>true</Deterministic>
     <ShouldUnsetParentConfigurationAndPlatform>false</ShouldUnsetParentConfigurationAndPlatform>
     <XisfLibraryRoot Condition="'$(XisfLibraryRoot)' == ''">$(MSBuildThisFileDirectory)dependencies\XISFLib.Net</XisfLibraryRoot>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Chuuei and contributors</Authors>
     <RepositoryUrl>https://github.com/Chuuei/SkyBrowser</RepositoryUrl>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>

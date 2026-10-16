@@ -6,7 +6,7 @@ $PublishDirectory = [IO.Path]::GetFullPath($PublishDirectory)
 $required = @(
     'SkyBrowser.exe', 'SkyBrowser-User-Manual.pdf', 'LICENSE', 'NOTICE', 'THIRD-PARTY-NOTICES.md',
     'Data/deep-sky.json', 'Data/LICENSE-OpenNGC.txt', 'Data/LICENSE-OpenNGC-ATTRIBUTION.txt',
-    'Data/LICENSE-Natural-Earth.txt', 'Data/LICENSE-d3-celestial.txt', 'Data/LICENSE-Zstandard.txt',
+    'Data/LICENSE-Natural-Earth.txt', 'Data/LICENSE-d3-celestial.txt', 'Data/LICENSE-Zstandard.txt', 'Data/LICENSE-LZ4.txt',
     'Data/DotNet-THIRD-PARTY-NOTICES.txt', 'Data/WindowsDesktop-THIRD-PARTY-NOTICES.txt',
     'Data/XISFLib-LICENSE.txt', 'Data/XISFLib-NOTICE.txt', 'Data/XISFLib-THIRD-PARTY-NOTICES.md'
 )

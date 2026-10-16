@@ -52,7 +52,7 @@ after build/tests/package validation succeed; a hyphenated tag is a prerelease.
 The version is passed to MSBuild from the validated tag. Local packaging:
 
 ```powershell
-./tools/Build-Release.ps1 -Version 0.1.0
+./tools/Build-Release.ps1 -Version 0.1.1
 ```
 
 The ZIP, checksums, notices and source-compliance materials are written under

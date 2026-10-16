@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 - 2026-10-16
+
+- Preserve the original LZ4 codec's BSD attribution alongside the K4os wrapper's MIT notice.
+- Require that additional notice in validated application packages. No image-processing behavior changed.
+
 ## 0.1.0 - 2026-10-16
 
 Initial public release of the Windows x64 sky atlas.

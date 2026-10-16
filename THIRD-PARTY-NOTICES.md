@@ -49,6 +49,8 @@ K4os.Compression.LZ4 1.3.8 (Copyright 2017 Milosz Krajewski) and ZstdSharp.Port 
 (Copyright 2021 Oleg Stepanischev) are MIT. Their full texts are supplied as
 `Data/LICENSE-K4os.Compression.LZ4.txt` and `Data/LICENSE-ZstdSharp.txt`, together with
 `Data/LICENSE-Zstandard.txt` for the original BSD-3-Clause Zstandard code.
+The original LZ4 codec attribution (Copyright 2011-2020 Yann Collet, BSD-2-Clause)
+is retained in `Data/LICENSE-LZ4.txt` alongside the K4os wrapper's MIT notice.
 Microsoft cryptography/runtime components are MIT, with additional runtime notices
 in `Data/DotNet-THIRD-PARTY-NOTICES.txt` and
 `Data/WindowsDesktop-THIRD-PARTY-NOTICES.txt`.
