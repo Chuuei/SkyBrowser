@@ -4,4 +4,6 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 /artifacts/
+/examples/*
+!/examples/examples.txt
 *.sky.json
