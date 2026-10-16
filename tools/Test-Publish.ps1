@@ -34,6 +34,15 @@ foreach ($path in $required | Select-Object -Unique) {
         throw "Missing release file: $path"
     }
 }
+$version = & (Join-Path $PSScriptRoot 'Get-Version.ps1')
+$executable = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $PublishDirectory 'SkyBrowser.exe'))
+if (($executable.ProductVersion -split '\+', 2)[0] -cne $version) {
+    throw "The published executable's product version does not match Version.props ('$version')."
+}
+$numericVersion = [System.Management.Automation.SemanticVersion]::Parse($version)
+if ($executable.FileVersion -ne "$($numericVersion.Major).$($numericVersion.Minor).$($numericVersion.Patch).0") {
+    throw 'The published executable has inconsistent Windows file version metadata.'
+}
 $forbidden = @(Get-ChildItem -LiteralPath $PublishDirectory -File -Recurse | Where-Object {
     $_.Extension -match '^\.(pdb|xml|fits|fit|fts|xisf|xish|xisb|pyc)$' -or
     $_.Name -match '(?i)settings\.json|\.sky\.json$|\.sqlite3?$'

@@ -7,7 +7,7 @@ Explore your astronomical photographs in their place on the sky. SkyBrowser comb
 <!-- figure height=250 crop=0,0,1424,881 markers=1:0.676:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
 ![The main window, showing a wide Horsehead field and a smaller image of the same region.](manual/screenshots/main-window.png)
 
-- **1. Top bar:** open Options, open or save a session, and add images.
+- **1. Top bar:** see the app version, open Options, open or save a session, and add images.
 - **2. Image collection:** browse folders, search your loaded images and choose one.
 - **3. Selected image:** change the chosen image's appearance, visibility and placement. Drag the divider above this panel to resize it.
 - **4. Sky view:** drag to look around and scroll to zoom. The bottom status bar reports progress and problems.

@@ -93,9 +93,14 @@ internal static class Program
                     detail.Placement!.Center.Vector,
                     window.SkyView.ActualWidth,
                     window.SkyView.ActualHeight)!.Value;
-                Hover(window.SkyView, new Point(inset.X, inset.Y));
                 await Ready();
+                // Set the demonstration hover after yielding so native pointer events cannot replace it.
+                Hover(window.SkyView, new Point(inset.X, inset.Y));
                 Capture(window, "horsehead-hover.png", output);
+                if (Screenshots["horsehead-hover.png"] == Screenshots["horsehead-blended.png"])
+                {
+                    throw new InvalidOperationException("The hover illustration must show the inset at full selected opacity.");
+                }
                 Hover(window.SkyView, null);
 
                 var defaults = new ApplicationOptions { CacheDirectory = DemoRoot + @"\Cache" };

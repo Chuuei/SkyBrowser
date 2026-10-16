@@ -1,10 +1,11 @@
 param(
-    [Parameter(Mandatory)] [ValidatePattern('^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$')] [string] $Version,
+    [string] $Version,
     [string] $OutputRoot = (Join-Path $PSScriptRoot '../artifacts/release')
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
+$Version = & (Join-Path $PSScriptRoot 'Get-Version.ps1') -ExpectedVersion $Version
 Push-Location $root
 try {
     $changes = @(& git status --porcelain)
@@ -15,7 +16,7 @@ try {
     $null = New-Item -ItemType Directory -Path $output -Force
     $work = Join-Path $output ('work-' + [Guid]::NewGuid().ToString('N'))
     $publish = Join-Path $work 'application'
-    & dotnet publish src/SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 "-p:Version=$Version" --artifacts-path ./artifacts --output $publish --nologo
+    & dotnet publish src/SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 --artifacts-path ./artifacts --output $publish --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Application publish failed.' }
     & (Join-Path $PSScriptRoot 'Test-Publish.ps1') -PublishDirectory $publish
     $binaryZip = Join-Path $output "SkyBrowser-$Version-win-x64.zip"
