@@ -11,7 +11,7 @@ Display processing preserves your original scientific files.
 
 ## Download and start
 
-1. Download **SkyBrowser-0.1.0-win-x64.zip** from the
+1. Download **SkyBrowser-0.1.1-win-x64.zip** from the
    [latest release](https://github.com/Chuuei/SkyBrowser/releases/latest).
    Choose the application ZIP, rather than GitHub's automatically generated source ZIP.
 2. Extract the complete ZIP into a folder you can write to.

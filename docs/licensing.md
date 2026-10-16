@@ -15,7 +15,7 @@ identified as required by the license. XISFLib.Net is independently Apache-2.0.
 | OpenNGC-derived catalogue | CC-BY-SA-4.0; attribution, full license and adapted JSON remain supplied separately |
 | Natural Earth map | Public domain; provenance retained |
 | XISFLib.Net | Apache-2.0; its LICENSE, NOTICE and third-party guide are supplied under `Data/` |
-| K4os LZ4, ZstdSharp | MIT; full texts retained, plus Zstandard BSD-3-Clause notice |
+| K4os LZ4, ZstdSharp | MIT; full texts retained, plus original LZ4 BSD-2-Clause and Zstandard BSD-3-Clause notices |
 | Microsoft.Data.Sqlite, System.Security.Cryptography, .NET/Windows Desktop | MIT and bundled third-party notices; preserve package/runtime notice texts |
 | SQLitePCLRaw | Apache-2.0; native SQLite is public domain |
 | Magick.NET | Apache-2.0 for the managed wrapper; full upstream multi-license `Notice.txt` supplied |
