@@ -10,10 +10,17 @@ $required = @(
     'Data/DotNet-THIRD-PARTY-NOTICES.txt', 'Data/WindowsDesktop-THIRD-PARTY-NOTICES.txt',
     'Data/XISFLib-LICENSE.txt', 'Data/XISFLib-NOTICE.txt', 'Data/XISFLib-THIRD-PARTY-NOTICES.md'
 )
-$inventory = Get-Content (Join-Path $PSScriptRoot 'third-party-packages.json') -Raw | ConvertFrom-Json -AsHashtable
-$assetsPath = Join-Path $root 'artifacts/obj/SkyBrowser.Desktop/project.assets.json'
-$assets = Get-Content $assetsPath -Raw | ConvertFrom-Json -AsHashtable
-$packages = @($assets['libraries'].GetEnumerator() | Where-Object { $_.Value['type'] -eq 'package' } | ForEach-Object Key)
+$licenseInventory = Get-Content (Join-Path $PSScriptRoot 'third-party-packages.json') -Raw | ConvertFrom-Json -AsHashtable
+$inventory = $licenseInventory['packages']
+# The generated runtime dependency graph excludes SDK build tools that are not
+# redistributed. Auditing their versions as runtime code would tie releases to one SDK.
+$depsPath = Join-Path $root 'artifacts/bin/SkyBrowser.Desktop/release_win-x64/SkyBrowser.deps.json'
+$deps = Get-Content $depsPath -Raw | ConvertFrom-Json -AsHashtable
+$packages = @($deps['libraries'].GetEnumerator() | Where-Object { $_.Value['type'] -eq 'package' } | ForEach-Object Key)
+$runtimePacks = @($deps['libraries'].GetEnumerator() | Where-Object { $_.Value['type'] -eq 'runtimepack' })
+if ($runtimePacks.Count -lt 2 -or @($runtimePacks | Where-Object { ($_.Key -split '/')[-1] -ne $licenseInventory['runtimeVersion'] }).Count -gt 0) {
+    throw 'The self-contained runtime does not match the reviewed runtime version and notices.'
+}
 $unknown = @($packages | Where-Object { -not $inventory.ContainsKey($_) })
 if ($unknown.Count -gt 0) {
     throw "New/unreviewed runtime packages: $($unknown -join ', '). Update licenses and the inventory."

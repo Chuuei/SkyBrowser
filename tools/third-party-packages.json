@@ -1,16 +1,18 @@
 {
-  "CosineKitty.AstronomyEngine/2.1.19": "LICENSE-AstronomyEngine.txt",
-  "K4os.Compression.LZ4/1.3.8": "LICENSE-K4os.Compression.LZ4.txt",
-  "Magick.NET-Q16-AnyCPU/15.0.0": "Magick.NET-Notice.txt",
-  "Magick.NET.Core/15.0.0": "LICENSE-Magick.NET.txt",
-  "Microsoft.Data.Sqlite/10.0.13": "LICENSE-Microsoft.Data.Sqlite.txt",
-  "Microsoft.Data.Sqlite.Core/10.0.13": "LICENSE-Microsoft.Data.Sqlite.txt",
-  "Microsoft.NET.ILLink.Tasks/10.0.13": "LICENSE-DotNet.txt",
-  "SQLitePCLRaw.bundle_e_sqlite3/2.1.13": "LICENSE-SQLitePCLRaw.txt",
-  "SQLitePCLRaw.core/2.1.13": "LICENSE-SQLitePCLRaw.txt",
-  "SQLitePCLRaw.lib.e_sqlite3/2.1.13": "LICENSE-SQLitePCLRaw.txt",
-  "SQLitePCLRaw.provider.e_sqlite3/2.1.13": "LICENSE-SQLitePCLRaw.txt",
-  "System.Security.Cryptography.Pkcs/10.0.13": "LICENSE-DotNet.txt",
-  "System.Security.Cryptography.Xml/10.0.13": "LICENSE-DotNet.txt",
-  "ZstdSharp.Port/0.8.8": "LICENSE-ZstdSharp.txt"
+  "runtimeVersion": "10.0.13",
+  "packages": {
+    "CosineKitty.AstronomyEngine/2.1.19": "LICENSE-AstronomyEngine.txt",
+    "K4os.Compression.LZ4/1.3.8": "LICENSE-K4os.Compression.LZ4.txt",
+    "Magick.NET-Q16-AnyCPU/15.0.0": "Magick.NET-Notice.txt",
+    "Magick.NET.Core/15.0.0": "LICENSE-Magick.NET.txt",
+    "Microsoft.Data.Sqlite/10.0.13": "LICENSE-Microsoft.Data.Sqlite.txt",
+    "Microsoft.Data.Sqlite.Core/10.0.13": "LICENSE-Microsoft.Data.Sqlite.txt",
+    "SQLitePCLRaw.bundle_e_sqlite3/2.1.13": "LICENSE-SQLitePCLRaw.txt",
+    "SQLitePCLRaw.core/2.1.13": "LICENSE-SQLitePCLRaw.txt",
+    "SQLitePCLRaw.lib.e_sqlite3/2.1.13": "LICENSE-SQLitePCLRaw.txt",
+    "SQLitePCLRaw.provider.e_sqlite3/2.1.13": "LICENSE-SQLitePCLRaw.txt",
+    "System.Security.Cryptography.Pkcs/10.0.13": "LICENSE-DotNet.txt",
+    "System.Security.Cryptography.Xml/10.0.13": "LICENSE-DotNet.txt",
+    "ZstdSharp.Port/0.8.8": "LICENSE-ZstdSharp.txt"
+  }
 }

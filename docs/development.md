@@ -58,6 +58,9 @@ The version is passed to MSBuild from the validated tag. Local packaging:
 The ZIP, checksums, notices and source-compliance materials are written under
 `artifacts/release`. Consult [licensing](licensing.md) before distributing binaries.
 The self-contained application does not require a separately installed .NET runtime.
+The Windows publish profile pins the reviewed runtime patch independently of the
+SDK selected for building. Update its version and the redistribution inventory
+together when reviewing a runtime security update.
 Keep the PDF, license/NOTICE files and `Data` directory alongside the executable.
 
 For detailed scientific behavior and probes see the
