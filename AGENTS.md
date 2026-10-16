@@ -1,0 +1,326 @@
+# Guide for AI agents working on SkyBrowser
+
+This file applies to the whole SkyBrowser repository. Keep it current when the
+architecture, workflows or important behavior changes. Read the relevant code
+before editing; this is a guide to the current implementation, not a replacement
+for it.
+
+## Project and dependencies
+
+SkyBrowser is a Windows desktop sky atlas for the user's astronomical photographs.
+The observer is at the center of a celestial sphere; FITS/XISF previews are placed
+using their astrometry over an offline star, constellation and deep-sky map.
+
+- Use **.NET 10, C# 14 and WPF**. The application is not Avalonia. The external
+  XISFLib repository has an Avalonia viewer whose finishing pipeline inspired ours.
+- Open `SkyBrowser.slnx` in Rider and run the **SkyBrowser.Desktop** project.
+  Ordinary IDE Debug builds must continue to work without special arguments.
+- `Directory.Build.props` sets language version, nullable references, implicit
+  usings, deterministic builds and repository-local `artifacts/` output.
+- `global.json` permits a newer SDK to build the .NET 10 targets. A newer selected
+  SDK is not a reason to change the target framework.
+- XISFLib is a source project reference in the adjacent checkout
+  `../XISFLib.Net/XISFLib/XISFLib.csproj`. `XisfLibraryRoot` overrides the root for
+  project builds; the solution also has an explicit dependency path to update if
+  that checkout moves. Do not replace this with an unrelated package.
+- The user owns XISFLib and permits changes there when necessary. Before editing
+  that separate repository, read its own `AGENTS.md` and inspect its working tree.
+  It can contain unrelated changes; preserve them and respect filesystem access
+  boundaries. Prefer keeping application-specific behavior here.
+
+## Where things live
+
+| Path | Responsibility |
+| --- | --- |
+| `src/SkyBrowser.Core/Astronomy/` | Coordinates, camera, observer frame, placement, spherical footprints and catalogues |
+| `src/SkyBrowser.Core/Imaging/` | XISFLib loading, metadata snapshots, stretches and cosmetic finishing |
+| `src/SkyBrowser.Core/Caching/` | Source validation, persistent SQLite previews and cached loading |
+| `src/SkyBrowser.Core/Configuration/ApplicationOptions.cs` | Validated defaults, atomic settings persistence and recovery |
+| `src/SkyBrowser.Desktop/MainWindow.xaml.cs` | Import/display operations, collection, navigation and dialog coordination |
+| `src/SkyBrowser.Desktop/Controls/SkyViewport.cs` | WPF textured sky, overlays, batching, overlap rendering and hit testing |
+| `src/SkyBrowser.Desktop/Controls/ObserverMap.cs` | Offline location picker |
+| `src/SkyBrowser.Desktop/Controls/SceneTimeline.xaml` | Scene time slider, day steps and live-clock controls |
+| `src/SkyBrowser.Desktop/Styles/Controls.xaml` | Shared dark control palette/templates, merged by App.xaml |
+| `src/SkyBrowser.Desktop/Models/` | Layer state and normalized collection search |
+| `src/SkyBrowser.Desktop/Services/` | Session serialization and observer preferences |
+| `tests/SkyBrowser.Tests/` | xUnit scientific, cache, settings and real WPF integration tests |
+| `tests/SkyBrowser.CacheProbe/` | Separate-process persistence checks and performance probes |
+| `examples/` | User-supplied FITS/XISF images, including overlapping Horsehead fields |
+| `tools/Build-TargetCatalog.ps1` | Regenerates bundled deep-sky data from pinned sources |
+| `tools/Build-ApplicationIcon.ps1` | Renders the header mark into the multi-resolution Windows application icon |
+| `tools/ManualScreenshots/` | Privacy-safe WPF screenshot generator; separate project outside the solution |
+| `tools/Build-UserManual.py` | PDF generation, privacy validation and page rendering |
+| `docs/user-manual.md` | Editable beginner manual |
+| `docs/manual/README.md` | Manual regeneration and screenshot privacy instructions |
+| `docs/performance-review.md` | Measurements, implemented optimizations, limits and reproduction commands |
+
+Start with `README.md` for detailed behavior and supported formats. For changes to
+a particular feature, read its existing tests as well as its implementation.
+
+## Build, run and verify
+
+Run these PowerShell commands from the repository root on Windows:
+
+```powershell
+dotnet build SkyBrowser.slnx -c Release --artifacts-path .\artifacts
+dotnet run --project src\SkyBrowser.Desktop -c Release --artifacts-path .\artifacts
+```
+
+The build executable is
+`artifacts/bin/SkyBrowser.Desktop/release/SkyBrowser.exe`. Framework-dependent
+builds require the .NET 10 Desktop Runtime. Startup arguments after `--` can be
+image paths, a folder or a `.sky.json` session.
+
+For code changes, run the relevant tests; use the full suite for changes spanning
+image processing, astrometry, caching or desktop workflows:
+
+```powershell
+$env:SKYBROWSER_SOLVED_SAMPLES = Join-Path $PWD 'examples'
+$env:SKYBROWSER_SCREENSHOTS = Join-Path $PWD 'artifacts\screenshots'
+# Optional additional source images, if the adjacent checkout provides them:
+$env:SKYBROWSER_SAMPLE_DIRECTORY = [IO.Path]::GetFullPath((Join-Path $PWD '..\XISFLib.Net\Examples'))
+dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
+```
+
+- Real-image checks depend on these optional sample directories. Set the solved
+  examples path when verifying image quality, placement or blending.
+- Desktop tests use a real WPF window on an STA dispatcher. Keep their shared
+  `Application` lifetime: WPF permits only one `Application` per process.
+- Tests cover cancellation and late callbacks as well as successful results.
+  Preserve numerical/pixel comparisons, source preservation and separate-process
+  cache checks when changing the associated implementation.
+- Performance probes and their limitations are documented in
+  `docs/performance-review.md` and `README.md`. Measure Release builds on
+  representative inputs; do not add machine-dependent timing assertions to tests.
+- Documentation-only edits do not require an application build. Check referenced
+  paths and formatting. Manual edits additionally require PDF generation and
+  visual review as described below.
+
+## Scientific image and coordinate contracts
+
+- **Never rewrite the user's source images** to stretch, clean, rotate or cache
+  them. Preserve scientific sample precision, metadata, checksums and validation
+  in the reader. Do not weaken malformed-input or decompression bounds checks.
+- Supported extensions are `.fits`, `.fit`, `.fts`, `.xisf` and distributed
+  `.xish` with its sidecars. Support is for 2D grayscale/color and FITS RGB/RGBA
+  third axes; unsupported cubes/complex samples are rejected. CFA is displayed
+  gray; there is no built-in debayering or plate solver.
+- Native XISF Revision 1 solutions take precedence. FITS automatic placement
+  supports RA/Dec TAN, degrees, ICRS or FK5/J2000 and CD or PC/CDELT matrices.
+  Unsupported projections, SIP/TPV or frames require warnings/manual placement,
+  rather than a silently inaccurate approximation.
+- FITS reference pixels, the library's zero-based pixel API and native XISF
+  half-pixel centers have different conventions. Keep their tests and conversions.
+  Use spherical/vector geometry around the RA seam and poles.
+- Map the original stored pixel rows to the solution. Display-only XISF rotation
+  and reflection must not move a texture away from its astrometry. Preview
+  processing preserves the full frame, orientation and alpha; do not crop it for
+  appearance. Manual placement uses degrees, north up/east left at zero rotation,
+  with positive rotation counterclockwise and optional horizontal mirroring.
+- Previews have at most 2048 pixels on their longest side. Average scientific
+  samples before stretch/quantization to retain faint detail. Full source decoding
+  still occurs; do not assume the preview size limits peak source memory.
+- `ImagePlacement` is immutable and retains its evaluated 33 x 33 sample grid.
+  `CaptureSampleGrid` returns a defensive copy; input grids must also be copied.
+
+## Display processing
+
+- **Automatic · dark sky (fast)** is the default: stretch only, initially targeting
+  a 10% background. It uses a stored display function when available and otherwise
+  handles dark/high-pedestal linear samples adaptively, retaining developed images
+  when appropriate. It must not perform gradient correction, color balancing,
+  denoising, sharpening or color enhancement, even if cleanup options are saved.
+- **Dark sky + cleanup** explicitly runs `SkyImageFinisher` cosmetics as well as
+  stretching. Retain the darker Horsehead result and conservative processing
+  based on the external viewer. Do not merge it with Automatic.
+- Linear, stored-display-function and library auto-stretch variants remain
+  distinct. Per-image choices and session settings take precedence over global
+  defaults; saving Options does not reprocess all currently loaded images.
+- Row processing uses bounded parallelism, disjoint writes and unchanged sample
+  accumulation order. Preserve deterministic pixels, alpha and monotonic progress.
+  Cancellation is checked between stages/rows; native decoder/filter calls may
+  have to finish before cancellation takes effect.
+
+## Persistence, loading and responsiveness
+
+- User options are JSON at `%LOCALAPPDATA%\SkyBrowser\settings.json`, separate
+  from the disposable preview database. Keep validation, atomic writes and `.bak`
+  recovery. Do not use or change the user's actual settings for automated tests.
+- The default cache is
+  `%LOCALAPPDATA%\SkyBrowser\Cache\previews-v1.sqlite3`, with a **10 GB** limit
+  measured as 10 x 1024^3 bytes. It must survive program restarts and skip decoding
+  and finishing on a valid hit. It retains pixels, metadata, placement grids,
+  per-image render preferences and recent folders.
+- Cache keys include rendering settings/pipeline and library identities. Source
+  signatures include size/times and sampled hashes at the start, middle and end,
+  including distributed XISF sidecars. These are change detectors, not full-file
+  integrity hashes. Keep corruption recovery, validation and transactional LRU
+  eviction. A rebuild may legitimately invalidate previous preview variants.
+- Cache failures fall back to normal processing. Cold jobs are bounded to avoid
+  overlapping large source allocations; warm hits must not wait for an unrelated
+  cold decode. Keep processing/database/search-index work off the UI thread.
+- Cache migration preserves the old folder and merges destination records.
+  **Clear saved previews** acts immediately, even if Options is later cancelled;
+  it retains rendering preferences, recent folders and already loaded images.
+  Options shows used space and preview count beside the limit.
+- Browse folder replaces the collection; Add/drop appends. Scan direct files,
+  without recursion. The last 12 folders persist across restarts.
+- Progress opens after a short delay (currently 350 ms), with totals, remaining
+  items, current stage and cached/failed/skipped counts. Cancellation keeps partial
+  imports, the old display during a cancelled reprocess, and the old scene during
+  a cancelled session restore. Sessions commit only after successful staging.
+- Guard asynchronous updates by operation identity and item version. Old-folder
+  progress and finishing callbacks must not alter a newer operation or layer.
+- Batch scene changes through `SkyViewport.DeferLayerUpdates`; nested scopes and
+  repeated disposal are supported. Detach events from removed/reset layers. Keep
+  reusable camera state, frozen mesh topology and bounded drawing caches.
+- `.sky.json` sessions preserve layer state, finishing, manual placement, added
+  targets, observer settings and view, with relative source paths when possible.
+  Missing sources are reported while the remaining entries can load.
+
+## UI behavior to preserve
+
+- Keep control styling in the shared `Styles/Controls.xaml` dictionary so sliders,
+  scrollbars, dropdowns, text fields, checks, expanders and progress indicators
+  match in the main window and dialogs. Preserve WPF template parts/commands and
+  content scrolling/virtualization. ComboBox selection uses SelectionBoxItem,
+  avoiding the old crash from reparenting a selected item's visual. Keep visible
+  keyboard-focus, hover, selection and disabled states. TextBox already forwards
+  Padding to PART_ContentHost; adding a host margin would double the spacing.
+- The header logo, SkyBrowser name and tagline share one horizontal row. Keep
+  them vertically centered and clear of the action buttons at the minimum width.
+- Native title bars match the dark header through `Services/WindowAppearance.cs`
+  and the shared Window style. Preserve standard Windows resizing, snapping and
+  caption controls. High contrast uses system caption colors; older Windows can
+  fall back gracefully when DWM color attributes are unsupported.
+  Derived windows explicitly reference the shared Window style; implicit base-type
+  styles do not apply automatically. Icon resource URIs include the assembly name
+  so dialogs also work when hosted by tests or the screenshot generator.
+- The application and window icon is `src/SkyBrowser.Desktop/Assets/SkyBrowser.ico`,
+  generated from the existing header geometry in `MainWindow.xaml`. If the mark
+  changes, regenerate it with `pwsh -STA -File tools/Build-ApplicationIcon.ps1`.
+  The committed icon needs no generation step during normal builds or publishing.
+- The collection and selected-image panels have a user-adjustable divider.
+  Image details must use retained metadata/previews rather than decode again.
+  The circled info icon uses one geometry coordinate space for circle, stem and
+  dot; font glyph substitution previously caused misalignment.
+- Collection search covers filenames and retained metadata, normalizing case,
+  accents, spacing and punctuation (`IC434` equals `IC 434`). All query terms must
+  match. Filtering the list does not hide sky layers or alter sessions.
+- With overlap blending enabled, larger angular footprints are behind smaller
+  ones; insets use 60% of the selected opacity and return to that selected opacity
+  on hover. Hover changes scene opacity only. With blending off, later collection
+  entries are on top. Handle rotated fields, nested overlaps, poles and the seam.
+- Double-clicking a collection entry frames it. Double-clicking a sky image opens
+  the original in the default Windows application, choosing the foremost hit.
+- **Find in the sky** starts collapsed, has filters and one shared **Go** button.
+  Selecting a target adds its marker, fills coordinates and frames it; manual
+  coordinate navigation retains zoom. The bundled catalogue covers Messier,
+  Caldwell, NGC and IC, while only prominent targets appear by default. Preserve
+  alias deduplication and dropdown virtualization.
+- Location/time and cache controls belong in **Options**, not extra toolbar
+  buttons. The map is a separate window. Without a location, keep atlas behavior.
+  With one, default to south, altitude 20 degrees, 90-degree field of view and the
+  current system time. Fixed UTC/computer-local times are supported; the map does
+  not infer a time zone. Keep J2000 alignment and supported 1900-2100 dates.
+- Atlas mode uses a RA/Dec grid; observer mode uses an Alt/Az grid fixed to the
+  horizon. Equatorial-grid convergence marks a celestial pole; the local zenith
+  is straight up (coincident with a celestial pole at a geographic pole).
+  Observer labels distinguish Zenith (90 degrees altitude) from Polaris and its
+  calculated altitude. Polaris is approximately as high as the observer's latitude.
+  Preserve the independent hour-angle, Polaris-altitude and circular-motion tests
+  in ObserverTests, plus the real north-facing timeline scenario in DesktopTests;
+  self-consistent coordinate round trips alone do not establish physical accuracy.
+- When an observer is active, the scene timeline appears below the sky. Scrubbing
+  pauses the clock over a fixed +/-12-hour anchor; day buttons move 24 hours and
+  recenter. Live now resumes system time. Preserve compass direction, zoom and
+  image textures; clamp dates to 1900-2100 using UTC arithmetic across DST changes.
+  Scene time is saved in sessions and does not overwrite startup options. In atlas
+  mode the timeline is hidden. Anonymous manual captures replace both visible
+  computer-local clock readouts with fixed UTC demonstration values.
+- First-run setup appears only if neither settings nor backup exists, before
+  startup imports. Offer a stretch and optional location. Save & start / Use
+  defaults persist; Not now / Escape / close defer without saving. Failed saves
+  keep the dialog open. A session's observer does not replace startup defaults.
+
+## Manual, privacy and publishing
+
+The user explicitly requires that documentation and screenshots reveal **no
+personal username, profile paths, observing location or private image metadata**.
+This also applies to PDF metadata, embedded images and other published artifacts.
+
+- The editable source is `docs/user-manual.md`; the generated
+  `docs/SkyBrowser-User-Manual.pdf` is a repository source artifact. Normal .NET
+  publishing must not need Python. Keep the PDF current with user-facing changes.
+- Read `docs/manual/README.md` before refreshing it. Use the anonymous model in
+  `tools/ManualScreenshots`, not raw desktop-test screenshots or real user options.
+  It replaces paths, filenames, metadata, file facts and cache statistics. Only
+  preview pixels/sky geometry are reused from the examples.
+  App.OnStartup reuses an explicitly provided MainWindow so tests and screenshot
+  generation never open an additional window with the real user's options/cache.
+- Treat raw examples, sessions, settings, logs and diagnostic captures as
+  potentially private. Do not add them to the distributed application or manual.
+- Demo paths use `C:\SkyBrowserDemo`; demo observer latitude/longitude are both 0
+  with fixed time `2000-01-01T12:00:00+00:00`. Never substitute a real location,
+  account name, system timestamp or private source history.
+- **An overlay, blur or PDF crop is not sufficient redaction.** The complete PNG
+  must already be anonymous: full source images remain recoverable from a PDF.
+  Inspect every source PNG, including regions clipped out of the printed page.
+- The capture helper writes SHA-256 hashes to
+  `docs/manual/screenshots/manifest.json`. The PDF builder checks the manifest,
+  private paths/account text, PNG metadata and PDF attachments. Keep these guards
+  and deterministic neutral PDF metadata; do not bypass validation by merely
+  updating hashes for an unreviewed screenshot.
+
+Regenerate from the root (Windows, Python 3.12+; reuse the venv if it exists):
+
+```powershell
+dotnet run --project tools\ManualScreenshots\SkyBrowser.ManualScreenshots.csproj -c Release
+python -m venv artifacts\manual-tools
+artifacts\manual-tools\Scripts\python.exe -m pip install -r tools\manual-requirements.txt
+artifacts\manual-tools\Scripts\python.exe tools\Build-UserManual.py
+```
+
+Review every full screenshot and every rendered PDF page under
+`artifacts/manual-preview`, as well as its `validation.json`. Ensure captions,
+contents links and current UI labels agree. Use the available PDF skill when
+authoring or reviewing PDF layout. Private test captures under `artifacts/` are
+not approved documentation assets; use the maintained screenshot helper.
+
+Publish the self-contained Windows x64 application:
+
+```powershell
+dotnet publish src\SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 --artifacts-path .\artifacts
+```
+
+Output: `artifacts/publish/SkyBrowser.Desktop/release_win-x64/`.
+Keep `SkyBrowser-User-Manual.pdf` accessible beside `SkyBrowser.exe`, outside the
+single-file bundle. The publish profile uses embedded debug information; the
+desktop project excludes **all dependency/application `.pdb` and XML documentation
+files** from publish output. Preserve normal build debugging. Verify these output
+requirements after changing publish configuration, and retain required notices,
+licenses and catalogue data.
+
+## Editing conventions and repository care
+
+- Follow `.editorconfig`: UTF-8, CRLF, four spaces for C#, two for XML/XAML/JSON,
+  explicit control-flow braces and statements on separate lines. Keep code easy
+  to read; short properties/expressions can remain concise. Comments should explain
+  coordinate conventions, ownership, validity and asynchronous lifetimes.
+- Use modern C#/.NET features where they improve clarity. Keep Core independent
+  of WPF. Preserve existing source-generated JSON and immutable data contracts.
+- For semantic renames/moves/signature changes, use the available Rider
+  refactoring skill when applicable. Avoid unrelated restructuring or broad
+  reformatting, especially in generated data and the external library.
+- Bundled sky/world datasets have attribution and license requirements. Keep
+  `THIRD-PARTY-NOTICES.md` and `Data/LICENSE-*` files. Regenerate deep-sky data with
+  `tools/Build-TargetCatalog.ps1` (PowerShell 7; pinned download cached in
+  `artifacts/catalog-sources`) rather than manually reformatting generated JSON.
+- Preserve the user's images, sessions, settings and unrelated working-tree
+  changes. Do not clean/reset repositories, delete example files, or stage/commit
+  work unless requested. Much of this application may still be untracked; check
+  `git status --short` rather than assuming `git diff` shows all source changes.
+- Keep temporary caches, captures, probes and tool environments under ignored
+  `artifacts/`. Do not depend on local benchmark reports being present later.
+- Report what changed, what was verified and any remaining limitations. Do not
+  claim a build, test run, privacy review or performance gain without evidence.

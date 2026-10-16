@@ -1,0 +1,848 @@
+<Window
+  x:Class="SkyBrowser.Desktop.MainWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="clr-namespace:SkyBrowser.Desktop.Controls"
+  Title="SkyBrowser"
+  Style="{StaticResource {x:Type Window}}"
+  Width="1440"
+  Height="920"
+  MinWidth="1050"
+  MinHeight="720"
+  WindowStartupLocation="CenterScreen"
+  AllowDrop="True"
+  Drop="FilesDropped"
+  PreviewDragOver="FilesDragOver"
+  Closing="WindowClosing"
+  PreviewKeyDown="WindowPreviewKeyDown">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="76" />
+      <RowDefinition Height="*" />
+      <RowDefinition Height="35" />
+    </Grid.RowDefinitions>
+    <Border
+      Grid.Row="0"
+      Background="#101722"
+      BorderBrush="#253044"
+      BorderThickness="0,0,0,1">
+      <Grid Margin="24,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <Grid Width="34" Height="34" Margin="0,0,12,0">
+            <Ellipse Stroke="#8BE2C3" StrokeThickness="1" Margin="5" />
+            <Ellipse
+              Stroke="#8BE2C3"
+              StrokeThickness="1"
+              Width="34"
+              Height="12"
+              RenderTransformOrigin="0.5,0.5">
+              <Ellipse.RenderTransform>
+                <RotateTransform Angle="-35" />
+              </Ellipse.RenderTransform>
+            </Ellipse>
+            <Ellipse Fill="#8BE2C3" Width="4" Height="4" />
+          </Grid>
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <TextBlock Text="SkyBrowser" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock
+              Text="YOUR PERSONAL SKY ATLAS"
+              FontSize="11"
+              Foreground="#8D9AAD"
+              VerticalAlignment="Center"
+              Margin="16,0,0,0" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel
+          x:Name="FileActions"
+          Grid.Column="2"
+          Orientation="Horizontal"
+          VerticalAlignment="Center">
+          <Button
+            x:Name="OptionsButton"
+            Content="Options"
+            Click="OptionsClicked"
+            Margin="0,0,8,0"
+            ToolTip="Persistent defaults for images, observer location and cache" />
+          <Button Content="Open session" Click="OpenSessionClicked" Margin="0,0,8,0" />
+          <Button Content="Save session" Click="SaveSessionClicked" Margin="0,0,16,0" />
+          <Button
+            Content="+  Add images"
+            Click="ImportClicked"
+            Background="#8BE2C3"
+            Foreground="#0A2925"
+            BorderBrush="#8BE2C3"
+            FontWeight="SemiBold" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <Grid Grid.Row="1">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="330" />
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      <Border Background="#101722" BorderBrush="#253044" BorderThickness="0,0,1,0">
+        <Grid Margin="18,20,18,12">
+          <!-- The inspector starts hidden. Code restores the user's row proportions when an image is selected. -->
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition x:Name="CollectionRow" Height="3*" MinHeight="110" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition x:Name="InspectorRow" Height="0" />
+            <RowDefinition Height="Auto" />
+          </Grid.RowDefinitions>
+          <StackPanel>
+            <DockPanel Margin="0,0,0,12">
+              <TextBlock
+                Text="IMAGE COLLECTION"
+                FontSize="11"
+                FontWeight="SemiBold"
+                Foreground="#8D9AAD" />
+              <TextBlock
+                x:Name="LayerCount"
+                Text="0 images"
+                HorizontalAlignment="Right"
+                FontSize="11"
+                Foreground="#8BE2C3" />
+            </DockPanel>
+            <Grid Margin="0,0,0,8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Button
+                x:Name="FolderButton"
+                Content="Browse folder…"
+                Click="FolderClicked"
+                Padding="8,6" />
+              <Button
+                x:Name="AddFolderButton"
+                Grid.Column="1"
+                Content="Add…"
+                Click="AddFolderClicked"
+                ToolTip="Add another folder to the current sky"
+                Padding="10,6"
+                Margin="7,0,0,0" />
+            </Grid>
+            <ComboBox
+              x:Name="RecentFolders"
+              Tag="Recent folders…"
+              DisplayMemberPath="Name"
+              SelectionChanged="RecentFolderChanged"
+              Margin="0,0,0,7">
+              <ComboBox.ItemContainerStyle>
+                <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                  <Setter Property="ToolTip" Value="{Binding Path}" />
+                </Style>
+              </ComboBox.ItemContainerStyle>
+            </ComboBox>
+            <TextBlock
+              x:Name="FolderLocation"
+              Text="All added images"
+              Foreground="#7D8CA1"
+              FontSize="10"
+              TextTrimming="CharacterEllipsis"
+              Margin="0,0,0,6" />
+            <Grid Margin="0,3,0,4">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Grid>
+                <TextBox
+                  x:Name="CollectionSearch"
+                  Padding="29,6,8,6"
+                  TextChanged="CollectionSearchChanged"
+                  KeyDown="CollectionSearchKeyDown"
+                  ToolTip="Search filenames, object names and metadata. IC434 also matches IC 434. Combine words to narrow results. Ctrl+F to search; Esc to clear."
+                  AutomationProperties.Name="Search image collection" />
+                <Grid
+                  Width="14"
+                  Height="14"
+                  HorizontalAlignment="Left"
+                  VerticalAlignment="Center"
+                  Margin="9,0,0,0"
+                  IsHitTestVisible="False">
+                  <Ellipse
+                    Width="9"
+                    Height="9"
+                    Stroke="#8D9AAD"
+                    StrokeThickness="1.2"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top" />
+                  <Path Data="M 8 8 L 13 13" Stroke="#8D9AAD" StrokeThickness="1.2" />
+                </Grid>
+                <TextBlock
+                  x:Name="SearchPlaceholder"
+                  Text="Search names &amp; metadata"
+                  Foreground="#7D8CA1"
+                  FontSize="11"
+                  Margin="29,0,5,0"
+                  VerticalAlignment="Center"
+                  IsHitTestVisible="False" />
+              </Grid>
+              <Button
+                x:Name="ClearSearchButton"
+                Grid.Column="1"
+                Content="×"
+                Width="27"
+                Padding="0"
+                Margin="5,0,0,0"
+                Click="ClearSearchClicked"
+                IsEnabled="False"
+                ToolTip="Clear collection search (Esc)"
+                AutomationProperties.Name="Clear image collection search" />
+            </Grid>
+          </StackPanel>
+          <Grid Grid.Row="1" Margin="0,4,0,0">
+            <ListBox x:Name="LayerList" SelectionChanged="LayerSelectionChanged" MouseDoubleClick="LayerDoubleClicked">
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition Width="28" />
+                      <ColumnDefinition Width="*" />
+                      <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <CheckBox
+                      IsChecked="{Binding IsVisible}"
+                      VerticalAlignment="Top"
+                      Margin="0,4,0,0"
+                      ToolTip="Show image" />
+                    <StackPanel Grid.Column="1">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock
+                        Text="{Binding SourceLabel}"
+                        Foreground="#8D9AAD"
+                        FontSize="10"
+                        Margin="0,4,0,0"
+                        TextTrimming="CharacterEllipsis"
+                        ToolTip="{Binding Image.SourcePath}" />
+                      <TextBlock
+                        Text="{Binding PlacementLabel}"
+                        Foreground="#8BE2C3"
+                        FontSize="10"
+                        Margin="0,4,0,0"
+                        TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <Button
+                      x:Name="ImageInfoButton"
+                      Grid.Column="2"
+                      Width="24"
+                      Height="24"
+                      Padding="0"
+                      Margin="6,0,0,0"
+                      VerticalAlignment="Top"
+                      Click="ImageInfoClicked"
+                      ToolTip="Image details and metadata"
+                      Background="Transparent"
+                      AutomationProperties.Name="{Binding Name, StringFormat=Show image details for {0}}">
+                      <Path Width="15" Height="15" Fill="#8BE2C3">
+                        <Path.Data>
+                          <!-- Share one coordinate space so the ring, dot and stem stay centered together. -->
+                          <GeometryGroup FillRule="EvenOdd">
+                            <EllipseGeometry Center="7.5,7.5" RadiusX="7.5" RadiusY="7.5" />
+                            <EllipseGeometry Center="7.5,7.5" RadiusX="6.3" RadiusY="6.3" />
+                            <EllipseGeometry Center="7.5,4.5" RadiusX="1" RadiusY="1" />
+                            <RectangleGeometry Rect="6.6,6.7,1.8,4.8" RadiusX="0.9" RadiusY="0.9" />
+                          </GeometryGroup>
+                        </Path.Data>
+                      </Path>
+                    </Button>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel x:Name="EmptyCollection" VerticalAlignment="Center" Margin="14">
+              <TextBlock
+                Text="Your images,&#xA;in their place."
+                FontSize="25"
+                FontWeight="Light"
+                LineHeight="33" />
+              <TextBlock
+                Text="Add FITS or XISF files to explore your photographs on the celestial sphere."
+                Foreground="#8D9AAD"
+                TextWrapping="Wrap"
+                Margin="0,15,0,0"
+                LineHeight="20" />
+              <TextBlock
+                Text="You can also drop images or folders anywhere in this window."
+                Foreground="#64758C"
+                TextWrapping="Wrap"
+                Margin="0,12,0,0"
+                LineHeight="19" />
+            </StackPanel>
+            <StackPanel
+              x:Name="NoSearchResults"
+              VerticalAlignment="Center"
+              Margin="14"
+              Visibility="Collapsed">
+              <TextBlock
+                Text="No matching images."
+                FontSize="19"
+                FontWeight="Light"
+                TextWrapping="Wrap" />
+              <TextBlock
+                Text="Try a target, filename, filter or telescope. Clear the search to show the full collection."
+                Foreground="#8D9AAD"
+                TextWrapping="Wrap"
+                Margin="0,12,0,0"
+                LineHeight="20" />
+            </StackPanel>
+          </Grid>
+          <GridSplitter
+            x:Name="CollectionDivider"
+            Grid.Row="2"
+            Height="14"
+            HorizontalAlignment="Stretch"
+            ResizeDirection="Rows"
+            ResizeBehavior="PreviousAndNext"
+            Cursor="SizeNS"
+            Focusable="True"
+            KeyboardIncrement="10"
+            Background="Transparent"
+            Visibility="Collapsed"
+            AutomationProperties.Name="Resize image collection and selected image panels"
+            ToolTip="Drag to resize the image collection and selected image panels. When focused, use Up/Down arrows.">
+            <GridSplitter.Template>
+              <ControlTemplate TargetType="GridSplitter">
+                <Grid Background="{TemplateBinding Background}">
+                  <Border Height="1" Background="#293548" VerticalAlignment="Center" />
+                  <Border
+                    x:Name="Grip"
+                    Width="36"
+                    Height="3"
+                    Background="#65758A"
+                    CornerRadius="2"
+                    VerticalAlignment="Center" />
+                </Grid>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Grip" Property="Background" Value="#8BE2C3" />
+                  </Trigger>
+                  <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter TargetName="Grip" Property="Background" Value="#8BE2C3" />
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </GridSplitter.Template>
+          </GridSplitter>
+          <Border
+            x:Name="InspectorBorder"
+            Grid.Row="3"
+            Padding="0,8,0,0"
+            Visibility="Collapsed">
+            <ScrollViewer
+              x:Name="InspectorScroller"
+              VerticalScrollBarVisibility="Auto"
+              HorizontalScrollBarVisibility="Disabled">
+              <StackPanel x:Name="Inspector" IsEnabled="False">
+                <TextBlock
+                  Text="SELECTED IMAGE"
+                  FontSize="10"
+                  Foreground="#8D9AAD"
+                  Margin="0,0,0,10" />
+                <TextBlock
+                  x:Name="ImageTitle"
+                  Text="Select an image to inspect it"
+                  FontSize="16"
+                  FontWeight="SemiBold"
+                  TextWrapping="Wrap" />
+                <TextBlock
+                  x:Name="ImageMetadata"
+                  Foreground="#8D9AAD"
+                  FontSize="11"
+                  TextWrapping="Wrap"
+                  Margin="0,7,0,0"
+                  LineHeight="17" />
+                <TextBlock
+                  x:Name="ImagePosition"
+                  Foreground="#8BE2C3"
+                  FontSize="11"
+                  Margin="0,8,0,0"
+                  TextWrapping="Wrap" />
+                <TextBlock
+                  x:Name="PlacementWarning"
+                  Foreground="#E9BA7B"
+                  FontSize="11"
+                  TextWrapping="Wrap"
+                  Margin="0,7,0,0" />
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,12">
+                  <Button
+                    Content="Go to image"
+                    x:Name="FitButton"
+                    Click="FitClicked"
+                    Padding="10,6" />
+                  <Button
+                    Content="↑"
+                    x:Name="UpButton"
+                    Click="MoveUpClicked"
+                    ToolTip="Move toward the top of the list. Turn off Blend overlaps to use manual drawing order."
+                    Padding="10,6"
+                    Margin="6,0,0,0" />
+                  <Button
+                    Content="↓"
+                    x:Name="DownButton"
+                    Click="MoveDownClicked"
+                    ToolTip="Move toward the bottom; later images draw on top when Blend overlaps is off."
+                    Padding="10,6"
+                    Margin="4,0,0,0" />
+                  <Button
+                    Content="Remove"
+                    x:Name="RemoveButton"
+                    Click="RemoveClicked"
+                    Padding="8,6"
+                    Margin="6,0,0,0" />
+                </StackPanel>
+                <TextBlock
+                  Text="Display"
+                  Foreground="#8D9AAD"
+                  FontSize="11"
+                  Margin="0,0,0,5" />
+                <ComboBox x:Name="DisplayChoice" SelectedIndex="0" SelectionChanged="DisplayChanged">
+                  <ComboBoxItem Content="Automatic · dark sky (fast)" />
+                  <ComboBoxItem Content="Linear / already stretched" />
+                  <ComboBoxItem Content="Library auto stretch (25%)" />
+                  <ComboBoxItem Content="Stored display function" />
+                  <ComboBoxItem Content="Dark sky + cleanup" />
+                </ComboBox>
+                <TextBlock
+                  x:Name="DisplayDescription"
+                  FontSize="10"
+                  Foreground="#78978E"
+                  Margin="0,5,0,8"
+                  TextWrapping="Wrap" />
+                <Expander
+                  Header="Sky background &amp; cleanup"
+                  Foreground="#B6C4D5"
+                  FontSize="12"
+                  Margin="0,2,0,12"
+                  IsExpanded="True">
+                  <StackPanel Margin="0,10,8,0">
+                    <DockPanel>
+                      <TextBlock Text="Sky background" FontSize="11" Foreground="#8D9AAD" />
+                      <TextBlock
+                        x:Name="FinishBackgroundValue"
+                        Text="10%"
+                        FontSize="11"
+                        Foreground="#8BE2C3"
+                        HorizontalAlignment="Right" />
+                    </DockPanel>
+                    <Slider
+                      x:Name="FinishBackground"
+                      Minimum="0.02"
+                      Maximum="0.25"
+                      Value="0.10"
+                      TickFrequency="0.01"
+                      IsSnapToTickEnabled="True"
+                      ValueChanged="FinishBackgroundChanged"
+                      Margin="0,6,0,8" />
+                    <CheckBox
+                      x:Name="FinishBalance"
+                      Content="Balance sky color"
+                      IsChecked="True"
+                      Margin="0,0,0,7" />
+                    <CheckBox
+                      x:Name="FinishGradient"
+                      Content="Reduce broad sky gradients"
+                      IsChecked="True"
+                      Margin="0,0,0,7"
+                      ToolTip="Conservative broad-gradient reduction. Turn off for nebulae that fill the frame if it changes their structure." />
+                    <CheckBox
+                      x:Name="FinishNoise"
+                      Content="Smooth background noise"
+                      IsChecked="True"
+                      Margin="0,0,0,7" />
+                    <CheckBox
+                      x:Name="FinishDetail"
+                      Content="Gentle detail and color enhancement"
+                      IsChecked="True"
+                      Margin="0,0,0,10" />
+                    <TextBlock
+                      Text="Automatic uses the background target with stretch only. Apply finish selects Dark sky + cleanup and applies the checked cleanup options."
+                      Foreground="#7D8CA1"
+                      FontSize="10"
+                      TextWrapping="Wrap"
+                      Margin="0,0,0,10" />
+                    <StackPanel Orientation="Horizontal">
+                      <Button Content="Apply finish" Click="ApplyFinishClicked" Padding="10,6" />
+                      <Button
+                        Content="Reset defaults"
+                        Click="ResetFinishClicked"
+                        Padding="10,6"
+                        Margin="7,0,0,0" />
+                    </StackPanel>
+                  </StackPanel>
+                </Expander>
+                <DockPanel>
+                  <TextBlock Text="Opacity" FontSize="11" Foreground="#8D9AAD" />
+                  <TextBlock
+                    x:Name="OpacityLabel"
+                    Text="100%"
+                    FontSize="11"
+                    Foreground="#8D9AAD"
+                    HorizontalAlignment="Right" />
+                </DockPanel>
+                <Slider
+                  x:Name="OpacitySlider"
+                  Minimum="0"
+                  Maximum="1"
+                  Value="1"
+                  ValueChanged="OpacityChanged"
+                  Margin="0,6,0,8"
+                  ToolTip="Image opacity. Blend overlaps dims inset images further; hovering temporarily shows an inset at full opacity." />
+                <Expander
+                  Header="Manual sky placement"
+                  Foreground="#B6C4D5"
+                  FontSize="12"
+                  Margin="0,5,0,0"
+                  x:Name="ManualExpander">
+                  <StackPanel Margin="0,12,0,4">
+                    <TextBlock Text="Center RA (degrees, 0–360)" FontSize="10" Foreground="#8D9AAD" />
+                    <TextBox x:Name="ManualRa" Text="0" Margin="0,4,0,8" />
+                    <TextBlock Text="Center declination (degrees)" FontSize="10" Foreground="#8D9AAD" />
+                    <TextBox x:Name="ManualDec" Text="0" Margin="0,4,0,8" />
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="10" />
+                        <ColumnDefinition />
+                      </Grid.ColumnDefinitions>
+                      <StackPanel>
+                        <TextBlock Text="Width (degrees)" FontSize="10" Foreground="#8D9AAD" />
+                        <TextBox x:Name="ManualWidth" Text="2" Margin="0,4,0,8" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2">
+                        <TextBlock Text="Rotation (degrees)" FontSize="10" Foreground="#8D9AAD" />
+                        <TextBox x:Name="ManualRotation" Text="0" Margin="0,4,0,8" />
+                      </StackPanel>
+                    </Grid>
+                    <CheckBox x:Name="ManualMirror" Content="Mirror horizontally" Margin="0,2,0,12" />
+                    <TextBlock
+                      Text="0° = north up, east left. Positive rotation turns the image counterclockwise on the sky."
+                      Foreground="#7D8CA1"
+                      FontSize="10"
+                      TextWrapping="Wrap"
+                      Margin="0,0,0,10" />
+                    <StackPanel Orientation="Horizontal">
+                      <Button Content="Apply placement" Click="ApplyManualClicked" Padding="9,6" />
+                      <Button
+                        Content="Use file solution"
+                        Click="ResetPlacementClicked"
+                        Padding="9,6"
+                        Margin="6,0,0,0" />
+                    </StackPanel>
+                  </StackPanel>
+                </Expander>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+          <TextBlock
+            Grid.Row="4"
+            Text="Source files stay untouched. Sessions save your layout and display settings."
+            Foreground="#65758A"
+            FontSize="10"
+            TextWrapping="Wrap"
+            Margin="0,14,0,0"
+            LineHeight="16" />
+        </Grid>
+      </Border>
+      <Grid Grid.Column="1">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="*" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Border
+          Background="#0D141F"
+          BorderBrush="#253044"
+          BorderThickness="0,0,0,1"
+          Padding="16,10">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <CheckBox
+                x:Name="GridToggle"
+                Content="Grid"
+                IsChecked="True"
+                Click="SkyOptionsChanged" />
+              <CheckBox
+                x:Name="ConstellationToggle"
+                Content="Constellations"
+                IsChecked="True"
+                Click="SkyOptionsChanged" />
+              <CheckBox
+                x:Name="LabelToggle"
+                Content="Labels"
+                IsChecked="True"
+                Click="SkyOptionsChanged" />
+              <CheckBox
+                x:Name="FootprintToggle"
+                Content="Outlines"
+                IsChecked="True"
+                Click="SkyOptionsChanged" />
+              <CheckBox
+                x:Name="BlendToggle"
+                Content="Blend overlaps"
+                IsChecked="True"
+                Click="SkyOptionsChanged"
+                ToolTip="Larger sky fields behind smaller overlapping images. Hover an inset to see it at full opacity." />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+              <Button
+                Content="−"
+                Click="ZoomOutClicked"
+                Padding="10,3"
+                ToolTip="Zoom out" />
+              <Button
+                Content="+"
+                Click="ZoomInClicked"
+                Padding="10,3"
+                Margin="5,0"
+                ToolTip="Zoom in" />
+              <Button Content="Overview" Click="OverviewClicked" Padding="10,3" />
+            </StackPanel>
+          </Grid>
+        </Border>
+        <local:SkyViewport Grid.Row="1" x:Name="Sky" />
+        <Border
+          Grid.Row="1"
+          Background="#DE101722"
+          BorderBrush="#29394D"
+          BorderThickness="1"
+          CornerRadius="6"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Top"
+          Margin="20"
+          Padding="12,10"
+          MaxWidth="360">
+          <Expander
+            x:Name="TargetFinder"
+            IsExpanded="False"
+            Foreground="#B6C4D5"
+            HorizontalContentAlignment="Stretch"
+            AutomationProperties.Name="Find in the sky">
+            <Expander.Header>
+              <TextBlock
+                Text="Find in the sky"
+                FontSize="12"
+                FontWeight="SemiBold"
+                Foreground="#B6C4D5"
+                ToolTip="Expand or collapse the sky target finder" />
+            </Expander.Header>
+            <StackPanel Margin="0,10,0,0">
+              <Grid Width="300" Margin="0,0,0,7">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition />
+                  <ColumnDefinition Width="7" />
+                  <ColumnDefinition Width="110" />
+                </Grid.ColumnDefinitions>
+                <Grid>
+                  <TextBox
+                    x:Name="TargetSearch"
+                    TextChanged="TargetSearchChanged"
+                    KeyDown="TargetSearchKeyDown"
+                    AutomationProperties.Name="Filter sky targets"
+                    ToolTip="Search catalogue numbers or common names: M31, IC 434, Caldwell 20, North America…" />
+                  <TextBlock
+                    x:Name="TargetSearchPlaceholder"
+                    Text="Filter targets…"
+                    Foreground="#7D8CA1"
+                    FontSize="11"
+                    Margin="9,0,5,0"
+                    VerticalAlignment="Center"
+                    IsHitTestVisible="False" />
+                </Grid>
+                <ComboBox
+                  x:Name="TargetCatalogChoice"
+                  Grid.Column="2"
+                  SelectedIndex="0"
+                  SelectionChanged="TargetCatalogChanged"
+                  AutomationProperties.Name="Target catalogue">
+                  <ComboBoxItem Content="All catalogs" Tag="All" />
+                  <ComboBoxItem Content="Messier" Tag="Messier" />
+                  <ComboBoxItem Content="Caldwell" Tag="Caldwell" />
+                  <ComboBoxItem Content="NGC" Tag="Ngc" />
+                  <ComboBoxItem Content="IC" Tag="Ic" />
+                </ComboBox>
+              </Grid>
+              <ComboBox
+                x:Name="TargetChoice"
+                Width="300"
+                SelectionChanged="TargetChanged"
+                SelectedIndex="-1"
+                Tag="Choose a target…"
+                IsTextSearchEnabled="False"
+                VirtualizingPanel.IsVirtualizing="True"
+                VirtualizingPanel.VirtualizationMode="Recycling"
+                ToolTip="Choose a target to add its marker to the sky and frame it">
+                <ComboBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                  </ItemsPanelTemplate>
+                </ComboBox.ItemsPanel>
+                <ComboBox.ItemTemplate>
+                  <DataTemplate>
+                    <StackPanel ToolTip="{Binding Details}" MaxWidth="340">
+                      <TextBlock Text="{Binding Name}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                      <TextBlock
+                        Text="{Binding Summary}"
+                        FontSize="10"
+                        Foreground="#8D9AAD"
+                        TextTrimming="CharacterEllipsis"
+                        Margin="0,3,0,0" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <Grid Margin="0,7,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                  x:Name="TargetResults"
+                  Foreground="#78978F"
+                  FontSize="10"
+                  VerticalAlignment="Center"
+                  TextWrapping="Wrap" />
+                <Button
+                  x:Name="ClearTargetsButton"
+                  Grid.Column="1"
+                  Content="Clear added"
+                  Click="ClearTargetsClicked"
+                  Padding="7,3"
+                  FontSize="10"
+                  Margin="7,0,0,0"
+                  IsEnabled="False"
+                  ToolTip="Remove added catalogue markers; keep the prominent default sky labels" />
+              </Grid>
+              <Grid Margin="0,8,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition />
+                  <ColumnDefinition Width="7" />
+                  <ColumnDefinition />
+                  <ColumnDefinition Width="7" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="GoRa" Text="25" ToolTip="Right ascension in degrees" />
+                <TextBox
+                  x:Name="GoDec"
+                  Grid.Column="2"
+                  Text="38"
+                  ToolTip="Declination in degrees" />
+                <Button
+                  x:Name="TargetGoButton"
+                  Content="Go"
+                  Grid.Column="4"
+                  Click="GoCoordinatesClicked"
+                  Padding="10,4"
+                  ToolTip="Go to these coordinates; frame the selected target when its coordinates match" />
+              </Grid>
+              <TextBlock
+                Text="RA / Dec in degrees · J2000"
+                Foreground="#677B91"
+                FontSize="9"
+                Margin="0,5,0,0" />
+            </StackPanel>
+          </Expander>
+        </Border>
+        <Border
+          Grid.Row="1"
+          Background="#D9101722"
+          BorderBrush="#29394D"
+          BorderThickness="1"
+          CornerRadius="6"
+          HorizontalAlignment="Left"
+          VerticalAlignment="Bottom"
+          Margin="20"
+          Padding="12,9">
+          <StackPanel>
+            <TextBlock
+              x:Name="ViewCoordinates"
+              Foreground="#C6D9E6"
+              FontFamily="Consolas"
+              FontSize="12" />
+            <TextBlock
+              x:Name="ViewField"
+              Foreground="#8BE2C3"
+              FontSize="10"
+              Margin="0,4,0,0" />
+            <TextBlock
+              x:Name="ViewObserverTime"
+              Foreground="#8D9AAD"
+              FontSize="10"
+              Margin="0,5,0,0"
+              Visibility="Collapsed" />
+          </StackPanel>
+        </Border>
+        <TextBlock
+          Grid.Row="1"
+          Text="Drag to explore  ·  Scroll to zoom  ·  Double-click image to open  ·  F to fit"
+          Foreground="#6F8298"
+          HorizontalAlignment="Right"
+          VerticalAlignment="Bottom"
+          Margin="20,0,20,25"
+          FontSize="11" />
+        <local:SceneTimeline
+          x:Name="Timeline"
+          Grid.Row="2"
+          TimeSelected="SceneTimeSelected"
+          LiveRequested="SceneLiveRequested" />
+      </Grid>
+    </Grid>
+    <Border
+      Grid.Row="2"
+      Background="#101722"
+      BorderBrush="#253044"
+      BorderThickness="0,1,0,0">
+      <Grid Margin="15,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBlock
+          x:Name="StatusText"
+          Text="Ready · Add your astronomical images to begin"
+          VerticalAlignment="Center"
+          Foreground="#9AAABD"
+          FontSize="11"
+          TextTrimming="CharacterEllipsis" />
+        <ProgressBar
+          x:Name="ProcessingProgress"
+          Grid.Column="1"
+          Width="90"
+          Height="4"
+          VerticalAlignment="Center"
+          Margin="8,0"
+          Minimum="0"
+          Maximum="100"
+          IsIndeterminate="True"
+          Visibility="Collapsed" />
+        <Button
+          x:Name="CancelButton"
+          Grid.Column="2"
+          Content="Cancel"
+          Visibility="Collapsed"
+          Click="CancelClicked"
+          Padding="8,2"
+          Margin="8,3" />
+        <Button
+          Grid.Column="3"
+          Content="Details"
+          Click="DetailsClicked"
+          Padding="8,2"
+          Margin="8,3,0,3" />
+      </Grid>
+    </Border>
+  </Grid>
+</Window>

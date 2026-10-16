@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>SkyBrowser</AssemblyName>
+    <RootNamespace>SkyBrowser.Desktop</RootNamespace>
+    <ApplicationIcon>Assets\SkyBrowser.ico</ApplicationIcon>
+    <!-- Exclude symbols and API documentation for both the app and its dependencies. -->
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+    <PublishReferencesSymbols>false</PublishReferencesSymbols>
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
+  </PropertyGroup>
+  <ItemGroup>
+    <Resource Include="Assets\SkyBrowser.ico" />
+    <EmbeddedResource Include="Data\world-countries.geojson" />
+    <ProjectReference Include="..\SkyBrowser.Core\SkyBrowser.Core.csproj" />
+    <None
+      Include="..\..\THIRD-PARTY-NOTICES.md"
+      Link="THIRD-PARTY-NOTICES.md"
+      CopyToOutputDirectory="PreserveNewest" />
+    <None
+      Include="..\..\docs\SkyBrowser-User-Manual.pdf"
+      Link="SkyBrowser-User-Manual.pdf"
+      CopyToPublishDirectory="PreserveNewest"
+      ExcludeFromSingleFile="true" />
+  </ItemGroup>
+</Project>
