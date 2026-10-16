@@ -3,7 +3,8 @@
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   xmlns:local="clr-namespace:SkyBrowser.Desktop.Controls"
-  Title="SkyBrowser"
+  xmlns:services="clr-namespace:SkyBrowser.Desktop.Services"
+  Title="{x:Static services:ApplicationVersion.WindowTitle}"
   Style="{StaticResource {x:Type Window}}"
   Width="1440"
   Height="920"
@@ -32,7 +33,7 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+        <StackPanel x:Name="ApplicationHeading" Orientation="Horizontal" VerticalAlignment="Center">
           <Grid Width="34" Height="34" Margin="0,0,12,0">
             <Ellipse Stroke="#8BE2C3" StrokeThickness="1" Margin="5" />
             <Ellipse
@@ -49,6 +50,15 @@
           </Grid>
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="SkyBrowser" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock
+              x:Name="VersionLabel"
+              Text="{x:Static services:ApplicationVersion.DisplayVersion}"
+              ToolTip="{x:Static services:ApplicationVersion.InformationalVersion}"
+              AutomationProperties.Name="Application version"
+              FontSize="11"
+              Foreground="#8D9AAD"
+              VerticalAlignment="Center"
+              Margin="8,0,0,0" />
             <TextBlock
               Text="YOUR PERSONAL SKY ATLAS"
               FontSize="11"

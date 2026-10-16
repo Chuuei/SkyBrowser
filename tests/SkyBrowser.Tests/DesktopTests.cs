@@ -1,5 +1,7 @@
 using System.IO;
+using System.Reflection;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -45,6 +47,7 @@ public sealed class DesktopTests
                         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
                         Assert.Same(currentWindow, Application.Current.MainWindow);
                         Assert.Single(Application.Current.Windows.OfType<MainWindow>());
+                        VerifyApplicationVersion(currentWindow);
                         Capture(currentWindow, "overview.png");
                         MeasureSkyPerformance(currentWindow);
                         await VerifyFirstRunSetup(currentWindow, directory);
@@ -228,6 +231,7 @@ public sealed class DesktopTests
                         currentWindow.Width = 1050;
                         currentWindow.Height = 720;
                         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+                        VerifyApplicationVersion(currentWindow);
                         Assert.True(((FrameworkElement)currentWindow.FindName("InspectorScroller")).ActualHeight < 310);
                         Capture(currentWindow, "compact.png");
                         completion.SetResult();
@@ -265,6 +269,25 @@ public sealed class DesktopTests
                 Directory.Delete(directory, true);
             }
         }
+    }
+
+    private static void VerifyApplicationVersion(MainWindow window)
+    {
+        string informationalVersion = typeof(App).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        string version = informationalVersion.Split('+')[0];
+        Assert.Matches(@"^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$", version);
+        Assert.Equal($"SkyBrowser v{version}", window.Title);
+        var label = (TextBlock)window.FindName("VersionLabel");
+        Assert.Equal($"v{version}", label.Text);
+        Assert.Equal(informationalVersion, label.ToolTip);
+        Assert.True(label.IsVisible);
+        Assert.True(label.ActualWidth > 0);
+        var heading = (FrameworkElement)window.FindName("ApplicationHeading");
+        var actions = (FrameworkElement)window.FindName("FileActions");
+        double headingRight = heading.TranslatePoint(new(heading.ActualWidth, 0), window).X;
+        double actionsLeft = actions.TranslatePoint(new(0, 0), window).X;
+        Assert.True(headingRight + 8 <= actionsLeft, "The version/header must leave space for all file actions at minimum width.");
     }
 
     private static byte[] SampleTexture(MainWindow window)
