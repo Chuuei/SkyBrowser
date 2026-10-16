@@ -1,5 +1,7 @@
 # SkyBrowser
 
+**Development note:** SkyBrowser was created with the help of OpenAI Codex.
+
 A Windows desktop sky atlas for your FITS and XISF photographs. Explore an offline
 star map, place solved images on the sky, blend overlapping fields, and save scenes.
 Display processing preserves your original scientific files.
