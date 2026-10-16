@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/Dependencies/">
-    <Project Path="../XISFLib.Net/XISFLib/XISFLib.csproj" />
+    <Project Path="dependencies/XISFLib.Net/XISFLib/XISFLib.csproj" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/SkyBrowser.Core/SkyBrowser.Core.csproj" />

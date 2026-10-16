@@ -19,10 +19,10 @@ using their astrometry over an offline star, constellation and deep-sky map.
   usings, deterministic builds and repository-local `artifacts/` output.
 - `global.json` permits a newer SDK to build the .NET 10 targets. A newer selected
   SDK is not a reason to change the target framework.
-- XISFLib is a source project reference in the adjacent checkout
-  `../XISFLib.Net/XISFLib/XISFLib.csproj`. `XisfLibraryRoot` overrides the root for
+- XISFLib is a source project reference in the pinned Git submodule
+  `dependencies/XISFLib.Net/XISFLib/XISFLib.csproj`. `XisfLibraryRoot` overrides the root for
   project builds; the solution also has an explicit dependency path to update if
-  that checkout moves. Do not replace this with an unrelated package.
+  the submodule path changes. Do not replace this with an unrelated package.
 - The user owns XISFLib and permits changes there when necessary. Before editing
   that separate repository, read its own `AGENTS.md` and inspect its working tree.
   It can contain unrelated changes; preserve them and respect filesystem access
@@ -78,7 +78,7 @@ image processing, astrometry, caching or desktop workflows:
 $env:SKYBROWSER_SOLVED_SAMPLES = Join-Path $PWD 'examples'
 $env:SKYBROWSER_SCREENSHOTS = Join-Path $PWD 'artifacts\screenshots'
 # Optional additional source images, if the adjacent checkout provides them:
-$env:SKYBROWSER_SAMPLE_DIRECTORY = [IO.Path]::GetFullPath((Join-Path $PWD '..\XISFLib.Net\Examples'))
+$env:SKYBROWSER_SAMPLE_DIRECTORY = [IO.Path]::GetFullPath((Join-Path $PWD 'dependencies\XISFLib.Net\Examples'))
 dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
 ```
 
@@ -324,3 +324,11 @@ licenses and catalogue data.
   `artifacts/`. Do not depend on local benchmark reports being present later.
 - Report what changed, what was verified and any remaining limitations. Do not
   claim a build, test run, privacy review or performance gain without evidence.
+
+## Public repository workflow
+
+- Run tools/Initialize-Dependencies.ps1 after cloning; it skips optional LFS images.
+- README.md is the short user entry point; docs/technical-reference.md retains detailed behavior.
+- Apache-2.0 and NOTICE cover authored code. Preserve separate third-party/data licenses.
+- Build-release tooling verifies notices, package contents and source-compliance assets before publication.
+- Windows CI checks builds/tests and version tags publish validated release assets. Keep PR jobs read-only.

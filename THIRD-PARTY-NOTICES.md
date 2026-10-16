@@ -24,7 +24,7 @@ The full license is reproduced in [LICENSE-OpenNGC.txt](src/SkyBrowser.Core/Data
 
 ## XISFLib.Net
 
-SkyBrowser references the user's separate [XISFLib.Net checkout](../XISFLib.Net) for scientific image reading, rendering, stretching and astrometry. Its transitive packages include K4os.Compression.LZ4, ZstdSharp.Port, and System.Security.Cryptography.Xml. Their licenses and redistribution conditions remain applicable when distributing the program. No astronomy images from that checkout are bundled with SkyBrowser.
+SkyBrowser pins [XISFLib.Net](https://github.com/Chuuei/XISFLib.Net) as the source submodule at `dependencies/XISFLib.Net`. Authored library code is Apache-2.0. Its LICENSE, NOTICE and redistribution guide are copied to `Data/XISFLib-*`. Its compression and cryptography dependencies retain their own terms; no library example photographs are bundled.
 
 ## Image finishing
 
@@ -37,3 +37,25 @@ Cosmetic filters use **Magick.NET-Q16-AnyCPU 15.0.0**, the same version as the A
 The cache uses **Microsoft.Data.Sqlite 10.0.13** and its Core package (MIT, .NET Foundation and Contributors), together with **SQLitePCLRaw 2.1.13** (Apache-2.0, Copyright 2014–2024 SourceGear, LLC). Their license texts are included in the output as `Data/LICENSE-Microsoft.Data.Sqlite.txt` and `Data/LICENSE-SQLitePCLRaw.txt`.
 
 The SQLitePCLRaw bundle supplies the native SQLite runtime. SQLite's deliverable code is dedicated to the public domain; see the [SQLite copyright statement](https://www.sqlite.org/copyright.html). The database is created locally at runtime and contains user-generated previews; no example photographs are bundled.
+
+## Application license and complete distribution
+
+SkyBrowser-authored code is Apache-2.0. Preserve the relevant attribution in
+`NOTICE`. `SkyImageFinisher` identifies its adaptation from XISFLib.Net and its
+full-frame/bounded-preview changes. Third-party code and datasets retain their
+own licenses; the application license does not relicense them.
+
+K4os.Compression.LZ4 1.3.8 (Copyright 2017 Milosz Krajewski) and ZstdSharp.Port 0.8.8
+(Copyright 2021 Oleg Stepanischev) are MIT. Their full texts are supplied as
+`Data/LICENSE-K4os.Compression.LZ4.txt` and `Data/LICENSE-ZstdSharp.txt`, together with
+`Data/LICENSE-Zstandard.txt` for the original BSD-3-Clause Zstandard code.
+Microsoft cryptography/runtime components are MIT, with additional runtime notices
+in `Data/DotNet-THIRD-PARTY-NOTICES.txt` and
+`Data/WindowsDesktop-THIRD-PARTY-NOTICES.txt`.
+
+The managed Magick.NET wrapper's Apache-2.0 license does not cover every native
+ImageMagick delegate. Preserve the complete `Data/Magick.NET-Notice.txt`, including
+its native license texts and copyrights. Releases additionally supply the exact
+Magick.NET 15.0.0 native sources, dependency sources and rebuild materials in
+`XISFLib.NativeSources-Magick.NET-15.0.0.zip`, at the same release location as the
+binary. Read [licensing and source/relinking instructions](docs/licensing.md).

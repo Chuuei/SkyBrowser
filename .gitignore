@@ -6,4 +6,8 @@ riderModule.iml
 /artifacts/
 /examples/*
 !/examples/examples.txt
+!/examples/README.md
 *.sky.json
+__pycache__/
+*.py[cod]
+.idea/

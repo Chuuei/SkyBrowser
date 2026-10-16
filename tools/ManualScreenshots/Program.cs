@@ -34,6 +34,24 @@ internal static class Program
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
         CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
         string root = Path.GetFullPath(".");
+        string[] arguments = Environment.GetCommandLineArgs()[1..];
+        if (arguments.Length > 1)
+        {
+            Console.Error.WriteLine("Usage: SkyBrowser.ManualScreenshots [sample-directory]");
+            return 2;
+        }
+        string sampleDirectory = Path.GetFullPath(arguments.FirstOrDefault() ??
+            Environment.GetEnvironmentVariable("SKYBROWSER_SOLVED_SAMPLES") ?? Path.Combine(root, "examples"));
+        string[] files = Directory.Exists(sampleDirectory) ? Directory.GetFiles(sampleDirectory) : [];
+        string? widePath = files.FirstOrDefault(path => Path.GetExtension(path).Equals(".fits", StringComparison.OrdinalIgnoreCase) &&
+            Path.GetFileName(path).Contains("horsehead", StringComparison.OrdinalIgnoreCase));
+        string? detailPath = files.FirstOrDefault(path => Path.GetExtension(path).Equals(".xisf", StringComparison.OrdinalIgnoreCase) &&
+            Path.GetFileName(path).Contains("434", StringComparison.OrdinalIgnoreCase));
+        if (widePath is null || detailPath is null)
+        {
+            Console.Error.WriteLine("Optional manual samples are missing. Supply a sample directory containing a plate-solved Horsehead .fits and a smaller overlapping IC434 .xisf. See docs/manual/README.md. No screenshots were changed.");
+            return 2;
+        }
         string output = Path.Combine(root, "docs", "manual", "screenshots");
         Directory.CreateDirectory(output);
 
@@ -49,12 +67,6 @@ internal static class Program
             try
             {
                 var loader = new CachedSkyImageLoader(cache);
-                string[] files = Directory.GetFiles(Path.Combine(root, "examples"));
-                string widePath = files.First(path => Path.GetExtension(path).Equals(".fits", StringComparison.OrdinalIgnoreCase) &&
-                    Path.GetFileName(path).Contains("horsehead", StringComparison.OrdinalIgnoreCase));
-                string detailPath = files.First(path => Path.GetExtension(path).Equals(".xisf", StringComparison.OrdinalIgnoreCase) &&
-                    Path.GetFileName(path).Contains("434", StringComparison.OrdinalIgnoreCase));
-
                 // Scientific pixels and sky geometry are useful illustrations. All identifying
                 // fields are replaced before any image enters a window or screenshot.
                 var originals = await Task.Run(() => new[]

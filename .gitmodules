@@ -1,0 +1,3 @@
+[submodule "dependencies/XISFLib.Net"]
+	path = dependencies/XISFLib.Net
+	url = https://github.com/Chuuei/XISFLib.Net.git

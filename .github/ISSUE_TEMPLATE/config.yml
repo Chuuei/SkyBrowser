@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/Chuuei/SkyBrowser/discussions
+    about: Ask for help or discuss a workflow before filing a bug.
+  - name: Private security report
+    url: https://github.com/Chuuei/SkyBrowser/security/advisories/new
+    about: Report vulnerabilities or sensitive concerns privately.

@@ -7,6 +7,8 @@ namespace SkyBrowser.Core.Imaging;
 /// <summary>
 /// Adapts the Avalonia viewer's dark-sky stretch, clipped background plane and Magick.NET cosmetics.
 /// Keeps the entire frame and stored row order so the image's astrometry stays valid.
+/// Adapted from XISFLib.Net ViewerFinishService; Copyright 2026 Chuuei and contributors,
+/// Apache-2.0. Changes preserve the full astrometric frame and render bounded previews.
 /// </summary>
 public static class SkyImageFinisher
 {

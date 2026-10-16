@@ -10,11 +10,25 @@ an accessible PDF next to SkyBrowser.exe.
 
 Use Python 3.12 or newer on Windows:
 
+Initialize the pinned library with `./tools/Initialize-Dependencies.ps1` first.
+Photographs are external inputs, not repository assets. Screenshot regeneration
+requires a wider plate-solved Horsehead `.fits` (filename includes `horsehead`) and
+a smaller overlapping IC434 `.xisf` (filename includes `434`). Pass their directory
+after `--`, or set `SKYBROWSER_SOLVED_SAMPLES`. With missing inputs the helper exits
+with a clear error before opening a window or changing approved screenshots.
+The committed screenshots/PDF allow normal builds and publishing without these inputs.
+
 ```powershell
 dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release
 python -m venv artifacts/manual-tools
 artifacts/manual-tools/Scripts/python.exe -m pip install -r tools/manual-requirements.txt
 artifacts/manual-tools/Scripts/python.exe tools/Build-UserManual.py
+```
+
+For external samples, use a neutral demonstration path, for example:
+
+```powershell
+dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release -- C:\SkyBrowserDemo\Samples
 ```
 
 The builder uses ReportLab and embeds the Windows Segoe UI fonts. Use

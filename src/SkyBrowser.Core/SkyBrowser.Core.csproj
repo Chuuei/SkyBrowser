@@ -9,10 +9,12 @@
     <ProjectReference Include="$(XisfLibraryRoot)\XISFLib\XISFLib.csproj" />
     <EmbeddedResource Include="Data\*.json" />
     <None Include="Data\LICENSE-*.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Data\*THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Data\deep-sky.json" CopyToOutputDirectory="PreserveNewest" />
     <None
       Include="$(PkgMagick_NET-Q16-AnyCPU)\Notice.txt"
       Link="Data\Magick.NET-Notice.txt"
       CopyToOutputDirectory="PreserveNewest" />
+    <None Include="$(PkgSystem_Security_Cryptography_Xml)\THIRD-PARTY-NOTICES.TXT" Condition="Exists('$(PkgSystem_Security_Cryptography_Xml)\THIRD-PARTY-NOTICES.TXT')" Link="Data\Cryptography-THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

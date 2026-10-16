@@ -5,7 +5,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
     <ShouldUnsetParentConfigurationAndPlatform>false</ShouldUnsetParentConfigurationAndPlatform>
-    <XisfLibraryRoot Condition="'$(XisfLibraryRoot)' == ''">$(MSBuildThisFileDirectory)..\XISFLib.Net</XisfLibraryRoot>
+    <XisfLibraryRoot Condition="'$(XisfLibraryRoot)' == ''">$(MSBuildThisFileDirectory)dependencies\XISFLib.Net</XisfLibraryRoot>
+    <Version>0.1.0</Version>
+    <Authors>Chuuei and contributors</Authors>
+    <RepositoryUrl>https://github.com/Chuuei/SkyBrowser</RepositoryUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsAsErrors>
     <UseArtifactsOutput>true</UseArtifactsOutput>
     <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
   </PropertyGroup>

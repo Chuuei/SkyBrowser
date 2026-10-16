@@ -1,0 +1,34 @@
+name: Bug report
+description: Report a reproducible problem with SkyBrowser.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Remove personal paths, observing locations and private image metadata.
+        Report security issues through the Security tab's private reporting route.
+  - type: input
+    id: version
+    attributes:
+      label: SkyBrowser version and Windows version
+      placeholder: e.g. SkyBrowser 0.1.0, Windows 11 x64
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Include display mode and file format. Prefer a small generated or anonymized fixture.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Sanitized error details or screenshots
+      description: Never attach settings, sessions, caches, credentials or private photographs without reviewing their contents.
