@@ -1482,6 +1482,10 @@ public sealed class DesktopTests
         Assert.True(sky.IsBlendedInset(small));
         Assert.False(sky.IsBlendedInset(big));
         Assert.Same(small, sky.ImageAt(pointer));
+        // Earlier desktop scenarios can leave a pointer in the viewport. The baseline
+        // samples the unhovered blend, independently of the runner's cursor position.
+        sky.UpdateHover(null);
+        Assert.Null(sky.HoveredLayer);
         var blended = PixelAt(sky, pointer);
         Assert.InRange(blended[2], 150, 156);
         Assert.InRange(blended[0], 99, 105);

@@ -1,4 +1,7 @@
-param([Parameter(Mandatory)] [ValidatePattern('^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$')] [string] $Version)
+param(
+    [Parameter(Mandatory)] [ValidatePattern('^\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$')] [string] $Version,
+    [string] $OutputRoot = (Join-Path $PSScriptRoot '../artifacts/release')
+)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -8,7 +11,7 @@ try {
     if ($LASTEXITCODE -ne 0 -or $changes.Count -ne 0) {
         throw 'Release packaging requires committed source and a clean working tree, including the submodule.'
     }
-    $output = Join-Path $root "artifacts/release/$Version"
+    $output = Join-Path ([IO.Path]::GetFullPath($OutputRoot)) $Version
     $null = New-Item -ItemType Directory -Path $output -Force
     $work = Join-Path $output ('work-' + [Guid]::NewGuid().ToString('N'))
     $publish = Join-Path $work 'application'
@@ -24,7 +27,7 @@ try {
     $libraryZip = Join-Path $work 'library-source.zip'
     & git archive --format=zip "--output=$mainZip" HEAD
     if ($LASTEXITCODE -ne 0) { throw 'Application source archive failed.' }
-    & git -C dependencies/XISFLib.Net archive --format=zip "--output=$libraryZip" HEAD -- . ':(exclude)Examples'
+    & git -C dependencies/XISFLib.Net archive --format=zip "--output=$libraryZip" HEAD -- . ':(exclude)Examples' ':(exclude).idea'
     if ($LASTEXITCODE -ne 0) { throw 'Library source archive failed.' }
     [IO.Compression.ZipFile]::ExtractToDirectory($mainZip, $source)
     [IO.Compression.ZipFile]::ExtractToDirectory($libraryZip, (Join-Path $source 'dependencies/XISFLib.Net'), $true)
