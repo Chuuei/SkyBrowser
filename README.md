@@ -72,6 +72,9 @@ the manual.
 
 ## Help and contribute
 
+The app version appears beside the SkyBrowser name and in the window title.
+Include it when reporting a problem; hovering over it shows the full build identity.
+
 - Ask questions in [Discussions](https://github.com/Chuuei/SkyBrowser/discussions).
 - Report bugs or propose features through [Issues](https://github.com/Chuuei/SkyBrowser/issues/new/choose).
 - Follow [CONTRIBUTING.md](CONTRIBUTING.md) and the [code of conduct](CODE_OF_CONDUCT.md).
