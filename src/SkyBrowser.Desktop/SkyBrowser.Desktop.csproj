@@ -28,4 +28,9 @@
       CopyToPublishDirectory="PreserveNewest"
       ExcludeFromSingleFile="true" />
   </ItemGroup>
+  <Target Name="ExcludePublishSymbolsAndXmlDocumentation" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(ResolvedFileToPublish.Extension)' == '.pdb' Or '%(ResolvedFileToPublish.Extension)' == '.xml'" />
+    </ItemGroup>
+  </Target>
 </Project>

@@ -32,7 +32,8 @@ $forbidden = @(Get-ChildItem -LiteralPath $PublishDirectory -File -Recurse | Whe
     $_.Name -match '(?i)settings\.json|\.sky\.json$|\.sqlite3?$'
 })
 if ($forbidden.Count -gt 0) {
-    throw 'Private/scientific/debug/XML files were found in the release package.'
+    $extensions = ($forbidden.Extension | Sort-Object -Unique) -join ', '
+    throw "Private/scientific/debug/XML files were found in the release package (extensions: $extensions)."
 }
 $nativeLock = Get-Content (Join-Path $root 'dependencies/XISFLib.Net/tools/native-source-lock.json') -Raw | ConvertFrom-Json
 if ('Magick.NET-Q16-AnyCPU/' + $nativeLock.magickNetVersion -notin $packages) {
