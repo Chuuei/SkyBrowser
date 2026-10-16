@@ -31,4 +31,4 @@ body:
     id: details
     attributes:
       label: Sanitized error details or screenshots
-      description: Never attach settings, sessions, caches, credentials or private photographs without reviewing their contents.
+      description: Never attach settings, caches, credentials or private photographs without reviewing their contents.

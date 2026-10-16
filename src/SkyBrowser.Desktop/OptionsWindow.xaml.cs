@@ -106,6 +106,10 @@ public partial class OptionsWindow : Window
             ShowLabels.IsChecked = options.ShowLabels;
             ShowOutlines.IsChecked = options.ShowOutlines;
             BlendOverlaps.IsChecked = options.BlendOverlaps;
+            AstapPathInput.Text = options.AstapExecutablePath;
+            AstapDatabaseInput.Text = options.AstapDatabaseDirectory;
+            AstapTimeoutInput.Text = options.AstapTimeoutSeconds.ToString(CultureInfo.InvariantCulture);
+            AstapFieldInput.Text = options.AstapFieldHeightDegrees.ToString("0.####", CultureInfo.InvariantCulture);
         }
         finally
         {
@@ -132,6 +136,11 @@ public partial class OptionsWindow : Window
             throw new ArgumentException("Choose an observer location on the map, or disable the startup observer.");
         }
 
+        if (!int.TryParse(AstapTimeoutInput.Text, out int timeout) || !Number(AstapFieldInput.Text, out double field))
+        {
+            throw new ArgumentException("Enter an ASTAP time limit and field height (0 for automatic).");
+        }
+
         return new ApplicationOptions
         {
             CacheDirectory = CacheDirectoryInput.Text.Trim(),
@@ -150,7 +159,11 @@ public partial class OptionsWindow : Window
             ShowConstellations = ShowConstellations.IsChecked == true,
             ShowLabels = ShowLabels.IsChecked == true,
             ShowOutlines = ShowOutlines.IsChecked == true,
-            BlendOverlaps = BlendOverlaps.IsChecked == true
+            BlendOverlaps = BlendOverlaps.IsChecked == true,
+            AstapExecutablePath = AstapPathInput.Text.Trim().Trim('"'),
+            AstapDatabaseDirectory = AstapDatabaseInput.Text.Trim().Trim('"'),
+            AstapTimeoutSeconds = timeout,
+            AstapFieldHeightDegrees = field
         }.Normalize();
     }
 
@@ -200,6 +213,24 @@ public partial class OptionsWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             CacheDirectoryInput.Text = dialog.FolderName;
+        }
+    }
+
+    private void BrowseAstapClicked(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog { Title = "Choose ASTAP or ASTAP CLI", Filter = "ASTAP executable|*.exe|All files|*.*" };
+        if (dialog.ShowDialog(this) == true)
+        {
+            AstapPathInput.Text = dialog.FileName;
+        }
+    }
+
+    private void BrowseAstapDatabaseClicked(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFolderDialog { Title = "Choose the ASTAP star database folder" };
+        if (dialog.ShowDialog(this) == true)
+        {
+            AstapDatabaseInput.Text = dialog.FolderName;
         }
     }
 

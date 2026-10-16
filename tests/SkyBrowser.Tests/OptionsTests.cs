@@ -37,7 +37,11 @@ public sealed class OptionsTests
                 ShowLabels = false,
                 ShowConstellations = false,
                 ShowOutlines = false,
-                BlendOverlaps = false
+                BlendOverlaps = false,
+                AstapExecutablePath = Path.Combine(dir, "astap.exe"),
+                AstapDatabaseDirectory = Path.Combine(dir, "stars"),
+                AstapTimeoutSeconds = 240,
+                AstapFieldHeightDegrees = 1.5
             };
             store.Write(options);
             Assert.False(new ApplicationOptionsStore(store.FilePath).NeedsFirstRunSetup);

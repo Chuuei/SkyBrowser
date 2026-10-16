@@ -54,7 +54,7 @@ The builder supports the subset used by this manual: headings, paragraphs, bold
 text, lists, tables, callouts and local images. A horizontal rule starts a new page.
 The small HTML comments before images specify PDF-only clipping, height and numbered
 tour markers. A `pair` comment places two figures side by side; `workflow` adds the
-session diagram. These comments do not alter the original screenshot files.
+automatic startup diagram. These comments do not alter the original screenshot files.
 
 The screenshots show real WPF windows populated by the anonymous demonstration model
 in `tools/ManualScreenshots`. The helper reads only preview pixels and sky geometry
@@ -64,6 +64,11 @@ read the user's saved options or observing location. All paths use `C:\SkyBrowse
 the observer example uses latitude 0, longitude 0 and a fixed UTC time in the year
 2000. Timeline examples also replace the computer-local clock readouts with UTC.
 It writes the SHA-256 manifest after capturing all images.
+
+The library screenshot uses explicit `LibraryFolder` demonstration rows and a
+separate empty test database, never a user's archive. ASTAP options use the neutral
+example executable path `C:\Program Files\ASTAP\astap.exe`; no solver is run for
+screenshots. Do not substitute actual library paths or index records.
 
 Do not copy raw desktop-test screenshots into this directory. Cropping or drawing a
 box over a screenshot in the PDF would leave its original pixels recoverable from

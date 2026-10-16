@@ -169,13 +169,21 @@ public static class SkyImageLoader
         // without transforming the solution would rotate or mirror the texture relative to the sky.
         var imageDetails = ImageMetadataSnapshot.Capture(image);
         image.Orientation = "0";
+        var (bayerPattern, cfaWarning) = SkyImageDebayer.Detect(image);
+        var displayImage = image;
+        if (bayerPattern is not null)
+        {
+            progress?.Report(new($"Debayering {bayerPattern} mosaic to RGB"));
+            displayImage = SkyImageDebayer.Create(image, bayerPattern, token);
+        }
+
         finishSettings ??= SkyFinishSettings.Default;
         DisplayPixels preview;
         string description;
-        if (mode == DisplayMode.Finished ||
+        if (cfaWarning is null && (mode == DisplayMode.Finished ||
             (mode == DisplayMode.Automatic &&
-                image.DisplayFunction is null &&
-                SkyImageFinisher.LooksLinear(image, token)))
+                displayImage.DisplayFunction is null &&
+                SkyImageFinisher.LooksLinear(displayImage, token))))
         {
             // Automatic uses the same dark-sky stretch without cosmetic processing. Keep
             // the user's full settings on the result so switching to cleanup restores them.
@@ -188,7 +196,7 @@ public static class SkyImageLoader
                     EnhanceDetail = false
                 }
                 : finishSettings;
-            (preview, description) = SkyImageFinisher.Render(image, processing, token, progress);
+            (preview, description) = SkyImageFinisher.Render(displayImage, processing, token, progress);
             if (mode == DisplayMode.Automatic)
             {
                 description += " · stretch only";
@@ -197,7 +205,7 @@ public static class SkyImageLoader
         else
         {
             progress?.Report(new("Rendering display preview"));
-            var rendered = Render(image, mode);
+            var rendered = Render(displayImage, cfaWarning is not null && mode == DisplayMode.Finished ? DisplayMode.Linear : mode);
             token.ThrowIfCancellationRequested();
             progress?.Report(new("Resizing display preview"));
             preview = Downsample(rendered.Pixels, 2048, token);
@@ -222,10 +230,15 @@ public static class SkyImageLoader
             details += $" · {exposure:g} s";
         }
 
-        if (image.ColorFilterArray is not null ||
-            image.FitsKeywords.Any(k => k.Name.Equals("BAYERPAT", StringComparison.OrdinalIgnoreCase)))
+        if (bayerPattern is not null)
         {
-            details += "\nCFA mosaic displayed as grayscale; debayer before importing for color.";
+            string debayered = $"Automatically debayered {bayerPattern} to RGB (bilinear)";
+            details += $"\n{debayered}.";
+            description += $" · {debayered}";
+        }
+        else if (cfaWarning is not null)
+        {
+            details += $"\n{cfaWarning}";
         }
 
         return new(path, index, name, width, height, preview, description, placement, warning, details)

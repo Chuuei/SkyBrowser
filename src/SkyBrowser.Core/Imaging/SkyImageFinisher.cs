@@ -546,7 +546,7 @@ public static class SkyImageFinisher
 
     private static byte ToByte(double value) => (byte)Math.Round(FiniteUnit(value) * 255);
 
-    private readonly ref struct SampleReader
+    internal readonly ref struct SampleReader
     {
         // Read scientific samples in their original layout and byte order. Normalization
         // is for the preview only; the source buffer remains read-only.

@@ -208,7 +208,7 @@ class Screenshot(Flowable):
             canvas.drawCentredString(center_x, center_y - 3, label)
 
 
-class SessionDiagram(Flowable):
+class StartupDiagram(Flowable):
     def __init__(self):
         super().__init__()
         self.width = WIDTH
@@ -219,9 +219,9 @@ class SessionDiagram(Flowable):
         gap = 28
         card_width = (WIDTH - gap * 2) / 3
         for index, (title, detail) in enumerate((
-            ("Original images", "FITS / XISF files"),
-            ("Session file", "Your .sky.json choices"),
-            ("Restored sky", "Open the session later"),
+            ("Saved folders", "Your image library"),
+            ("Cached previews", "Read sources if needed"),
+            ("Images in the sky", "Loaded on application start"),
         )):
             x = index * (card_width + gap)
             canvas.setFillColor(PALE)
@@ -234,7 +234,7 @@ class SessionDiagram(Flowable):
             canvas.drawCentredString(x + card_width / 2, 31, detail)
         canvas.setFillColor(ACCENT)
         canvas.setFont("Manual-Bold", 16)
-        canvas.drawCentredString(card_width + gap / 2, 38, "+")
+        canvas.drawCentredString(card_width + gap / 2, 38, "→")
         start = 2 * card_width + gap + 5
         end = start + gap - 10
         canvas.setStrokeColor(ACCENT)
@@ -318,7 +318,7 @@ def markdown_story(source: Path, styles) -> list[Flowable]:
         if line == "---":
             story.append(PageBreak())
         elif line == "<!-- workflow -->":
-            story.append(SessionDiagram())
+            story.append(StartupDiagram())
         elif line == "<!-- pair -->":
             first, index = figure(lines, index + 1, styles, (WIDTH - 16) / 2)
             second, index = figure(lines, index, styles, (WIDTH - 16) / 2)

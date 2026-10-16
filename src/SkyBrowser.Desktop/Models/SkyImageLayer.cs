@@ -91,7 +91,16 @@ public sealed class SkyImageLayer : INotifyPropertyChanged
         Image = image;
         Bitmap = CreateBitmap(image.Preview);
         DisplayMode = mode;
+        Changed(nameof(Image));
+        Changed(nameof(Name));
+        Changed(nameof(SourceLabel));
         Changed(nameof(Bitmap));
+        if (Manual is null)
+        {
+            Placement = image.Placement;
+            Changed(nameof(Placement));
+            Changed(nameof(PlacementLabel));
+        }
     }
 
     private static BitmapSource CreateBitmap(DisplayPixels preview)

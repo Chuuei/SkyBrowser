@@ -78,8 +78,6 @@
             Click="OptionsClicked"
             Margin="0,0,8,0"
             ToolTip="Persistent defaults for images, observer location and cache" />
-          <Button Content="Open session" Click="OpenSessionClicked" Margin="0,0,8,0" />
-          <Button Content="Save session" Click="SaveSessionClicked" Margin="0,0,16,0" />
           <Button
             Content="+  Add images"
             Click="ImportClicked"
@@ -119,7 +117,9 @@
                 FontSize="11"
                 Foreground="#8BE2C3" />
             </DockPanel>
-            <Grid Margin="0,0,0,8">
+            <Button x:Name="LibraryButton" Content="Image library…" Click="LibraryClicked"
+              ToolTip="Search your persistent archive and add selected images to the sky" Margin="0,0,0,8" />
+            <Grid Margin="0,0,0,8" Visibility="Collapsed">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition Width="Auto" />
@@ -140,6 +140,7 @@
             </Grid>
             <ComboBox
               x:Name="RecentFolders"
+              Visibility="Collapsed"
               Tag="Recent folders…"
               DisplayMemberPath="Name"
               SelectionChanged="RecentFolderChanged"
@@ -381,6 +382,13 @@
                   FontSize="11"
                   TextWrapping="Wrap"
                   Margin="0,7,0,0" />
+                <WrapPanel Margin="0,10,0,0">
+                  <Button x:Name="SolveButton" Content="Blind solve &amp; place…" Click="SolveClicked"
+                    Margin="0,0,6,0" Padding="10,6" />
+                  <Button x:Name="SaveSolvedImageButton" Content="Save solved copy…" Click="SaveSolvedImageClicked"
+                    ToolTip="Save original scientific pixels and the ASTAP solution as a new FITS or XISF file."
+                    Padding="10,6" />
+                </WrapPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,12">
                   <Button
                     Content="Go to image"
@@ -553,7 +561,7 @@
           </Border>
           <TextBlock
             Grid.Row="4"
-            Text="Source files stay untouched. Sessions save your layout and display settings."
+            Text="Saved folders reopen automatically. Valid cached previews make loading faster. Source files stay untouched."
             Foreground="#65758A"
             FontSize="10"
             TextWrapping="Wrap"

@@ -9,6 +9,7 @@ using SkyBrowser.Core.Astronomy;
 using SkyBrowser.Core.Caching;
 using SkyBrowser.Core.Configuration;
 using SkyBrowser.Core.Imaging;
+using SkyBrowser.Core.Library;
 using SkyBrowser.Desktop;
 using SkyBrowser.Desktop.Services;
 using XISFLib;
@@ -18,7 +19,7 @@ namespace SkyBrowser.Tests;
 public sealed class DesktopTests
 {
     [Fact]
-    public async Task WindowImportsRendersAndRestoresSessions()
+    public async Task WindowImportsRendersAndRestoresSavedFolders()
     {
         string directory = TestImages.NewDirectory();
         var cache = new ProcessedImageCache(Path.Combine(directory, "cache"));
@@ -51,6 +52,7 @@ public sealed class DesktopTests
                         Capture(currentWindow, "overview.png");
                         MeasureSkyPerformance(currentWindow);
                         await VerifyFirstRunSetup(currentWindow, directory);
+                        await VerifySavedFolderStartup(currentWindow, directory);
                         await VerifyLoadProgress(currentWindow, cache, directory);
                         await VerifyObserver(currentWindow, directory);
                         await VerifyCollectionSearch(currentWindow, directory);
@@ -91,34 +93,12 @@ public sealed class DesktopTests
                         layer.SetManual(new(359.95, 70, 3, 28, true));
                         SetBlending(currentWindow, false);
                         currentWindow.SkyView.CenterOn(new(359.95, 70), 6);
-                        string session = Path.Combine(directory, "session.sky.json");
-                        await currentWindow.SaveSessionAsync(session);
-                        var saved = await SkySession.ReadAsync(session, CancellationToken.None);
-                        Assert.False(Path.IsPathRooted(saved.Images[0].SourcePath));
-                        Assert.Equal(28, saved.Images[0].Manual!.RotationDegrees);
-                        Assert.Equal(customFinish, saved.Images[0].FinishSettings);
-                        Assert.False(saved.BlendOverlaps);
-                        SetBlending(currentWindow, true);
                         layer.Opacity = 1;
                         layer.IsVisible = true;
-                        await currentWindow.OpenSessionAsync(session);
-                        Assert.Equal(2, currentWindow.SkyView.Layers.Count);
-                        Assert.Equal(0.45, currentWindow.SkyView.Layers[0].Opacity);
-                        Assert.False(currentWindow.SkyView.Layers[0].IsVisible);
-                        Assert.True(currentWindow.SkyView.Layers[0].Manual!.Mirror);
-                        Assert.Equal(6, currentWindow.SkyView.Camera.FieldOfView);
-                        Assert.Equal(customFinish, currentWindow.SkyView.Layers[0].Image.FinishSettings);
-                        Assert.Equal(DisplayMode.Finished, currentWindow.SkyView.Layers[0].DisplayMode);
-                        Assert.False(currentWindow.SkyView.BlendOverlaps);
-                        Assert.False(((System.Windows.Controls.CheckBox)currentWindow.FindName("BlendToggle")).IsChecked);
+                        layer.SetManual(null);
                         SetBlending(currentWindow, true);
-                        // A missing source must be reported while the other saved image remains usable.
                         File.Delete(fits);
                         await VerifyImageInfo(currentWindow, currentWindow.SkyView.Layers.Single(layer => layer.Image.SourcePath == fits), missing: true);
-                        await currentWindow.OpenSessionAsync(session);
-                        Assert.Single(currentWindow.SkyView.Layers);
-                        Assert.Contains("1 unavailable", currentWindow.Status);
-                        SetBlending(currentWindow, true);
                         string folderA = Path.Combine(directory, "browse-a"), folderB = Path.Combine(directory, "browse-b");
                         Directory.CreateDirectory(folderA);
                         Directory.CreateDirectory(folderB);
@@ -228,6 +208,7 @@ public sealed class DesktopTests
                             }
                         }
 
+                        await VerifyLibraryAndSolving(currentWindow, directory);
                         currentWindow.Width = 1050;
                         currentWindow.Height = 720;
                         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
@@ -384,6 +365,95 @@ public sealed class DesktopTests
         );
     }
 
+    private static async Task VerifySavedFolderStartup(MainWindow window, string directory)
+    {
+        string location = Path.Combine(directory, "automatic-startup");
+        string root = Path.Combine(location, "images"), nested = Path.Combine(root, "nested");
+        Directory.CreateDirectory(nested);
+        string warm = Path.Combine(root, "cached.xisf"), cold = Path.Combine(nested, "uncached.xisf");
+        string outside = Path.Combine(location, "outside.xisf");
+        XisfWriter.Write(warm, [TestImages.Create(), TestImages.Create()]);
+        XisfWriter.Write(cold, [TestImages.Create()]);
+        XisfWriter.Write(outside, [TestImages.Create()]);
+        var options = new ApplicationOptions { CacheDirectory = Path.Combine(location, "cache"), DefaultDisplayMode = DisplayMode.Linear };
+        var store = new ApplicationOptionsStore(Path.Combine(location, "settings.json"), options);
+        store.Write(options);
+        var library = new ImageLibrary(Path.Combine(location, "library-v1.sqlite3"));
+        library.SetFolders([root, nested, Path.Combine(location, "offline")]);
+        var finish = SkyFinishSettings.Default with { TargetBackground = 0.08 };
+        using (var cache = new ProcessedImageCache(options.CacheDirectory))
+        {
+            var loader = new CachedSkyImageLoader(cache) { DefaultDisplayMode = DisplayMode.Linear };
+            loader.Load(warm, DisplayMode.Linear, SkyFinishSettings.Default);
+            loader.Load(warm, DisplayMode.Finished, finish, onlyImage: 1);
+            cache.SavePreference(warm, 1, DisplayMode.Finished, finish);
+            loader.Load(outside, DisplayMode.Linear, SkyFinishSettings.Default);
+        }
+
+        async Task Restart(string[] expectedDecoded, int imageCount, Action<MainWindow> verify)
+        {
+            var reopened = new MainWindow(store) { ShowInTaskbar = false };
+            var attempts = new System.Collections.Concurrent.ConcurrentQueue<string>();
+            var cache = (ProcessedImageCache)typeof(MainWindow).GetField("_cache", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(reopened)!;
+            var loader = new CachedSkyImageLoader(cache, (path, mode, settings, token, index, progress) =>
+            {
+                attempts.Enqueue(path);
+                if (!expectedDecoded.Contains(path, StringComparer.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException("Valid cached previews must not decode scientific source data.");
+                }
+                return SkyImageLoader.Load(path, mode, settings, token, index, progress);
+            })
+            {
+                Library = reopened.Library,
+                DefaultDisplayMode = options.DefaultDisplayMode
+            };
+            typeof(MainWindow).GetField("_imageLoader", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(reopened, loader);
+            try
+            {
+                reopened.Show();
+                await reopened.OpenStartupAsync([]);
+                Assert.Equal(imageCount, reopened.SkyView.Layers.Count);
+                Assert.DoesNotContain(reopened.SkyView.Layers, layer => layer.Image.SourcePath.Equals(outside, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(expectedDecoded.Order(StringComparer.OrdinalIgnoreCase), attempts.Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.OrdinalIgnoreCase), StringComparer.OrdinalIgnoreCase);
+                var preferred = reopened.SkyView.Layers.Single(layer => layer.Image.ImageIndex == 1 && layer.Image.SourcePath.Equals(warm, StringComparison.OrdinalIgnoreCase));
+                Assert.Equal(DisplayMode.Finished, preferred.DisplayMode);
+                Assert.Equal(finish, preferred.Image.FinishSettings);
+                Assert.Contains("1 folders unavailable", reopened.Status);
+                Assert.DoesNotContain(FindButtons(reopened), button => button.Content is string text && text.Contains("session", StringComparison.OrdinalIgnoreCase));
+                verify(reopened);
+                var layers = reopened.SkyView.Layers.ToArray();
+                await reopened.OpenStartupAsync([]);
+                Assert.Equal(layers, reopened.SkyView.Layers);
+            }
+            finally
+            {
+                reopened.Close();
+            }
+        }
+
+        await Restart([cold], 3, reopened =>
+        {
+            Assert.All(reopened.SkyView.Layers.Where(layer => layer.Image.SourcePath.Equals(warm, StringComparison.OrdinalIgnoreCase)), layer => Assert.True(layer.Image.IsFromCache));
+            Assert.False(reopened.SkyView.Layers.Single(layer => layer.Image.SourcePath.Equals(cold, StringComparison.OrdinalIgnoreCase)).Image.IsFromCache);
+            Capture(reopened, "saved-folders-startup.png");
+        });
+        await Restart([], 3, reopened => Assert.All(reopened.SkyView.Layers, layer => Assert.True(layer.Image.IsFromCache)));
+        string fresh = Path.Combine(nested, "new.xisf");
+        XisfWriter.Write(fresh, [TestImages.Create()]);
+        var changed = TestImages.Create();
+        changed.FitsKeywords.Add(XisfFitsKeyword.FromValue("OBJECT", "Changed startup source"));
+        XisfWriter.Write(warm, [changed, changed]);
+        await Restart([warm, fresh], 4, reopened =>
+            Assert.All(reopened.SkyView.Layers.Where(layer => layer.Image.SourcePath.Equals(warm, StringComparison.OrdinalIgnoreCase)), layer => Assert.Equal("Changed startup source", layer.Name)));
+        using (var cache = new ProcessedImageCache(options.CacheDirectory))
+        {
+            cache.ClearPreviews();
+        }
+        await Restart([warm, cold, fresh], 4, _ => { });
+        window.Activate();
+    }
+
     private static async Task VerifyFirstRunSetup(MainWindow window, string directory)
     {
         var original = window.Options;
@@ -421,7 +491,7 @@ public sealed class DesktopTests
                         failure = exception;
                         map.Close();
                     }
-                    }, DispatcherPriority.ApplicationIdle);
+                }, DispatcherPriority.ApplicationIdle);
                 Click((System.Windows.Controls.Button)welcome.FindName("ChooseLocationButton"));
                 if (failure is not null)
                 {
@@ -439,7 +509,7 @@ public sealed class DesktopTests
                 failure = exception;
                 welcome.Close();
             }
-            }, DispatcherPriority.ApplicationIdle);
+        }, DispatcherPriority.ApplicationIdle);
         await window.OpenStartupAsync([startupImage]);
         if (failure is not null)
         {
@@ -482,7 +552,7 @@ public sealed class DesktopTests
                     failure = exception;
                     welcome.Close();
                 }
-                }, DispatcherPriority.ApplicationIdle);
+            }, DispatcherPriority.ApplicationIdle);
             await fresh.OpenStartupAsync([]);
             if (failure is not null)
             {
@@ -562,7 +632,7 @@ public sealed class DesktopTests
                     failure = exception;
                     welcome.Close();
                 }
-                }, DispatcherPriority.ApplicationIdle);
+            }, DispatcherPriority.ApplicationIdle);
             await failed.OpenStartupAsync([]);
             if (failure is not null)
             {
@@ -691,21 +761,15 @@ public sealed class DesktopTests
             release.Reset();
             var originalLayers = window.SkyView.Layers.ToArray();
             var center = window.SkyView.Camera.Center;
-            string sessionPath = Path.Combine(directory, "cancel-loading.sky.json");
-            var session = new SkySession(
-                1,
-                new(10, 20),
-                12,
-                true,
-                true,
-                true,
-                true,
-                [new(existing, 0, DisplayMode.Linear, true, 1, null), new(slow, 0, DisplayMode.Linear, true, 1, null)]
-            );
-            await session.WriteAsync(sessionPath, CancellationToken.None);
-            pending = window.OpenSessionAsync(sessionPath);
+            string cancelFolder = Path.Combine(directory, "cancel-startup");
+            Directory.CreateDirectory(cancelFolder);
+            XisfWriter.Write(Path.Combine(cancelFolder, "first.xisf"), [TestImages.Create()]);
+            XisfWriter.Write(Path.Combine(cancelFolder, "second.xisf"), [TestImages.Create()]);
+            var previousFolders = window.Library.GetFolders();
+            window.Library.SetFolders([cancelFolder]);
+            pending = window.RestoreSavedFoldersAsync();
             dialog = await WaitForProgress();
-            Assert.Equal("0 of 2 images finished · 2 remaining", Text(dialog, "CountText"));
+            Assert.Equal("0 of 2 files finished · 2 remaining", Text(dialog, "CountText"));
             dialog.RaiseEvent(new System.Windows.Input.KeyEventArgs(
                 System.Windows.Input.Keyboard.PrimaryDevice,
                 PresentationSource.FromVisual(dialog),
@@ -719,7 +783,9 @@ public sealed class DesktopTests
             Assert.Equal(originalLayers, window.SkyView.Layers.ToArray());
             Assert.Equal(center, window.SkyView.Camera.Center);
             Assert.Null(VisibleProgress());
-            Assert.Equal("Session open cancelled", window.Status);
+            Assert.StartsWith("Import cancelled", window.Status);
+            Assert.Equal(cancelFolder, Assert.Single(window.Library.GetFolders()), ignoreCase: true);
+            window.Library.SetFolders(previousFolders);
             Volatile.Write(ref holdAll, false);
             await window.ImportAsync([remaining]);
             Assert.Contains(window.SkyView.Layers, image => image.Image.SourcePath == remaining);
@@ -769,7 +835,7 @@ public sealed class DesktopTests
                             failure = exception;
                             dialog.Close();
                         }
-                        }, DispatcherPriority.ApplicationIdle);
+                    }, DispatcherPriority.ApplicationIdle);
                     FindButtons(options)
                         .Single(b => Equals(b.Content, "Choose on map…"))
                         .RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
@@ -787,7 +853,7 @@ public sealed class DesktopTests
                     failure = exception;
                     options.Close();
                 }
-                }, DispatcherPriority.ApplicationIdle);
+            }, DispatcherPriority.ApplicationIdle);
             button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
             if (failure is not null)
             {
@@ -846,12 +912,6 @@ public sealed class DesktopTests
         Assert.Equal(center, window.SkyView.Camera.Center); // Imports must preserve the selected compass view.
         window.SkyView.AdvanceObserverTime(observer.TimeUtc.AddHours(4));
         Assert.Equal(center, window.SkyView.Camera.Center);
-        string sessionPath = Path.Combine(directory, "observer.sky.json");
-        await window.SaveSessionAsync(sessionPath);
-        Assert.Equal(observer, (await SkySession.ReadAsync(sessionPath, CancellationToken.None)).Observer);
-        window.ApplyObserver(null);
-        await window.OpenSessionAsync(sessionPath);
-        Assert.Equal(observer, window.SkyView.Observer);
         // Closing/cancelling the popup must preserve the current observer and view.
         OpenObserver(dialog => dialog.Close(), save: false);
         Assert.Equal(observer, window.SkyView.Observer);
@@ -926,12 +986,6 @@ public sealed class DesktopTests
             System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(slider), 0, System.Windows.Input.Key.Right)
         { RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent });
         Assert.Equal(settings.TimeUtc.AddHours(-6).AddMinutes(1), window.SkyView.Observer.TimeUtc);
-        string session = Path.Combine(directory, "timeline.sky.json");
-        await window.SaveSessionAsync(session);
-        var paused = window.SkyView.Observer;
-        window.ApplyObserver(null);
-        await window.OpenSessionAsync(session);
-        Assert.Equal(paused, window.SkyView.Observer);
         Assert.True(timeline.IsVisible);
         Assert.Equal("PAUSED", mode.Text);
         Assert.Equal(defaults, window.Options); // Scene edits never replace saved startup preferences.
@@ -1090,13 +1144,8 @@ public sealed class DesktopTests
         Assert.Equal(count, window.SkyView.AddedTargets.Count);
         search.Clear();
         Assert.Equal(DeepSkyCatalog.Targets.Count, targets.Items.Count);
-        string path = Path.Combine(directory, "catalog-targets.sky.json");
-        await window.SaveSessionAsync(path);
-        Assert.Equal(count, (await SkySession.ReadAsync(path, CancellationToken.None)).AddedTargets.Length);
         ((System.Windows.Controls.Button)window.FindName("ClearTargetsButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
         Assert.Empty(window.SkyView.AddedTargets);
-        await window.OpenSessionAsync(path);
-        Assert.Equal(count, window.SkyView.AddedTargets.Count);
         window.SkyView.ClearAddedTargets();
         targets.SelectedIndex = -1;
         finder.IsExpanded = false;
@@ -1245,7 +1294,7 @@ public sealed class DesktopTests
             {
                 dialog.Close();
             }
-            }, DispatcherPriority.ApplicationIdle);
+        }, DispatcherPriority.ApplicationIdle);
         button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
         if (failure is not null)
         {
@@ -1254,6 +1303,129 @@ public sealed class DesktopTests
 
         Assert.Equal(center, window.SkyView.Camera.Center);
         Assert.Same(originalImage, layer.Image);
+    }
+
+    private static async Task VerifyLibraryAndSolving(MainWindow window, string directory)
+    {
+        string root = Path.Combine(directory, "persistent-library", "nested");
+        Directory.CreateDirectory(root);
+        string file = Path.Combine(root, "multi.xisf");
+        var image = XisfImageData.FromSamples(Enumerable.Repeat(0.1f, 64 * 48).ToArray(), [64, 48], 1);
+        image.FitsKeywords.Add(XisfFitsKeyword.FromValue("OBJECT", "Library selection fixture"));
+        var firstImage = XisfImageData.FromSamples(Enumerable.Repeat(0.2f, 64 * 48).ToArray(), [64, 48], 1);
+        firstImage.FitsKeywords.Add(XisfFitsKeyword.FromValue("OBJECT", "Library selection fixture"));
+        XisfWriter.Write(file, [firstImage, image]);
+        string archive = Path.GetDirectoryName(root)!;
+        string empty = Path.Combine(directory, "empty-archive");
+        Directory.CreateDirectory(empty);
+        var existingLayers = window.SkyView.Layers.ToArray();
+        var savedFolders = window.Library.GetFolders();
+        ((Button)window.FindName("LibraryButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        var libraryWindow = Application.Current.Windows.OfType<LibraryWindow>().Single();
+        await libraryWindow.InitializeAsync();
+        await libraryWindow.AddFolderAsync(archive);
+        await libraryWindow.AddFolderAsync(root);
+        await libraryWindow.AddFolderAsync(root.ToUpperInvariant());
+        Assert.Equal(savedFolders.Length + 2, libraryWindow.PendingFolders.Count);
+        Assert.Equal(savedFolders, window.Library.GetFolders());
+        Assert.Equal(existingLayers, window.SkyView.Layers);
+        Assert.DoesNotContain(window.Library.Search(), entry => string.Equals(entry.SourcePath, file, StringComparison.OrdinalIgnoreCase));
+        var folders = (ListBox)libraryWindow.FindName("FolderList");
+        Assert.All(folders.Items.Cast<object>(), entry => Assert.IsType<LibraryFolder>(entry));
+        await libraryWindow.AddFolderAsync(empty);
+        ((Button)libraryWindow.FindName("RemoveArchiveButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.DoesNotContain(empty, libraryWindow.PendingFolders);
+        Capture(libraryWindow, "library-folder-edits.png");
+        ((Button)libraryWindow.FindName("CancelFoldersButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.Equal(savedFolders, window.Library.GetFolders());
+        Assert.Equal(existingLayers, window.SkyView.Layers);
+        ((Button)window.FindName("LibraryButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        libraryWindow = Application.Current.Windows.OfType<LibraryWindow>().Single();
+        await libraryWindow.InitializeAsync();
+        await libraryWindow.AddFolderAsync(archive);
+        await libraryWindow.AddFolderAsync(root);
+        ((TextBox)libraryWindow.FindName("LibrarySearch")).Text = "nested";
+        Assert.Single(((ListBox)libraryWindow.FindName("FolderList")).Items.Cast<LibraryFolder>());
+        Capture(libraryWindow, "persistent-library.png");
+        ((Button)libraryWindow.FindName("ConfirmFoldersButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        await WaitUntil(() => !Application.Current.Windows.OfType<LibraryWindow>().Any());
+        Assert.Equal(savedFolders.Length + 2, window.Library.GetFolders().Length);
+        Assert.Equal(2, window.SkyView.Layers.Count(layer => string.Equals(layer.Image.SourcePath, file, StringComparison.OrdinalIgnoreCase)));
+        var added = Assert.Single(window.SkyView.Layers, layer => layer.Image.ImageIndex == 1 && string.Equals(layer.Image.SourcePath, file, StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(1, added.Image.ImageIndex);
+        Assert.Null(added.Placement);
+        string discovered = Path.Combine(root, "later.xisf");
+        XisfWriter.Write(discovered, [TestImages.Create()]);
+        Assert.True(await window.ApplyLibraryFoldersAsync(window.Library.GetFolders()));
+        var discoveredLayer = Assert.Single(window.SkyView.Layers, layer => layer.Image.SourcePath.Equals(discovered, StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(added, window.SkyView.Layers);
+        Assert.Equal(2, window.SkyView.Layers.Count(layer => layer.Image.SourcePath.Equals(file, StringComparison.OrdinalIgnoreCase)));
+        discoveredLayer.Opacity = 0.37;
+        discoveredLayer.IsVisible = false;
+        var manual = new ManualPlacement(83, -5, 2, 15);
+        discoveredLayer.SetManual(manual);
+        var changed = TestImages.Create();
+        changed.FitsKeywords.Add(XisfFitsKeyword.FromValue("OBJECT", "Changed folder target"));
+        XisfWriter.Write(discovered, [changed]);
+        Assert.True(await window.ApplyLibraryFoldersAsync(window.Library.GetFolders()));
+        Assert.Same(discoveredLayer, window.SkyView.Layers.Single(layer => layer.Image.SourcePath.Equals(discovered, StringComparison.OrdinalIgnoreCase)));
+        Assert.Equal("Changed folder target", discoveredLayer.Name);
+        Assert.Equal(0.37, discoveredLayer.Opacity);
+        Assert.False(discoveredLayer.IsVisible);
+        Assert.Equal(manual, discoveredLayer.Manual);
+        ((ListBox)window.FindName("LayerList")).SelectedItem = added;
+        Assert.False(((Button)window.FindName("SaveSolvedImageButton")).IsEnabled);
+        var originalOptions = window.Options;
+        await window.ApplyOptionsAsync(originalOptions with { AstapExecutablePath = AstapTests.FakeOptions().AstapExecutablePath });
+        await window.SolveImageAsync(added);
+        Assert.Contains("ASTAP placed", window.Status);
+        Assert.NotNull(added.Placement);
+        Assert.Null(added.Manual);
+        ((ListBox)window.FindName("LayerList")).SelectedItem = added;
+        string position = ((TextBlock)window.FindName("ImagePosition")).Text;
+        Assert.Contains("Pixel scale 36″ × 36″/pixel", position);
+        Assert.Contains($"{added.Placement.AngularWidth:0.###}° × {added.Placement.AngularHeight:0.###}°", position);
+        Assert.DoesNotContain("inexact scale", ((TextBlock)window.FindName("PlacementWarning")).Text);
+        Assert.Contains("Fixture solution", ((TextBlock)window.FindName("PlacementWarning")).Text);
+        Assert.True(((Button)window.FindName("SaveSolvedImageButton")).IsEnabled);
+        string exportedFile = Path.Combine(directory, "exported-solution.xisf");
+        Assert.True(await window.SaveSolvedImageAsync(added, exportedFile));
+        Assert.Contains("Saved solved copy", window.Status);
+        Capture(window, "astap-solved-export.png");
+        var exported = SkyImageLoader.Load(exportedFile, DisplayMode.Linear)[1];
+        Assert.InRange(exported.Placement!.Center.DistanceTo(added.Placement.Center), 0, 1e-8);
+        var solved = added.Placement.Center;
+        await window.ApplyDisplayAsync(added, DisplayMode.Linear, added.Image.FinishSettings);
+        Assert.True(added.Placement!.Center.DistanceTo(solved) < 1e-10);
+        foreach (var layer in window.SkyView.Layers.Where(layer => ImageLibrary.ContainsSource(archive, layer.Image.SourcePath)).ToArray())
+        {
+            window.SkyView.Layers.Remove(layer);
+        }
+        Assert.True(await window.RestoreSavedFoldersAsync());
+        var restored = Assert.Single(window.SkyView.Layers, layer => layer.Image.ImageIndex == 1 && string.Equals(layer.Image.SourcePath, file, StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(1, restored.Image.ImageIndex);
+        Assert.True(restored.Placement!.Center.DistanceTo(solved) < 1e-10);
+        Assert.InRange(restored.Placement.PixelScale(restored.Image.Width, restored.Image.Height).X, 35.999, 36.001);
+        ((Button)window.FindName("LibraryButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        libraryWindow = Application.Current.Windows.OfType<LibraryWindow>().Single();
+        await libraryWindow.InitializeAsync();
+        folders = (ListBox)libraryWindow.FindName("FolderList");
+        folders.SelectedItem = folders.Items.Cast<LibraryFolder>().Single(folder => folder.Path.Equals(archive, StringComparison.OrdinalIgnoreCase));
+        libraryWindow.RemoveSelectedFolders();
+        await libraryWindow.ConfirmAsync();
+        Assert.Contains(restored, window.SkyView.Layers); // The retained child root still covers this image.
+        ((Button)window.FindName("LibraryButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        libraryWindow = Application.Current.Windows.OfType<LibraryWindow>().Single();
+        await libraryWindow.InitializeAsync();
+        ((Button)libraryWindow.FindName("ClearFoldersButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.True(((Button)libraryWindow.FindName("ConfirmFoldersButton")).IsEnabled);
+        await libraryWindow.ConfirmAsync();
+        Assert.Empty(window.Library.GetFolders());
+        Assert.DoesNotContain(window.SkyView.Layers, layer => string.Equals(layer.Image.SourcePath, file, StringComparison.OrdinalIgnoreCase));
+        Assert.All(existingLayers, layer => Assert.Contains(window.SkyView.Layers, current => current.Image.SourcePath == layer.Image.SourcePath));
+        Assert.True(File.Exists(file));
+        Assert.Contains(window.Library.Search(), entry => entry.ImageIndex == 1 && entry.HasPlacement && entry.SourcePath.Equals(file, StringComparison.OrdinalIgnoreCase));
+        await window.ApplyOptionsAsync(originalOptions);
     }
 
     private static async Task VerifyOptions(MainWindow window, string directory, string preferredImage, SkyFinishSettings finish)
@@ -1273,7 +1445,7 @@ public sealed class DesktopTests
                 ((System.Windows.Controls.TextBox)mapDialog.FindName("LatitudeInput")).Text = "52.52";
                 ((System.Windows.Controls.TextBox)mapDialog.FindName("LongitudeInput")).Text = "13.405";
                 Click((System.Windows.Controls.Button)mapDialog.FindName("ApplyButton"));
-                }, DispatcherPriority.ApplicationIdle);
+            }, DispatcherPriority.ApplicationIdle);
             Click(FindButtons(options).Single(b => Equals(b.Content, "Choose on map…")));
         }
 
@@ -1295,7 +1467,7 @@ public sealed class DesktopTests
                 failure = exception;
                 dialog.Close();
             }
-            }, DispatcherPriority.ApplicationIdle);
+        }, DispatcherPriority.ApplicationIdle);
         Click(optionsButton);
         if (failure is not null)
         {
@@ -1325,7 +1497,7 @@ public sealed class DesktopTests
                 tabs.SelectedIndex = 1;
                 ChooseLocation(dialog);
                 Capture(dialog, "options-observer.png");
-                tabs.SelectedIndex = 3;
+                tabs.SelectedIndex = 4;
                 ((System.Windows.Controls.CheckBox)dialog.FindName("ShowGrid")).IsChecked = false;
                 ((System.Windows.Controls.CheckBox)dialog.FindName("BlendOverlaps")).IsChecked = false;
                 Capture(dialog, "options-sky.png");
@@ -1350,7 +1522,7 @@ public sealed class DesktopTests
                 failure = exception;
                 dialog.Close();
             }
-            }, DispatcherPriority.ApplicationIdle);
+        }, DispatcherPriority.ApplicationIdle);
         Click(optionsButton);
         if (failure is not null)
         {
@@ -1422,7 +1594,7 @@ public sealed class DesktopTests
             {
                 dialog.Close();
             }
-            }, DispatcherPriority.ApplicationIdle);
+        }, DispatcherPriority.ApplicationIdle);
         Click(optionsButton);
         if (failure is not null)
         {
@@ -1633,12 +1805,4 @@ public sealed class DesktopTests
         encoder.Save(file);
     }
 
-    [Fact]
-    public void InvalidSessionSettingsAreRejected()
-    {
-        var session = new SkySession(1, new(0, 91), 60, true, true, true, true, []);
-        Assert.Throws<InvalidDataException>(session.Validate);
-        Assert.Throws<InvalidDataException>(() => (session with { Version = 2 }).Validate());
-        Assert.Throws<InvalidDataException>(() => (session with { Center = new(0, 0), FieldOfView = double.NaN }).Validate());
-    }
 }

@@ -4,6 +4,70 @@ using System.Text.Json;
 using SkyBrowser.Core.Caching;
 using SkyBrowser.Core.Configuration;
 using SkyBrowser.Core.Imaging;
+using SkyBrowser.Core.Library;
+using SkyBrowser.Core.Astrometry;
+
+if (args.Length > 0 && args[0] == "-f")
+{
+    return await FakeAstap.RunAsync(args);
+}
+
+if (args is ["--astap-solve", var solveSource, var astapExecutable, var solveDirectory])
+{
+    Directory.CreateDirectory(solveDirectory);
+    byte[] before = SHA256.HashData(File.ReadAllBytes(solveSource));
+    var library = new ImageLibrary(Path.Combine(solveDirectory, "library.sqlite3"));
+    var image = SkyImageLoader.Load(solveSource, DisplayMode.Linear)[0];
+    var timer = Stopwatch.StartNew();
+    var result = await new AstapPlateSolver(library).SolveAsync(image, new()
+    {
+        AstapExecutablePath = astapExecutable,
+        AstapTimeoutSeconds = 300
+    }, progress: new SolverProgress());
+    var scale = result.Placement.PixelScale(image.Width, image.Height);
+    var report = new
+    {
+        image.Width,
+        image.Height,
+        Milliseconds = timer.ElapsedMilliseconds,
+        Center = new { result.Placement.Center.RightAscension, result.Placement.Center.Declination },
+        result.Placement.AngularWidth,
+        result.Placement.AngularHeight,
+        PixelScaleXArcseconds = scale.X,
+        PixelScaleYArcseconds = scale.Y,
+        result.Warning,
+        ReferenceErrorDegrees = image.Placement?.Center.DistanceTo(result.Placement.Center),
+        SourceUnchanged = before.SequenceEqual(SHA256.HashData(File.ReadAllBytes(solveSource)))
+    };
+    string json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
+    File.WriteAllText(Path.Combine(solveDirectory, "result.json"), json);
+    Console.WriteLine(json);
+    return report.SourceUnchanged ? 0 : 1;
+}
+
+if (args is ["--export-solved", var exportSource, var exportLibrary, var exportDestination])
+{
+    using var sourceStream = File.OpenRead(exportSource);
+    byte[] originalHash = SHA256.HashData(sourceStream);
+    sourceStream.Close();
+    var image = SkyImageLoader.Load(exportSource, DisplayMode.Linear)[0];
+    var result = new SolvedImageExporter(new ImageLibrary(exportLibrary)).Export(image, exportDestination, progress: new SolverProgress());
+    var reopened = SkyImageLoader.Load(result.Path, DisplayMode.Linear)[0];
+    using var finalSource = File.OpenRead(exportSource);
+    bool unchanged = originalHash.SequenceEqual(SHA256.HashData(finalSource));
+    Console.WriteLine(JsonSerializer.Serialize(new
+    {
+        reopened.Width,
+        reopened.Height,
+        reopened.Placement?.AngularWidth,
+        reopened.Placement?.AngularHeight,
+        PixelScale = reopened.Placement?.PixelScale(reopened.Width, reopened.Height),
+        reopened.PlacementWarning,
+        result.Warning,
+        SourceUnchanged = unchanged
+    }, new JsonSerializerOptions { WriteIndented = true, IncludeFields = true }));
+    return unchanged && reopened.Placement is not null && reopened.PlacementWarning is null ? 0 : 1;
+}
 
 if (args is ["--performance", var performanceSource, var performanceReport])
 {
@@ -13,6 +77,12 @@ if (args is ["--performance", var performanceSource, var performanceReport])
 if (args is ["--options", var settingsPath])
 {
     Console.WriteLine(JsonSerializer.Serialize(new ApplicationOptionsStore(settingsPath).Read()));
+    return 0;
+}
+
+if (args is ["--library", var libraryPath, var query])
+{
+    Console.WriteLine(JsonSerializer.Serialize(new ImageLibrary(libraryPath).Search(query)));
     return 0;
 }
 

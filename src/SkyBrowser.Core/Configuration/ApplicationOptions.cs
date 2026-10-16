@@ -33,6 +33,14 @@ public sealed record ApplicationOptions
 
     public bool BlendOverlaps { get; init; } = true;
 
+    public string AstapExecutablePath { get; init; } = "";
+
+    public string AstapDatabaseDirectory { get; init; } = "";
+
+    public int AstapTimeoutSeconds { get; init; } = 300;
+
+    public double AstapFieldHeightDegrees { get; init; }
+
     public void Validate()
     {
         if (Version != 1)
@@ -59,6 +67,18 @@ public sealed record ApplicationOptions
         ArgumentNullException.ThrowIfNull(DefaultFinishSettings);
         DefaultFinishSettings.Validate();
         Observer?.Validate();
+        if (AstapTimeoutSeconds is < 10 or > 3600 || !double.IsFinite(AstapFieldHeightDegrees) ||
+            AstapFieldHeightDegrees is < 0 or > 180)
+        {
+            throw new ArgumentException("ASTAP timeout must be 10–3600 seconds and field height 0–180 degrees (0 is automatic).");
+        }
+        foreach (string path in new[] { AstapExecutablePath, AstapDatabaseDirectory })
+        {
+            if (path is null || (path.Length > 0 && !Path.IsPathFullyQualified(path)))
+            {
+                throw new ArgumentException("Choose absolute paths for ASTAP and its optional star database.");
+            }
+        }
     }
 
     public ApplicationOptions Normalize()
@@ -66,7 +86,9 @@ public sealed record ApplicationOptions
         Validate();
         return this with
         {
-            CacheDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(CacheDirectory))
+            CacheDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(CacheDirectory)),
+            AstapExecutablePath = AstapExecutablePath.Length == 0 ? "" : Path.GetFullPath(AstapExecutablePath),
+            AstapDatabaseDirectory = AstapDatabaseDirectory.Length == 0 ? "" : Path.TrimEndingDirectorySeparator(Path.GetFullPath(AstapDatabaseDirectory))
         };
     }
 }

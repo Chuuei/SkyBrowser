@@ -75,7 +75,7 @@ public sealed class ProcessedImageCache : IDisposable
     {
         // Cached pixels depend on both the selected settings and the processing assemblies.
         // A changed pipeline gets a new key instead of reusing a preview from an older build.
-        string pipeline = $"preview-2/2048/mesh32/{typeof(SkyImageLoader).Assembly.ManifestModule.ModuleVersionId}/{typeof(XISFLib.XisfReader).Assembly.ManifestModule.ModuleVersionId}/{typeof(ImageMagick.MagickImage).Assembly.ManifestModule.ModuleVersionId}";
+        string pipeline = $"preview-3/debayer/2048/mesh32/{typeof(SkyImageLoader).Assembly.ManifestModule.ModuleVersionId}/{typeof(XISFLib.XisfReader).Assembly.ManifestModule.ModuleVersionId}/{typeof(ImageMagick.MagickImage).Assembly.ManifestModule.ModuleVersionId}";
         string parameters = JsonSerializer.Serialize(new ImageRenderPreference(mode, settings), CacheJsonContext.Default.ImageRenderPreference);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(pipeline + parameters)));
     }

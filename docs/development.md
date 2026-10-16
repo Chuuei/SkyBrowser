@@ -63,7 +63,7 @@ after build/tests/package validation succeed; a hyphenated tag is a prerelease.
 CI rejects a tag that differs from `Version.props`, and package validation checks
 the executable's product and file versions. To release, update `Version.props`
 and `CHANGELOG.md` together, merge the reviewed change, then tag that commit with
-the exact version (for example `v0.2.0`). Never move a published version tag.
+the exact version (for example `v0.3.0`). Never move a published version tag.
 Local packaging uses the committed version automatically:
 
 ```powershell

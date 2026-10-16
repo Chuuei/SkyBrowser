@@ -14,6 +14,8 @@ using SkyBrowser.Core.Caching;
 using SkyBrowser.Core.Astronomy;
 using SkyBrowser.Core.Imaging;
 using SkyBrowser.Core.Configuration;
+using SkyBrowser.Core.Library;
+using SkyBrowser.Core.Astrometry;
 using SkyBrowser.Desktop.Models;
 using SkyBrowser.Desktop.Services;
 
@@ -33,6 +35,11 @@ public partial class MainWindow : Window
     private CachedSkyImageLoader _imageLoader;
     private readonly ApplicationOptionsStore _optionsStore;
     private ApplicationOptions _options;
+    private readonly ImageLibrary _library;
+    private LibraryWindow? _libraryWindow;
+    private bool _startupFoldersLoaded;
+
+    public ImageLibrary Library => _library;
     private bool _ownsCache, _applyingOptions;
     private readonly DispatcherTimer _observerClock = new()
     {
@@ -104,6 +111,7 @@ public partial class MainWindow : Window
         _optionsStore = startup.Store;
         _options = startup.Options;
         _ownsCache = startup.OwnsCache;
+        _library = new(Path.Combine(Path.GetDirectoryName(_optionsStore.FilePath)!, "library-v1.sqlite3"));
         _imageLoader = CreateLoader(_cache, _options);
         InitializeComponent();
         _collectionView = new(Sky.Layers)
@@ -154,6 +162,7 @@ public partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
+            _libraryWindow?.Close();
             if (_ownsCache)
             {
                 _cache.Dispose();
@@ -161,8 +170,9 @@ public partial class MainWindow : Window
         };
     }
 
-    private static CachedSkyImageLoader CreateLoader(ProcessedImageCache cache, ApplicationOptions options) => new(cache)
+    private CachedSkyImageLoader CreateLoader(ProcessedImageCache cache, ApplicationOptions options) => new(cache)
     {
+        Library = _library,
         DefaultDisplayMode = options.DefaultDisplayMode,
         DefaultFinishSettings = options.DefaultFinishSettings
     };
@@ -188,18 +198,44 @@ public partial class MainWindow : Window
             }
         }
 
-        if (_closing || paths.Length == 0)
+        if (_closing)
         {
             return;
         }
 
-        if (paths.Length == 1 && paths[0].EndsWith(".sky.json", StringComparison.OrdinalIgnoreCase))
+        if (!_startupFoldersLoaded)
         {
-            await OpenSessionAsync(paths[0]);
+            _startupFoldersLoaded = true;
+            await RestoreSavedFoldersAsync();
         }
-        else
+        if (!_closing && paths.Length > 0)
         {
             await ImportAsync(paths);
+        }
+    }
+
+    public async Task<bool> RestoreSavedFoldersAsync()
+    {
+        if (_closing || _operation is not null || _applyingOptions)
+        {
+            return false;
+        }
+        try
+        {
+            var folders = await Task.Run(_library.GetFolders);
+            if (_closing)
+            {
+                return false;
+            }
+            return folders.Length == 0 || await LoadImagesAsync(folders, null, folders, saveLibraryFolders: false);
+        }
+        catch (Exception exception)
+        {
+            if (!_closing)
+            {
+                SetStatus($"Could not load saved folders: {exception.Message}");
+            }
+            return false;
         }
     }
 
@@ -240,6 +276,7 @@ public partial class MainWindow : Window
 
     private void SetBusy(bool busy)
     {
+        LibraryButton.IsEnabled = !busy;
         FileActions.IsEnabled = !busy;
         AddFolderButton.IsEnabled = !busy;
         FolderButton.IsEnabled = !_applyingOptions;
@@ -369,7 +406,10 @@ public partial class MainWindow : Window
         return images;
     }
 
-    public async Task ImportAsync(IEnumerable<string> paths) => await LoadImagesAsync(paths, null);
+    public async Task ImportAsync(IEnumerable<string> paths)
+    {
+        await LoadImagesAsync(paths, null);
+    }
 
     public async Task BrowseFolderAsync(string path)
     {
@@ -397,11 +437,12 @@ public partial class MainWindow : Window
         await LoadImagesAsync([path], path);
     }
 
-    private async Task LoadImagesAsync(IEnumerable<string> paths, string? browseFolder)
+    private async Task<bool> LoadImagesAsync(IEnumerable<string> paths, string? browseFolder, IReadOnlyList<string>? libraryFolders = null,
+        bool saveLibraryFolders = true)
     {
         if (_closing || _applyingOptions || (_operation is not null && browseFolder is null))
         {
-            return;
+            return false;
         }
 
         if (browseFolder is not null)
@@ -413,10 +454,28 @@ public partial class MainWindow : Window
         _operation = operation;
         SetBusy(true);
         var loadProgress = BeginLoadProgress(operation, "Loading images", "file", "Cancel keeps the images already added to your sky.");
-        int added = 0, failures = 0, skipped = 0, reused = 0;
+        int added = 0, failures = 0, skipped = 0, reused = 0, refreshed = 0;
+        string[] unavailableFolders = [];
         SkyImageLayer? first = null;
         try
         {
+            if (libraryFolders is not null && saveLibraryFolders)
+            {
+                var previousFolders = await Task.Run(_library.GetFolders, operation.Token);
+                await Task.Run(() => _library.SetFolders(libraryFolders, operation.Token), operation.Token);
+                // Once the folder transaction commits, synchronize removals before
+                // honoring cancellation of image loading, so a retry keeps the same scope.
+                using (Sky.DeferLayerUpdates())
+                {
+                    foreach (var layer in Sky.Layers.Where(layer => previousFolders.Any(folder => ImageLibrary.ContainsSource(folder, layer.Image.SourcePath)) &&
+                        !libraryFolders.Any(folder => ImageLibrary.ContainsSource(folder, layer.Image.SourcePath))).ToArray())
+                    {
+                        Sky.Layers.Remove(layer);
+                    }
+                }
+                UpdateCollection();
+                operation.Token.ThrowIfCancellationRequested();
+            }
             if (browseFolder is not null)
             {
                 CurrentFolderPath = browseFolder;
@@ -435,10 +494,16 @@ public partial class MainWindow : Window
             var files = await Task.Run(() =>
             {
                 var cached = _cache.GetCachedSourcePaths(operation.Token);
-                return paths
-                    .SelectMany(path => Directory.Exists(path)
+                if (libraryFolders is not null)
+                {
+                    unavailableFolders = libraryFolders.Where(folder => !Directory.Exists(folder)).ToArray();
+                }
+                IEnumerable<string> candidates = libraryFolders is null
+                    ? paths.SelectMany(path => Directory.Exists(path)
                         ? Directory.EnumerateFiles(path).Where(SkyImageLoader.IsSupported)
                         : [path])
+                    : ImageLibrary.FindFolderImages(libraryFolders, operation.Token);
+                return candidates
                     .Select(path =>
                     {
                         operation.Token.ThrowIfCancellationRequested();
@@ -448,8 +513,12 @@ public partial class MainWindow : Window
                     .OrderByDescending(path => cached.Contains(ProcessedImageCache.SourceKey(path)))
                     .ThenBy(path => path, StringComparer.OrdinalIgnoreCase)
                     .ToArray();
-                }, operation.Token);
+            }, operation.Token);
             operation.Token.ThrowIfCancellationRequested();
+            foreach (string folder in unavailableFolders)
+            {
+                _details.AppendLine($"Folder unavailable; retained in library: {folder}");
+            }
             loadProgress.SetTotal(files.Length);
             if (browseFolder is not null)
             {
@@ -461,7 +530,7 @@ public partial class MainWindow : Window
             {
                 operation.Token.ThrowIfCancellationRequested();
                 loadProgress.BeginItem(path);
-                if (Sky.Layers.Any(l => string.Equals(l.Image.SourcePath, path, StringComparison.OrdinalIgnoreCase)))
+                if (libraryFolders is null && Sky.Layers.Any(l => string.Equals(l.Image.SourcePath, path, StringComparison.OrdinalIgnoreCase)))
                 {
                     skipped++;
                     loadProgress.FinishItem(skipped: true);
@@ -478,6 +547,19 @@ public partial class MainWindow : Window
                     {
                         foreach (var image in loaded)
                         {
+                            var existing = Sky.Layers.FirstOrDefault(layer => layer.Image.ImageIndex == image.ImageIndex &&
+                                string.Equals(layer.Image.SourcePath, image.SourcePath, StringComparison.OrdinalIgnoreCase));
+                            if (existing is not null)
+                            {
+                                var manual = existing.Manual;
+                                existing.ReplaceDisplay(image, image.RenderMode);
+                                if (manual is not null)
+                                {
+                                    existing.SetManual(manual);
+                                }
+                                refreshed++;
+                                continue;
+                            }
                             var layer = new SkyImageLayer(image, image.RenderMode);
                             Sky.Layers.Add(layer);
                             added++;
@@ -512,6 +594,10 @@ public partial class MainWindow : Window
                         }
                     }
 
+                    if (libraryFolders is not null)
+                    {
+                        _collectionView.Refresh();
+                    }
                     UpdateCollection();
                     loadProgress.FinishItem(loaded.Count, loaded.Count(image => image.IsFromCache));
                 }
@@ -528,7 +614,8 @@ public partial class MainWindow : Window
             }
 
             int pending = Sky.Layers.Count(l => l.Placement is null);
-            SetStatus($"{(browseFolder is null ? "Added" : "Opened")} {added} image(s) · {reused} cached{(pending > 0 ? $" · {pending} need manual placement" : "")}{(skipped > 0 ? $" · {skipped} already loaded" : "")}{(failures > 0 ? $" · {failures} failed (see Details)" : "")}{(files.Length == 0 ? " · No supported images in the selected folder" : "")}");
+            SetStatus($"{(browseFolder is null ? "Added" : "Opened")} {added} image(s) · {reused} cached{(refreshed > 0 ? $" · {refreshed} refreshed" : "")}{(pending > 0 ? $" · {pending} need placement" : "")}{(skipped > 0 ? $" · {skipped} already loaded" : "")}{(failures > 0 ? $" · {failures} failed (see Details)" : "")}{(unavailableFolders.Length > 0 ? $" · {unavailableFolders.Length} folders unavailable (see Details)" : "")}{(files.Length == 0 ? " · No supported images in the listed folders" : "")}");
+            return true;
         }
         catch (OperationCanceledException)
         {
@@ -559,6 +646,7 @@ public partial class MainWindow : Window
                 }
             }
         }
+        return false;
     }
 
     private async void ImportClicked(object sender, RoutedEventArgs e)
@@ -643,14 +731,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (files.Length == 1 && files[0].EndsWith(".sky.json", StringComparison.OrdinalIgnoreCase))
-        {
-            await OpenSessionAsync(files[0]);
-        }
-        else
-        {
-            await ImportAsync(files);
-        }
+        await ImportAsync(files);
     }
 
     private void LayerSelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateInspector();
@@ -702,10 +783,21 @@ public partial class MainWindow : Window
             ImagePosition.Text = placement is null
                 ? ""
                 : $"{placement.Center.RaText}  {placement.Center.DecText}\n{placement.AngularWidth:0.###}° × {placement.AngularHeight:0.###}° · {placement.Description}";
+            if (placement is not null && selected is not null)
+            {
+                var scale = placement.PixelScale(selected.Image.Width, selected.Image.Height);
+                ImagePosition.Text += $"\nPixel scale {scale.X:0.###}″ × {scale.Y:0.###}″/pixel";
+            }
             PlacementWarning.Text = selected is { Manual: null }
                 ? selected.Image.PlacementWarning ?? ""
                 : "Manual placement overrides the file's solution.";
             FitButton.IsEnabled = placement is not null;
+            SolveButton.IsEnabled = selected is not null && _operation is null;
+            SaveSolvedImageButton.IsEnabled = selected is { Manual: null, Image.Placement: { } savedPlacement } &&
+                savedPlacement.Description == "ASTAP · blind solve" && _operation is null;
+            SolveButton.ToolTip = _options.AstapExecutablePath.Length == 0
+                ? "Configure ASTAP in Options → Plate solving, then blind solve this image."
+                : "Search the whole sky with ASTAP; store the placement without changing the original.";
             UpButton.IsEnabled = selected is not null && Sky.Layers.IndexOf(selected) > 0;
             DownButton.IsEnabled = selected is not null && Sky.Layers.IndexOf(selected) < Sky.Layers.Count - 1;
             DisplayChoice.SelectedIndex = (int)(selected?.DisplayMode ?? DisplayMode.Automatic);
@@ -945,7 +1037,7 @@ public partial class MainWindow : Window
 
         UpdateCollection();
         UpdateInspector();
-        SetStatus($"Removed {layer.Name} from this session");
+        SetStatus($"Removed {layer.Name} from the sky");
     }
 
     private void MoveUpClicked(object sender, RoutedEventArgs e) => MoveSelected(-1);
@@ -1253,6 +1345,170 @@ public partial class MainWindow : Window
         dialog.ShowDialog();
     }
 
+    public Task<bool> ApplyLibraryFoldersAsync(IReadOnlyList<string> folders)
+    {
+        if (_closing || _operation is not null || _applyingOptions)
+        {
+            throw new InvalidOperationException("Wait for the current operation to finish before loading library folders.");
+        }
+        string[] paths = folders.Select(path => Path.TrimEndingDirectorySeparator(Path.GetFullPath(path)))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        return LoadImagesAsync(paths, null, paths);
+    }
+
+    private void LibraryClicked(object sender, RoutedEventArgs e)
+    {
+        if (_libraryWindow is { IsVisible: true })
+        {
+            _libraryWindow.Activate();
+            return;
+        }
+        _libraryWindow = new(_library)
+        {
+            Owner = this,
+            ApplyFoldersAsync = ApplyLibraryFoldersAsync
+        };
+        _libraryWindow.Closed += (_, _) => _libraryWindow = null;
+        _libraryWindow.Show();
+    }
+
+    private async void SolveClicked(object sender, RoutedEventArgs e)
+    {
+        if (Selected is not { } selected)
+        { return; }
+        if (string.IsNullOrEmpty(_options.AstapExecutablePath))
+        {
+            OptionsClicked(this, new());
+            if (string.IsNullOrEmpty(_options.AstapExecutablePath))
+            { return; }
+        }
+        await SolveImageAsync(selected);
+    }
+
+    private async void SaveSolvedImageClicked(object sender, RoutedEventArgs e)
+    {
+        if (Selected is not { Manual: null } selected)
+        {
+            return;
+        }
+        bool fits = System.IO.Path.GetExtension(selected.Image.SourcePath).ToLowerInvariant() is ".fits" or ".fit" or ".fts";
+        var dialog = new SaveFileDialog
+        {
+            Title = "Save image with astrometric solution",
+            Filter = "FITS image|*.fits|XISF image|*.xisf",
+            FilterIndex = fits ? 1 : 2,
+            DefaultExt = fits ? ".fits" : ".xisf",
+            AddExtension = true,
+            OverwritePrompt = true,
+            FileName = System.IO.Path.GetFileNameWithoutExtension(selected.Image.SourcePath) + "_solved"
+        };
+        if (dialog.ShowDialog(this) == true)
+        {
+            await SaveSolvedImageAsync(selected, dialog.FileName, overwrite: true);
+        }
+    }
+
+    public async Task<bool> SaveSolvedImageAsync(SkyImageLayer selected, string destination, bool overwrite = false)
+    {
+        if (_operation is not null || _closing || _applyingOptions || !Sky.Layers.Contains(selected) || selected.Manual is not null)
+        {
+            return false;
+        }
+        using var operation = new CancellationTokenSource();
+        _operation = operation;
+        var image = selected.Image;
+        SetBusy(true);
+        var loadProgress = BeginLoadProgress(operation, "Saving solved image", "image", "Cancel keeps the original and any existing destination file.");
+        loadProgress.SetTotal(1);
+        loadProgress.BeginItem(image.SourcePath);
+        try
+        {
+            var progress = ProcessingReporter(operation);
+            var result = await Task.Run(() => new SolvedImageExporter(_library).Export(image, destination, overwrite, operation.Token, progress), operation.Token);
+            loadProgress.FinishItem(1);
+            if (!_closing && ReferenceEquals(_operation, operation))
+            {
+                SetStatus($"Saved solved copy · {result.Path}" + (result.Warning is null ? "" : $" · {result.Warning}"));
+            }
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            if (!_closing && ReferenceEquals(_operation, operation))
+            {
+                SetStatus("Saving solved copy cancelled");
+            }
+        }
+        catch (Exception exception)
+        {
+            if (!_closing && ReferenceEquals(_operation, operation))
+            {
+                SetStatus($"Could not save solved copy: {exception.Message}");
+            }
+        }
+        finally
+        {
+            EndLoadProgress(loadProgress);
+            if (ReferenceEquals(_operation, operation))
+            {
+                _operation = null;
+                if (!_closing)
+                {
+                    SetBusy(false);
+                    UpdateInspector();
+                }
+            }
+        }
+        return false;
+    }
+
+    public async Task SolveImageAsync(SkyImageLayer selected)
+    {
+        if (_operation is not null || _closing || _applyingOptions || !Sky.Layers.Contains(selected))
+        { return; }
+        using var operation = new CancellationTokenSource();
+        _operation = operation;
+        var original = selected.Image;
+        SetBusy(true);
+        var loadProgress = BeginLoadProgress(operation, "Blind solving with ASTAP", "image", "Cancel stops ASTAP and keeps the existing placement.");
+        loadProgress.SetTotal(1);
+        loadProgress.BeginItem(original.SourcePath);
+        try
+        {
+            var result = await new AstapPlateSolver(_library).SolveAsync(original, _options, operation.Token, ProcessingReporter(operation));
+            operation.Token.ThrowIfCancellationRequested();
+            if (_closing || !ReferenceEquals(_operation, operation) || !Sky.Layers.Contains(selected) || !ReferenceEquals(selected.Image, original))
+            { return; }
+            var solved = original with { Placement = result.Placement, PlacementWarning = result.Warning };
+            selected.ReplaceDisplay(solved, selected.DisplayMode);
+            selected.SetManual(null);
+            _collectionSearch.Index(solved);
+            _collectionView.Refresh();
+            loadProgress.FinishItem(1);
+            SetStatus($"ASTAP placed {selected.Name}" + (string.IsNullOrWhiteSpace(result.Warning) ? "" : $" · {result.Warning}"));
+        }
+        catch (OperationCanceledException)
+        {
+            if (!_closing && ReferenceEquals(_operation, operation))
+            { SetStatus("ASTAP solving cancelled · existing placement retained"); }
+        }
+        catch (Exception exception)
+        {
+            if (!_closing && ReferenceEquals(_operation, operation))
+            { SetStatus($"ASTAP solve failed: {exception.Message}"); }
+        }
+        finally
+        {
+            EndLoadProgress(loadProgress);
+            if (ReferenceEquals(_operation, operation))
+            {
+                _operation = null;
+                if (!_closing)
+                { SetBusy(false); UpdateInspector(); }
+            }
+        }
+    }
+
     public async Task ApplyOptionsAsync(ApplicationOptions requested)
     {
         if (_closing || _operation is not null || _applyingOptions)
@@ -1331,201 +1587,6 @@ public partial class MainWindow : Window
                 SetBusy(false);
                 UpdateInspector();
             }
-        }
-    }
-
-    private async void OpenSessionClicked(object sender, RoutedEventArgs e)
-    {
-        var dialog = new OpenFileDialog
-        {
-            Title = "Open sky session",
-            Filter = "SkyBrowser session|*.sky.json"
-        };
-        if (dialog.ShowDialog(this) == true)
-        {
-            await OpenSessionAsync(dialog.FileName);
-        }
-    }
-
-    public async Task OpenSessionAsync(string path)
-    {
-        if (_operation is not null || _closing || _applyingOptions)
-        {
-            return;
-        }
-
-        using var operation = new CancellationTokenSource();
-        _operation = operation;
-        SetBusy(true);
-        var loadProgress = BeginLoadProgress(operation, "Opening session", "image", "Cancel keeps your current sky and session unchanged.");
-        try
-        {
-            var session = await SkySession.ReadAsync(path, operation.Token);
-            loadProgress.SetTotal(session.Images.Length);
-            List<SkyImageLayer> layers = [];
-            int failures = 0;
-            foreach (var saved in session.Images)
-            {
-                operation.Token.ThrowIfCancellationRequested();
-                string sourcePath = Path.GetFullPath(saved.SourcePath, Path.GetDirectoryName(Path.GetFullPath(path))!);
-                loadProgress.BeginItem(sourcePath);
-                SetStatus($"{loadProgress.StatusPrefix} · Restoring {Path.GetFileName(sourcePath)}…");
-                try
-                {
-                    var progress = ProcessingReporter(operation);
-                    var loaded = await Task.Run(
-                        () => PrepareForCollection(_imageLoader.Load(
-                            sourcePath,
-                            saved.DisplayMode,
-                            saved.FinishSettings ?? SkyFinishSettings.Default,
-                            operation.Token,
-                            saved.ImageIndex,
-                            progress
-                        )),
-                        operation.Token
-                    );
-                    operation.Token.ThrowIfCancellationRequested();
-                    var layer = new SkyImageLayer(loaded[0], saved.DisplayMode)
-                    {
-                        IsVisible = saved.Visible,
-                        Opacity = saved.Opacity
-                    };
-                    layer.SetManual(saved.Manual);
-                    layers.Add(layer);
-                    loadProgress.FinishItem(1, loaded[0].IsFromCache ? 1 : 0);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception exception)
-                {
-                    failures++;
-                    loadProgress.FinishItem(failed: true);
-                    _details.AppendLine($"{sourcePath}: {exception.Message}");
-                }
-            }
-
-            operation.Token.ThrowIfCancellationRequested();
-            // Commit only after the whole session has been read, so cancellation preserves the current sky.
-            using (Sky.DeferLayerUpdates())
-            {
-                Sky.Layers.Clear();
-                foreach (var layer in layers)
-                {
-                    Sky.Layers.Add(layer);
-                }
-            }
-
-            GridToggle.IsChecked = session.Grid;
-            ConstellationToggle.IsChecked = session.Constellations;
-            LabelToggle.IsChecked = session.Labels;
-            FootprintToggle.IsChecked = session.Outlines;
-            BlendToggle.IsChecked = session.BlendOverlaps;
-            ApplyObserver(session.Observer, resetView: false);
-            SkyOptionsChanged(this, new());
-            Sky.RestoreTargets(session.AddedTargets);
-            foreach (string identifier in session.AddedTargets.Where(id => DeepSkyCatalog.Find(id) is null))
-            {
-                _details.AppendLine($"Catalogue target {identifier} is unavailable in this catalogue version.");
-            }
-
-            Sky.CenterOn(session.Center, session.FieldOfView);
-            LayerList.SelectedItem = layers.FirstOrDefault(layer => _collectionView.Contains(layer));
-            CurrentFolderPath = null;
-            FolderLocation.Text = Path.GetFileName(path);
-            FolderLocation.ToolTip = path;
-            UpdateCollection();
-            SetStatus($"Opened {Path.GetFileName(path)} · {layers.Count} image(s){(failures > 0 ? $" · {failures} unavailable (see Details)" : "")}");
-        }
-        catch (OperationCanceledException)
-        {
-            if (ReferenceEquals(_operation, operation))
-            {
-                SetStatus("Session open cancelled");
-            }
-        }
-        catch (Exception exception)
-        {
-            if (ReferenceEquals(_operation, operation))
-            {
-                SetStatus($"Cannot open session: {exception.Message}");
-            }
-        }
-        finally
-        {
-            EndLoadProgress(loadProgress);
-            if (ReferenceEquals(_operation, operation))
-            {
-                _operation = null;
-                if (!_closing)
-                {
-                    SetBusy(false);
-                    UpdateInspector();
-                }
-            }
-        }
-    }
-
-    public async Task SaveSessionAsync(string path)
-    {
-        string directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
-        var session = new SkySession(
-            1,
-            Sky.Camera.Center,
-            Sky.Camera.FieldOfView,
-            Sky.ShowGrid,
-            Sky.ShowConstellations,
-            Sky.ShowLabels,
-            Sky.ShowFootprints,
-            Sky.Layers
-                .Select(l => new SessionLayer(
-                    Path.GetRelativePath(directory, l.Image.SourcePath),
-                    l.Image.ImageIndex,
-                    l.DisplayMode,
-                    l.IsVisible,
-                    l.Opacity,
-                    l.Manual)
-                {
-                    FinishSettings = l.Image.FinishSettings
-                })
-                .ToArray())
-        {
-            BlendOverlaps = Sky.BlendOverlaps,
-            Observer = Sky.Observer,
-            AddedTargets = Sky.AddedTargets.Select(target => target.Id)
-                .ToArray()
-        };
-        await session.WriteAsync(path, CancellationToken.None);
-    }
-
-    private async void SaveSessionClicked(object sender, RoutedEventArgs e)
-    {
-        var dialog = new SaveFileDialog
-        {
-            Title = "Save sky session",
-            Filter = "SkyBrowser session|*.sky.json",
-            DefaultExt = ".sky.json",
-            FileName = "My sky.sky.json"
-        };
-        if (dialog.ShowDialog(this) != true)
-        {
-            return;
-        }
-
-        try
-        {
-            if (SkyImageLoader.IsSupported(dialog.FileName))
-            {
-                throw new InvalidOperationException("Use the .sky.json extension for sessions.");
-            }
-
-            await SaveSessionAsync(dialog.FileName);
-            SetStatus($"Saved {Path.GetFileName(dialog.FileName)}");
-        }
-        catch (Exception exception)
-        {
-            SetStatus($"Cannot save session: {exception.Message}");
         }
     }
 

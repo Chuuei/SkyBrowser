@@ -30,6 +30,8 @@ SkyBrowser pins [XISFLib.Net](https://github.com/Chuuei/XISFLib.Net) as the sour
 
 `SkyImageFinisher` adapts the dark-background stretch, clipped broad-gradient fit, sample normalization and cosmetic filter choices from the user's `XISFLib.Viewer.Core/ViewerFinishService` implementation. It preserves the full frame for astrometric overlays and processes bounded display previews. It does not modify the separate library checkout or reference the Avalonia UI.
 
+`SkyImageDebayer` adapts bilinear Bayer interpolation from `XISFLib.Viewer.Core/ViewerDebayerService`, Copyright 2026 Chuuei and contributors, Apache-2.0. Changes add automatic preview detection, offset aliases, explicit row-order handling, parallel rows and linked grayscale display functions while retaining stored coordinates.
+
 Cosmetic filters use **Magick.NET-Q16-AnyCPU 15.0.0**, the same version as the Avalonia viewer. The package's complete notices, covering Magick.NET, ImageMagick and bundled components, are copied into the output as `Data/Magick.NET-Notice.txt`.
 
 ## Persistent preview database

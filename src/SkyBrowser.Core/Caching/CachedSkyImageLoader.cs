@@ -1,4 +1,5 @@
 using SkyBrowser.Core.Imaging;
+using SkyBrowser.Core.Library;
 
 namespace SkyBrowser.Core.Caching;
 
@@ -23,6 +24,8 @@ public sealed class CachedSkyImageLoader
 
     public SkyFinishSettings DefaultFinishSettings { get; set; } = SkyFinishSettings.Default;
 
+    public ImageLibrary? Library { get; init; }
+
     public CachedSkyImageLoader(ProcessedImageCache cache, SkyImageProcessor? processor = null)
     {
         _cache = cache;
@@ -45,7 +48,7 @@ public sealed class CachedSkyImageLoader
         if (_cache.Read(path, profile, onlyImage, token) is { } cached)
         {
             progress?.Report(new("Loading saved preview"));
-            return cached;
+            return Complete(cached, null, token);
         }
 
         progress?.Report(new("Waiting for image processing"));
@@ -57,7 +60,7 @@ public sealed class CachedSkyImageLoader
             if (_cache.Read(path, profile, onlyImage, token) is { } queuedCache)
             {
                 progress?.Report(new("Loading saved preview"));
-                return queuedCache;
+                return Complete(queuedCache, null, token);
             }
 
             SourceSnapshot? snapshot = null;
@@ -80,11 +83,29 @@ public sealed class CachedSkyImageLoader
                 _cache.Store(path, profile, snapshot, loaded, token);
             }
 
-            return loaded;
+            return Complete(loaded, snapshot, token);
         }
         finally
         {
             _processing.Release();
+        }
+    }
+
+    private IReadOnlyList<LoadedSkyImage> Complete(IReadOnlyList<LoadedSkyImage> images, SourceSnapshot? snapshot, CancellationToken token)
+    {
+        if (Library is null || images.Count == 0)
+        {
+            return images;
+        }
+        try
+        {
+            return Library.Remember(images, snapshot ?? SourceSnapshot.Capture(images[0].SourcePath, token), token);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException or
+            System.Text.Json.JsonException or InvalidDataException or NotSupportedException)
+        {
+            // Archive storage is optional for ordinary imports. A failed index cannot hide a readable image.
+            return images;
         }
     }
 

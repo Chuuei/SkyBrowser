@@ -83,6 +83,12 @@ public sealed record ImageMetadataSnapshot(ImageMetadataEntry[] Entries, bool Is
         }
 
         Add("Image", "Stored display function", image.DisplayFunction is null ? "Absent" : "Present");
+        if (image.ColorFilterArray is { } cfa)
+        {
+            Add("Image", "CFA pattern", cfa.Pattern);
+            Add("Image", "CFA tile", $"{cfa.Width} × {cfa.Height}");
+        }
+
         foreach (var keyword in image.FitsKeywords)
         {
             if (!Add("FITS", keyword.Name, keyword.Value, keyword.Comment))

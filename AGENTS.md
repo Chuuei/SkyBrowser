@@ -38,6 +38,9 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Core/Astronomy/` | Coordinates, camera, observer frame, placement, spherical footprints and catalogues |
 | `src/SkyBrowser.Core/Imaging/` | XISFLib loading, metadata snapshots, stretches and cosmetic finishing |
 | `src/SkyBrowser.Core/Caching/` | Source validation, persistent SQLite previews and cached loading |
+| `src/SkyBrowser.Core/Library/` | Durable archive index, recursive scans, search and source-bound ASTAP placements |
+| `src/SkyBrowser.Core/Astrometry/` | ASTAP process, temporary scientific solver inputs and validated TAN results |
+| `src/SkyBrowser.Desktop/LibraryWindow.xaml` | Staged folder management and confirmed recursive scene loading |
 | `src/SkyBrowser.Core/Configuration/ApplicationOptions.cs` | Validated defaults, atomic settings persistence and recovery |
 | `src/SkyBrowser.Desktop/MainWindow.xaml.cs` | Import/display operations, collection, navigation and dialog coordination |
 | `src/SkyBrowser.Desktop/Controls/SkyViewport.cs` | WPF textured sky, overlays, batching, overlap rendering and hit testing |
@@ -45,7 +48,7 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Desktop/Controls/SceneTimeline.xaml` | Scene time slider, day steps and live-clock controls |
 | `src/SkyBrowser.Desktop/Styles/Controls.xaml` | Shared dark control palette/templates, merged by App.xaml |
 | `src/SkyBrowser.Desktop/Models/` | Layer state and normalized collection search |
-| `src/SkyBrowser.Desktop/Services/` | Session serialization and observer preferences |
+| `src/SkyBrowser.Desktop/Services/` | Window appearance and observer preferences |
 | `tests/SkyBrowser.Tests/` | xUnit scientific, cache, settings and real WPF integration tests |
 | `tests/SkyBrowser.CacheProbe/` | Separate-process persistence checks and performance probes |
 | `examples/` | User-supplied FITS/XISF images, including overlapping Horsehead fields |
@@ -72,7 +75,7 @@ dotnet run --project src\SkyBrowser.Desktop -c Release --artifacts-path .\artifa
 The build executable is
 `artifacts/bin/SkyBrowser.Desktop/release/SkyBrowser.exe`. Framework-dependent
 builds require the .NET 10 Desktop Runtime. Startup arguments after `--` can be
-image paths, a folder or a `.sky.json` session.
+image paths or a folder; saved library folders also load automatically.
 
 For code changes, run the relevant tests; use the full suite for changes spanning
 image processing, astrometry, caching or desktop workflows:
@@ -106,8 +109,9 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   in the reader. Do not weaken malformed-input or decompression bounds checks.
 - Supported extensions are `.fits`, `.fit`, `.fts`, `.xisf` and distributed
   `.xish` with its sidecars. Support is for 2D grayscale/color and FITS RGB/RGBA
-  third axes; unsupported cubes/complex samples are rejected. CFA is displayed
-  gray; there is no built-in debayering or plate solver.
+  third axes; unsupported cubes/complex samples are rejected. Recognized 2 x 2
+  Bayer mosaics are automatically debayered for previews before stretch/resizing;
+  unsupported CFA remains gray. ASTAP is an optional external blind solver.
 - Native XISF Revision 1 solutions take precedence. FITS automatic placement
   supports RA/Dec TAN, degrees, ICRS or FK5/J2000 and CD or PC/CDELT matrices.
   Unsupported projections, SIP/TPV or frames require warnings/manual placement,
@@ -128,6 +132,14 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
 
 ## Display processing
 
+- `SkyImageDebayer` detects native XISF CFA (takes precedence) or FITS `BAYERPAT`
+  with `XBAYROFF`/`YBAYROFF` (also `XBAYEROFF`/`YBAYEROFF`, including HIERARCH).
+  Explicit `ROWORDER=BOTTOM-UP` adjusts tile parity for the source height; absent
+  row order uses the tile at stored (0,0). Debayering preserves stored coordinates,
+  sample type/bounds and original metadata snapshots. Bilinear interpolation uses
+  available neighbors at borders, exact wide integer means and row cancellation.
+  Gray display functions are linked across reconstructed RGB. Invalid masks stay
+  gray with a message and skip cosmetic finishing; RGB/alpha data are not debayered.
 - **Automatic · dark sky (fast)** is the default: stretch only, initially targeting
   a 10% background. It uses a stored display function when available and otherwise
   handles dark/high-pedestal linear samples adaptively, retaining developed images
@@ -137,7 +149,7 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   stretching. Retain the darker Horsehead result and conservative processing
   based on the external viewer. Do not merge it with Automatic.
 - Linear, stored-display-function and library auto-stretch variants remain
-  distinct. Per-image choices and session settings take precedence over global
+  distinct. Per-image choices take precedence over global
   defaults; saving Options does not reprocess all currently loaded images.
 - Row processing uses bounded parallelism, disjoint writes and unchanged sample
   accumulation order. Preserve deterministic pixels, alpha and monotonic progress.
@@ -146,6 +158,40 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
 
 ## Persistence, loading and responsiveness
 
+- The durable library is `library-v1.sqlite3` beside the options file, separate
+  from the disposable/movable preview cache. Ordinary imports register source
+  metadata; folder discovery is recursive and skips reparse points. The library
+  dialog lists folders, with additions/removals staged until **Load folders**.
+  Cancel discards edits. Opening/editing the dialog never decodes images, and the
+  desktop does not start background indexing. Confirmation atomically saves roots
+  and loads all supported images, deduplicating overlapping roots and documents.
+  Imports and solution application validate sampled source hashes. Folder removal
+  keeps indexed metadata, saved solutions and original files.
+- `CachedSkyImageLoader.Library` overlays valid externally solved placements after
+  reading/storing raw previews. Never bake a source-specific solution into an old
+  preview variant. Solutions bind to source/sidecar signatures and image index,
+  remain after cache clearing/moves, and are invalidated by source changes.
+- ASTAP configuration belongs in Options → Plate solving. Use `ArgumentList`,
+  `UseShellExecute=false`, hidden process windows, bounded output, cancellation
+  that kills/waits for the process tree, and a configurable timeout. Full-sky
+  search uses `-r 180 -ra 0 -spd 90 -fov 0` by default; `-sip n` requests supported
+  linear TAN. User scale hints change only FOV, never the full-sky search radius.
+  Export a full-frame, linear Float32 Gray FITS copy into a unique temporary
+  directory, retaining stored rows and using decoded/debayered scientific data.
+  Never pass source paths or `-update` to ASTAP. Validate INI coordinates/matrix,
+  evaluate the full mesh, recheck source signatures, then commit the placement.
+  Use the fitted matrix and full source dimensions for sizing. Dismiss only ASTAP's
+  recognized initial-scale advisory after validation; retain other diagnostics.
+  The inspector's center pixel scale comes from the placement and source dimensions,
+  including restored meshes, rather than rounded warning values or preview sizes.
+- **Save solved copy** exports source-bound ASTAP results as separate FITS/XISF
+  documents, preserving scientific samples and stored geometry. It recovers a
+  centered TAN matrix from exact saved grid vertices and validates the full mesh.
+  Retain all images; update only the selected image's astrometry. FITS exports use
+  standard WCS; XISF exports also carry native Revision 1 properties. Never export
+  stretched previews. Preserve same-format metadata; report cross-format omissions.
+  Refuse source/sidecar destinations and stale solutions. Stage output, revalidate
+  signatures and cancellation, then commit without changing the scene or original.
 - User options are JSON at `%LOCALAPPDATA%\SkyBrowser\settings.json`, separate
   from the disposable preview database. Keep validation, atomic writes and `.bak`
   recovery. Do not use or change the user's actual settings for automated tests.
@@ -166,20 +212,29 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   **Clear saved previews** acts immediately, even if Options is later cancelled;
   it retains rendering preferences, recent folders and already loaded images.
   Options shows used space and preview count beside the limit.
-- Browse folder replaces the collection; Add/drop appends. Scan direct files,
-  without recursion. The last 12 folders persist across restarts.
+- Image library is the primary browsing workflow. **Load folders** loads every
+  listed root, including roots hidden by its folder-name/path filter. **Remove
+  selected** and **Remove all** edit only the pending list. Confirmed removals take
+  covered layers out of the scene unless a retained root still covers them; unrelated
+  scene layers remain. Retained layers keep their state, and repeat confirmations
+  discover new files and missing image indices without duplicates. Add/drop imports
+  retain metadata but do not add folder roots. Legacy direct-folder APIs still
+  replace/append and retain recent folders for test compatibility. Discovery
+  and loading run off the UI thread with the existing serial cold-loader gate.
 - Progress opens after a short delay (currently 350 ms), with totals, remaining
   items, current stage and cached/failed/skipped counts. Cancellation keeps partial
-  imports, the old display during a cancelled reprocess, and the old scene during
-  a cancelled session restore. Sessions commit only after successful staging.
+  imports and startup loads, and the old display during a cancelled reprocess.
 - Guard asynchronous updates by operation identity and item version. Old-folder
   progress and finishing callbacks must not alter a newer operation or layer.
 - Batch scene changes through `SkyViewport.DeferLayerUpdates`; nested scopes and
   repeated disposal are supported. Detach events from removed/reset layers. Keep
   reusable camera state, frozen mesh topology and bounded drawing caches.
-- `.sky.json` sessions preserve layer state, finishing, manual placement, added
-  targets, observer settings and view, with relative source paths when possible.
-  Missing sources are reported while the remaining entries can load.
+- Startup reads the saved folder list after first-run setup, recursively discovers
+  its files and loads valid cached previews first. Missing/stale/corrupt previews
+  fall back to source processing with the existing signature checks and preferences.
+  Startup does not rewrite the saved roots; explicit image/folder arguments append.
+  Do not restore the removed session-file UI or serializer. Per-image rendering and
+  ASTAP results persist; transient layer/camera/target changes are not autosaved.
 
 ## UI behavior to preserve
 
@@ -209,7 +264,7 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   dot; font glyph substitution previously caused misalignment.
 - Collection search covers filenames and retained metadata, normalizing case,
   accents, spacing and punctuation (`IC434` equals `IC 434`). All query terms must
-  match. Filtering the list does not hide sky layers or alter sessions.
+  match. Filtering the list does not hide sky layers.
 - With overlap blending enabled, larger angular footprints are behind smaller
   ones; insets use 60% of the selected opacity and return to that selected opacity
   on hover. Hover changes scene opacity only. With blending off, later collection
@@ -238,13 +293,13 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   pauses the clock over a fixed +/-12-hour anchor; day buttons move 24 hours and
   recenter. Live now resumes system time. Preserve compass direction, zoom and
   image textures; clamp dates to 1900-2100 using UTC arithmetic across DST changes.
-  Scene time is saved in sessions and does not overwrite startup options. In atlas
+  Scene-time edits do not overwrite startup options. In atlas
   mode the timeline is hidden. Anonymous manual captures replace both visible
   computer-local clock readouts with fixed UTC demonstration values.
 - First-run setup appears only if neither settings nor backup exists, before
   startup imports. Offer a stretch and optional location. Save & start / Use
   defaults persist; Not now / Escape / close defer without saving. Failed saves
-  keep the dialog open. A session's observer does not replace startup defaults.
+  keep the dialog open. Startup uses the saved observer defaults.
 
 ## Manual, privacy and publishing
 

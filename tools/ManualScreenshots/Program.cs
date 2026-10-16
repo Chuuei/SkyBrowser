@@ -12,6 +12,7 @@ using SkyBrowser.Core.Astronomy;
 using SkyBrowser.Core.Caching;
 using SkyBrowser.Core.Configuration;
 using SkyBrowser.Core.Imaging;
+using SkyBrowser.Core.Library;
 using SkyBrowser.Desktop;
 using SkyBrowser.Desktop.Controls;
 using SkyBrowser.Desktop.Models;
@@ -131,7 +132,30 @@ internal static class Program
                 tabs.SelectedIndex = 2;
                 await Ready();
                 Capture(options, "options-cache.png", output);
+                tabs.SelectedIndex = 3;
+                ((TextBox)options.FindName("AstapPathInput")).Text = @"C:\Program Files\ASTAP\astap.exe";
+                await Ready();
+                Capture(options, "options-plate-solving.png", output);
                 options.Close();
+
+                var demoLibrary = new ImageLibrary(Path.Combine(root, "artifacts", "manual-library", "library.sqlite3"));
+                var libraryWindow = new LibraryWindow(demoLibrary) { Owner = window, ApplyFoldersAsync = _ => Task.FromResult(true) };
+                libraryWindow.Show();
+                await libraryWindow.InitializeAsync();
+                await Ready();
+                ((ListBox)libraryWindow.FindName("FolderList")).ItemsSource = new LibraryFolder[]
+                {
+                    new(DemoRoot + @"\Images\Wide fields", true),
+                    new(DemoRoot + @"\Images\Deep sky", true),
+                    new(DemoRoot + @"\Archive\External drive", false)
+                };
+                ((TextBlock)libraryWindow.FindName("EmptyLibrary")).Visibility = Visibility.Collapsed;
+                ((ListBox)libraryWindow.FindName("FolderList")).SelectedIndex = 2;
+                ((Button)libraryWindow.FindName("ClearFoldersButton")).IsEnabled = true;
+                ((TextBlock)libraryWindow.FindName("LibraryStatus")).Text = "3 folders · 1 unavailable";
+                await Dispatcher.Yield(DispatcherPriority.Render);
+                Capture(libraryWindow, "image-library.png", output);
+                libraryWindow.Close();
 
                 var information = new ImageDetailsWindow(detail) { Owner = window };
                 information.Show();

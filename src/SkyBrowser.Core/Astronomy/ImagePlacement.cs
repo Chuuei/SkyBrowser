@@ -33,6 +33,16 @@ public sealed class ImagePlacement
 
     public double AngularHeight => At(0.5, 0).DistanceTo(At(0.5, 1));
 
+    /// <summary>Angular size of a stored source pixel at the image center, in arcseconds.</summary>
+    public (double X, double Y) PixelScale(int width, int height)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(width, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(height, 1);
+        double dx = 0.5 / width, dy = 0.5 / height;
+        return (At(0.5 - dx, 0.5).DistanceTo(At(0.5 + dx, 0.5)) * 3600,
+            At(0.5, 0.5 - dy).DistanceTo(At(0.5, 0.5 + dy)) * 3600);
+    }
+
     private ImagePlacement(string description, Func<double, double, SkyCoordinate> map) => (Description, _map) = (description, map);
 
     /// <summary>Restores the renderer's 33 × 33 sky samples without reparsing the scientific file.</summary>

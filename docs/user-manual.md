@@ -2,13 +2,13 @@
 
 ## Beginner's user manual
 
-Explore your astronomical photographs in their place on the sky. SkyBrowser combines your FITS and XISF images with a simple star map. You can look around, compare photographs and return to a saved view later.
+Explore your astronomical photographs in their place on the sky. SkyBrowser combines your FITS and XISF images with a simple star map. You can look around, compare photographs and return to your saved image folders later.
 
-<!-- figure height=250 crop=0,0,1424,881 markers=1:0.676:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
+<!-- figure height=220 crop=0,0,1424,881 markers=1:0.89:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
 ![The main window, showing a wide Horsehead field and a smaller image of the same region.](manual/screenshots/main-window.png)
 
-- **1. Top bar:** see the app version, open Options, open or save a session, and add images.
-- **2. Image collection:** browse folders, search your loaded images and choose one.
+- **1. Top bar:** see the app version, open Options and add images.
+- **2. Image collection:** open the library, search loaded images and choose one.
 - **3. Selected image:** change the chosen image's appearance, visibility and placement. Drag the divider above this panel to resize it.
 - **4. Sky view:** drag to look around and scroll to zoom. The bottom status bar reports progress and problems.
 
@@ -18,10 +18,11 @@ Explore your astronomical photographs in their place on the sky. SkyBrowser comb
 | Navigate and find a target | 3 | Location and observing time | 7 |
 | Collection and image details | 4 | Options and the cache | 8 |
 | Choose an image display | 5 | Loading and cancellation | 9 |
-| Save and reopen a session | 10 | Place an unsolved image | 11 |
+| Return to saved folders | 10 | Place an unsolved image | 11 |
 | Troubleshooting | 12 | Quick reference | 13 |
+| Image library and ASTAP | 14 | | |
 
-> **Your originals stay safe.** Display changes, blending and placement do not rewrite your scientific image files. Keep those originals even after saving a session.
+> **Your originals stay safe.** Display changes, blending and placement do not rewrite your scientific image files. Keep your originals available for future starts.
 
 ---
 
@@ -39,13 +40,15 @@ Explore your astronomical photographs in their place on the sky. SkyBrowser comb
 
 ## Load and frame a photograph
 
-1. Choose **Browse folder...** on the left and select a folder containing images. This replaces the current collection with that folder's images.
-2. Wait for loading to finish. Click an entry, then **Go to image** to bring it into view. Double-clicking a collection entry also frames it.
+1. Choose **Image library**, then **Add folder...** to build your list of image folders.
+2. Choose **Load folders** to load their images, including subfolders. Then double-click a collection entry, or use **Go to image**, to frame it.
 3. Drag the sky to move around and scroll to zoom in or out.
 
-Use **+ Add images** to append files, or **Add...** beside Browse folder to append another folder. You can also drop files or folders onto the window. **Recent folders...** returns to folders visited before, even after restarting.
+Use **+ Add images** or drop files onto the window for individual imports. Your saved folders reopen automatically on startup, using cached previews when valid and loading source files when needed. See page 14 for folder management.
 
-> **Supported files:** .fits, .fit, .fts, .xisf and .xish. Keep a distributed XISF header and its associated data files together. Folder loading reads that folder's files, without searching its subfolders. An image needs stored sky-position information to appear automatically; see page 11 for **Needs placement**.
+> **Supported files:** .fits, .fit, .fts, .xisf and .xish. Keep distributed XISF headers with their data files. Images need a usable sky solution to appear automatically; see page 11 for **Needs placement** and ASTAP solving.
+
+Recognized Bayer metadata automatically produces a color preview. Missing or unsupported masks stay grayscale; original files are unchanged.
 
 ---
 
@@ -126,7 +129,7 @@ Open **Options > Images**, choose a default stretch and background target, then 
 <!-- figure height=210 crop=24,138,720,508 -->
 ![The Images tab with the default Automatic display and a 10% background target. Cleanup boxes apply to Dark sky + cleanup.](manual/screenshots/options-images.png)
 
-Saved per-image choices and sessions take precedence over global defaults. Saving Options does not reprocess the images already on screen. **Reset defaults** in Selected image applies your saved image defaults to that image.
+Saved per-image choices take precedence over global defaults. Saving Options does not reprocess the images already on screen. **Reset defaults** in Selected image applies your saved image defaults to that image.
 
 ---
 
@@ -174,7 +177,7 @@ With a location selected, **Scene time** appears below the sky. Drag its slider 
 <!-- figure height=63 crop=330,766,1034,846 -->
 ![The scene timeline, using a neutral example clock shown in UTC.](manual/screenshots/scene-timeline.png)
 
-The readout uses your computer's time zone and UTC offset, not a zone inferred from the map. Options also accepts fixed UTC times. Moving time keeps your direction and zoom and does not reprocess images. Sessions save the scene time; your startup options stay unchanged.
+The readout uses your computer's time zone and UTC offset, not a zone inferred from the map. Options also accepts fixed UTC times. Moving time keeps your direction and zoom and does not reprocess images. The current scene time does not change your saved startup options.
 
 The view starts south, 20 degrees up; **Overview** returns there. **ZENITH** marks straight up (90 degrees). **Polaris** is roughly your latitude above north, reaching overhead only near the North Pole. Use **Clear location > Save options** to return to the atlas and hide the timeline.
 
@@ -191,20 +194,21 @@ Choose **Options** in the top bar. Use **Save options** to apply changes; **Canc
 | Images | Default display stretch, sky background and cleanup choices. |
 | Observer | Your optional startup location and live or fixed observing time. |
 | Cache | Where processed previews are stored and how much space they can use. |
+| Plate solving | ASTAP executable/database, time limit and image-height hint. |
 | Sky | Startup grid, constellations, labels, outlines and overlap blending. |
 
 ## Let the cache do the repeated work
 
 The first load may be slow, especially for large images or cleanup. SkyBrowser saves processed previews locally and reuses them on later visits, including after closing and restarting the program. New or changed source files and new display settings can require processing again.
 
-<!-- figure height=245 crop=24,99,720,508 -->
+<!-- figure height=205 crop=24,99,720,508 -->
 ![The Cache tab shows the 10 GB default limit and the space already used. Your folder path and usage will differ.](manual/screenshots/options-cache.png)
 
 The default limit is **10 GB**. This is a maximum for stored preview data, not space reserved immediately. Older previews are removed as the limit is reached; database overhead can use some extra disk space. Choose a fast local drive with enough free space for a responsive experience.
 
-Changing the cache folder copies cached content to the new location when you save. Old cache files remain in the previous folder. **Clear saved previews** clears the active cache immediately, even if you later cancel Options. It keeps loaded images, remembered image choices and recent folders; later loads may need processing again.
+Changing the cache folder copies cached content when you save. Old cache files remain. **Clear saved previews** clears previews immediately, even if Options is cancelled. It keeps loaded images, image choices, archive metadata and ASTAP solutions; later loads may need processing again.
 
-> **Where settings live:** Options are saved for your Windows user in **%LOCALAPPDATA%\SkyBrowser\settings.json**, separately from the preview database. The Cache tab also shows the options-file path. A cache is disposable; it is not a backup of your images or sessions.
+> **Where settings live:** Options are saved for your Windows user in **%LOCALAPPDATA%\SkyBrowser\settings.json**, separately from the preview database. The Cache tab also shows the options-file path. A cache is disposable; it is not a backup of your images.
 
 ---
 
@@ -215,13 +219,12 @@ Longer loads open a progress window after a short delay. Fast cached visits may 
 <!-- figure height=250 crop=0,0,524,366 -->
 ![A loading example: the overall bar counts files; the lower bar shows progress within the current processing step.](manual/screenshots/loading-progress.png)
 
-The window shows the current filename, completed and remaining entries, the processing step and counts of ready, cached, failed or already-loaded images. Folder imports count files; one file can contain multiple images. Restoring a session counts its saved image entries. A pulsing bar means the current step has no percentage to report.
+The window shows the current filename, completed and remaining entries, the processing step and counts of ready, cached, failed or already-loaded images. Folder imports count files; one file can contain multiple images. A pulsing bar means the current step has no percentage to report.
 
 Choose **Cancel loading**, press Escape in that window, or close it to stop. Some decoding and cleanup steps must finish before cancellation completes. The display shows **Stopping...** while it waits.
 
 - During an import, images already added stay available; remaining files are not started.
 - During a display change, cancellation keeps the previous preview.
-- During a session restore, cancellation keeps the sky you had before opening it.
 
 If a file fails, other files can still load. Read the message in the bottom status bar and choose **Details** there for more information. The status-bar Details button is an operation log; the small circled i in an image entry opens that image's metadata.
 
@@ -229,39 +232,35 @@ If a file fails, other files can still load. Read the message in the bottom stat
 
 ---
 
-# 09 / Save a view and return later
+# 09 / Return to your saved folders
 
-A **session** remembers a collection and its view. Use one for a project, a target comparison or a particular observing setup.
+SkyBrowser opens the images in your saved library folders automatically when the application starts. You do not need to open a separate file to restore the collection.
 
 <!-- workflow -->
 
-## Save your current work
+## Set up your folders once
 
-1. Load the images you want, set their display modes and arrange the sky.
-2. Choose **Save session** in the top bar.
-3. Choose a folder and a descriptive name, such as **Horsehead comparison.sky.json**.
+1. Open **Image library**, add your image folders and choose **Load folders**.
+2. Let their images finish loading. Previews and per-image display choices are kept locally.
+3. Close the application when finished. Next time, your saved folders load automatically, including subfolders.
 
-The session keeps source-image references, layer order, visibility, opacity, display and cleanup choices, manual placements, added catalogue markers, observer/time settings and your sky direction and zoom.
+## What happens on startup
 
-## Reopen it
+Valid cached previews load first, with their metadata and sky placement, without decoding or stretching the scientific pixels again. A new image, missing preview, changed source or changed XISF sidecar is loaded from its source file and cached for later starts. Newly added files in saved folders are discovered too.
 
-1. Choose **Open session** and select the .sky.json file.
-2. Let its images load. Saved previews are reused when available.
-3. Continue exploring. Save the session again when you want to keep a later arrangement.
+> **Keep your originals available.** Cached previews are validated against the original files and their sidecars. The cache speeds up loading; it is not an image backup. Unavailable folders stay saved and are reported in **Details**.
 
-> **A session points to your originals.** It does not contain copies of the FITS or XISF files. Keep the source images available. Paths are stored relative to the session where possible, so moving a whole project folder together is more reliable than moving only the session file.
-
-| Use this | To remember this |
+| Stored here | What returns later |
 | --- | --- |
-| Options | Your defaults for later image loads and application starts. |
-| Session | A particular set of images, their choices and the current sky view. |
-| Preview cache | Processed displays that make later visits quicker. |
+| Image library | Your folder list and source-bound ASTAP solutions. |
+| Preview cache | Processed previews and per-image display/cleanup choices. |
+| Options | Startup display defaults, sky toggles and observer settings. |
 
-Missing session images are reported in **Details**; available ones can still load. A session's observer and display choices can differ from your startup defaults. Opening a session does not replace those saved startup defaults.
+Visibility, opacity, hand-entered placement, added target markers and camera adjustments apply to the current sky. Set startup defaults in **Options**. For a portable plate solution, use **Save solved copy...** after blind solving.
 
-## A simple routine
+## Change what opens next time
 
-Browse a folder, frame an image, adjust its appearance if needed, then save a session. Next time, reopen that session to restore the arrangement, or use Recent folders when you just want to browse the folder again.
+Use **Image library → Remove selected** or **Remove all**, then **Load folders** to confirm. **Cancel** keeps the previous folder list. Individual files opened with **+ Add images** do not add their parent folders to the saved list.
 
 ---
 
@@ -269,7 +268,7 @@ Browse a folder, frame an image, adjust its appearance if needed, then save a se
 
 Automatic placement requires a stored **astrometric solution**, often called a **plate solve**. It tells the program which sky direction belongs to each part of an image. A target name or acquisition coordinates alone are not enough to determine its width, rotation and possible reflection.
 
-An image marked **Needs placement** is loaded into the collection but has no usable position on the sky. SkyBrowser does not include a plate solver. For accurate alignment, solve the image in suitable astronomy software and save the solution in the file, then load the updated image.
+An image marked **Needs placement** has no usable position on the sky. Install ASTAP and a star database, configure **Options → Plate solving**, then select the image and choose **Blind solve & place...**. No approximate coordinates are required. The solution is saved locally without rewriting the original. See page 14 for setup and cancellation.
 
 ## Optional: place it by hand
 
@@ -283,7 +282,7 @@ If you already know the necessary values, select the image and expand **Manual s
 | Rotation | Zero means north up and east left. Positive values turn the image counterclockwise on the sky. |
 | Mirror horizontally | Reverses the image horizontally when needed to match its orientation. |
 
-Choose **Apply placement**, then **Go to image**. Inspect the alignment against known objects and nearby images. Choose **Use file solution** to remove the manual override and try the image's stored solution again. Manual placement is kept in a saved session.
+Choose **Apply placement**, then **Go to image**. Inspect alignment against known objects and nearby images. **Use file solution** removes the manual override and returns to the loaded solution, including a retained ASTAP result. Hand-entered placement applies to the current sky.
 
 > **Manual placement is approximate.** A plausible position is not proof of an accurate alignment. Wide or distorted fields especially benefit from a proper plate solve. Moving or stretching a preview does not repair the original file's astrometric metadata.
 
@@ -302,7 +301,7 @@ Read its warning in Selected image or the status-bar **Details** log. Some store
 | A photograph is almost black | It may be linear data. Try Automatic or Dark sky + cleanup, and allow processing to finish. |
 | A nebula changes too much with cleanup | Try disabling Reduce broad sky gradients or other cleanup options. Automatic provides a stretch without those cosmetic steps. |
 | Fewer entries appear in the collection | Look for an active search. Clear it with the x button. Filtering the list does not hide photographs from the sky. |
-| A new default does not change a loaded image | Options do not reprocess the current collection. Use Reset defaults in Selected image. Remembered per-image choices and sessions can override global defaults. |
+| A new default does not change a loaded image | Options do not reprocess the current collection. Use Reset defaults in Selected image. Remembered per-image choices can override global defaults. |
 | A file fails to open | Read status-bar Details. Check that it still exists, its format is supported, and any distributed XISF data files are present. |
 | Double-clicking the sky cannot open a source | Install or select a Windows application associated with FITS/XISF, and check that the original file is still available. |
 | The local sky time seems wrong | Check your computer clock and time zone. For a fixed time, confirm Computer local time versus UTC. The map marker does not choose a time zone. |
@@ -341,10 +340,34 @@ The **circled i beside an image** shows that image's dimensions, source-file fac
 - **Field of view:** how much sky you can see. A smaller angle gives a closer view.
 - **Plate solve / astrometric solution:** information connecting image positions to sky coordinates.
 - **Cache:** saved processed previews used to speed up future visits, including after restarting.
-- **Session:** a saved .sky.json arrangement that refers to your original files.
 
-## A good first session
+## A simple routine
 
-Keep **Automatic** as your default. Browse one folder, select an image and choose **Go to image**. Look around, try the finder, then save a session. Add a location or cleanup only when you need it.
+Keep **Automatic** as your default. Browse one folder, select an image and choose **Go to image**. Look around and try the finder; your saved image folders reopen next time. Add a location or cleanup only when you need it.
 
 This guide describes the current Windows desktop application. Screenshots use anonymous demonstration paths, metadata and observing settings. Filenames, values and layout can differ on your computer. Sky-catalogue and map attributions are supplied with the application in **THIRD-PARTY-NOTICES.md**.
+
+---
+
+# 13 / Image library and ASTAP
+
+## Keep an archive, choose a scene
+
+Add folders in **Image library**, then confirm with **Load folders**. Their images, including subfolders, reopen automatically on the next application start.
+
+<!-- figure height=175 -->
+![The library lists image folders with controls to add, remove and confirm them.](manual/screenshots/image-library.png)
+
+Use **Remove selected** (Ctrl/Shift for several) or **Remove all** to edit the list. **Cancel** discards edits. **Load folders** saves all listed folders, even those hidden by the folder filter. Confirmed removals take their images out of the sky; files and saved solutions stay safe. Unavailable folders remain listed for later use.
+
+## Solve an image without knowing its coordinates
+
+<!-- figure height=140 crop=20,90,700,415 -->
+![ASTAP executable, optional star database, time limit and image-height hint in Options.](manual/screenshots/options-plate-solving.png)
+
+1. Install ASTAP and a star database. In **Options → Plate solving**, browse to **astap.exe** or **astap_cli.exe**. The optional database folder is useful for databases installed elsewhere.
+2. Keep image height at **0** for automatic scale search, or enter its height in degrees for an unusually wide/narrow field. Save options.
+3. Select an image and choose **Blind solve & place...**. ASTAP searches the whole sky. **Cancel loading** or the time limit stops it. The inspector shows fitted field size and pixel scale.
+4. Choose **Save solved copy...** and select FITS or XISF to embed the solution in a new file with the original scientific pixels. The source stays unchanged. FITS may omit XISF-only metadata.
+
+Local solutions survive clearing previews; changed source files invalidate them. Saved solved copies carry their astrometry between computers without requiring the local library.

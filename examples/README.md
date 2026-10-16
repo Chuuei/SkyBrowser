@@ -5,10 +5,10 @@ FITS/XISF files, or download an image from
 [The Wizard's Library](https://astrowizard.lukomatico.com/library.html).
 Check the image provider's terms before redistributing or publishing photographs.
 
-Unzip a download and open its folder with **Browse folder**. Automatic placement
+Unzip a download and add its folder with **Image library → Add folder**. Automatic placement
 requires supported astrometry: XISF Revision 1 or the supported FITS TAN WCS. A file
-without it needs manual placement or external plate solving. The application has
-no built-in plate solver or debayering; CFA data appear gray.
+without it can use **Blind solve & place** after configuring ASTAP, or manual placement. Recognized Bayer metadata produces color previews
+automatically; unsupported CFA patterns remain grayscale.
 
 You may store local files here; Git ignores everything except these instructions
 and `examples.txt`. Keep distributed `.xish` headers with their sidecars.
