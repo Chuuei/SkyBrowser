@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0 - 2026-10-16
+
+- Display the application version beside the SkyBrowser name and in the window title.
+- Show the full build identity, including the Git commit when available, in the version tooltip.
+- Keep assembly metadata, Windows file versions and release tags consistent with `Version.props`.
+- Reject mismatched release tags and incorrectly versioned application packages.
+
 ## 0.1.1 - 2026-10-16
 
 - Preserve the original LZ4 codec's BSD attribution alongside the K4os wrapper's MIT notice.

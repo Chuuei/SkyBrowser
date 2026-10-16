@@ -32,6 +32,15 @@ jobs:
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 10.0.x
+      - name: Validate application version and release tag
+        env:
+          RELEASE_REF: ${{ github.ref }}
+        run: |
+          if ($env:RELEASE_REF.StartsWith('refs/tags/v')) {
+            ./tools/Get-Version.ps1 -ExpectedVersion $env:RELEASE_REF.Substring('refs/tags/v'.Length)
+          } else {
+            ./tools/Get-Version.ps1
+          }
       - name: Build
         run: dotnet build SkyBrowser.slnx -c Release --artifacts-path ./artifacts
       - name: Scientific, cache and WPF integration tests

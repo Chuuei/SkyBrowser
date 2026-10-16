@@ -17,6 +17,9 @@ using their astrometry over an offline star, constellation and deep-sky map.
   Ordinary IDE Debug builds must continue to work without special arguments.
 - `Directory.Build.props` sets language version, nullable references, implicit
   usings, deterministic builds and repository-local `artifacts/` output.
+- `Version.props` is the application's single semantic version. The desktop header
+  and title use its generated assembly metadata; keep `CHANGELOG.md` in step when
+  bumping it. Release tags and packaged executable metadata must match this file.
 - `global.json` permits a newer SDK to build the .NET 10 targets. A newer selected
   SDK is not a reason to change the target framework.
 - XISFLib is a source project reference in the pinned Git submodule

@@ -1,5 +1,7 @@
 # SkyBrowser
 
+**Development note:** SkyBrowser was created with the help of OpenAI Codex.
+
 A Windows desktop sky atlas for your FITS and XISF photographs. Explore an offline
 star map, place solved images on the sky, blend overlapping fields, and save scenes.
 Display processing preserves your original scientific files.
@@ -69,6 +71,9 @@ updates, optional image checks and publishing. Python is needed only to regenera
 the manual.
 
 ## Help and contribute
+
+The app version appears beside the SkyBrowser name and in the window title.
+Include it when reporting a problem; hovering over it shows the full build identity.
 
 - Ask questions in [Discussions](https://github.com/Chuuei/SkyBrowser/discussions).
 - Report bugs or propose features through [Issues](https://github.com/Chuuei/SkyBrowser/issues/new/choose).
