@@ -36,7 +36,7 @@ When there is no saved settings file or recovery backup, a **Welcome to SkyBrows
 ## Explore your images
 
 1. Choose **Image library → Add folder…** to build a list of image folders, then **Load folders** to save it and load all supported files recursively. **Remove selected** (Ctrl/Shift for several) and **Remove all** edit the pending list; **Cancel** discards edits. **Add images** opens individual documents directly. Formats: `.fits`, `.fit`, `.fts`, `.xisf`, and distributed `.xish` with its data files present.
-2. Plate-solved images appear at their stored coordinates. Double-click a collection entry or choose **Go to image** to frame it. **Double-click a photograph in the sky view** to open its original FITS/XISF file in the Windows default application. With overlapping images, the foremost image under the pointer opens. Missing files or absent file associations are reported in the status bar and **Details**. Images without a supported solution remain in the collection with **Needs placement**.
+2. Plate-solved images appear at their stored coordinates. Double-click a collection entry or choose **Go to image** to frame it. **Double-click a photograph in the sky view** to open internal full-resolution inspection for the foremost image under the pointer. A small corner arrow button on the hovered or selected image opens its original FITS/XISF file in the Windows default application. The button follows projected image corners and stays inside an unobscured image area; zoomed images use a visible viewport edge. It is hidden for tiny or fully obscured fields without room for the control. This action supports keyboard focus/activation and works with outlines or labels hidden. Missing files or absent file associations are reported in the status bar and **Details**. Images without a supported solution remain in the collection with **Needs placement**.
 3. Drag the sky to pan and scroll to zoom. Arrow keys navigate when the sky has focus. **Home** restores the initial view (south when an observer is configured), **F** frames the selection, and **+ / −** change zoom. The object picker and RA/Dec inputs jump to a sky position.
 4. Toggle layers, set opacity, and use the arrows to reorder them. With **Blend overlaps** enabled, larger sky fields form the background and smaller overlapping images appear above them at 60% of their chosen opacity. Hover an inset to temporarily show it at full opacity; move away to restore the blend and your chosen opacity. Turning **Blend overlaps** off uses collection order, with later entries drawn on top. Grid, constellation lines, labels and image outlines can be toggled separately.
    Drag the horizontal divider between the collection and **Selected image** to give either panel more space. You can also focus the divider and use Up/Down arrows. The chosen split is retained while switching selections or folders, and both panels scroll independently.
@@ -55,6 +55,36 @@ Use the **Search names & metadata** field above the collection to filter loaded 
 The count shows matching/total images while filtering, and an empty result displays guidance. **Ctrl+F** focuses search; **Esc** or **×** clears it. The query stays active while importing or switching folders, with new matching entries appearing as they load. Filtering affects the collection list; layer visibility, blending, sky direction and the loaded images remain unchanged. Selecting an image in the sky clears the filter when necessary to reveal that entry. A normalized search index is built once per loaded image on a worker thread; typing does not read or reprocess source files. Search covers the metadata retained for display, including its limits on unusually large values and lists.
 
 Blending compares angular sky coverage and intersecting footprints, rather than pixel dimensions or object names. It works with rotated images, the RA seam and polar fields; images elsewhere in the sky retain their normal opacity. Nested insets are supported, and hovering reveals the nearest inset under the pointer. Hiding a background makes its remaining inset opaque when no larger overlapping field remains. The startup toggle is configured in Options. Hover changes only scene opacity, so it does not stretch images again or modify cached previews or source files.
+
+### Full-resolution inspection
+
+Double-clicking an image in the sky, or choosing **Inspect full resolution…** in Selected image or Image details, opens a separate
+window. It decodes the selected document image on a worker, outside the preview
+cache, and renders the complete stored frame with the selected display mode and
+cleanup settings. Opening Image details alone still uses retained metadata only.
+Inspection jobs are serialized to bound overlapping full-resolution allocations;
+closing cancels queued work and suppresses late progress/results. Native decoding
+and filters may finish before cancellation is observed. Closing releases the image.
+
+Fit, 100%, wheel zoom (1%-1600%) and drag panning operate independently of the sky.
+100% maps one source pixel to one screen pixel, including Windows display scaling.
+Pointer readouts use zero-based stored columns/rows and also show one-based FITS
+pixel centers. Click holds/releases a readout for copying. Sky coordinates evaluate
+the pixel center through the current file solution, source-validated saved ASTAP
+mesh or active manual placement; manual and cached-mesh coordinates retain those
+placements' accuracy limits. A missing solution leaves scientific readouts available.
+
+Readouts and statistics use original XISF samples or FITS physical values after
+BSCALE/BZERO, with BLANK represented as NaN. They precede stretching, cosmetics and
+debayering; alpha is a separate channel and Bayer values remain mosaic samples.
+UInt64 readouts retain all integer bits. Each channel's 256-bin histogram spans its
+finite minimum/maximum with a linear count axis. All source samples contribute;
+non-finite values are counted separately. Statistics show minimum, maximum, mean
+and population standard deviation using double precision (large integers can round).
+Constant channels occupy the first bin; all-invalid channels have empty bins and
+undefined statistics. No scientific samples or full-resolution bitmaps are persisted.
+Source/sidecar signatures are checked before and after loading; unavailable,
+changed-dimension or concurrently modified sources produce an error in this window.
 
 ### Find in the sky
 

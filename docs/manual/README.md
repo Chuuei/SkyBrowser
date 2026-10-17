@@ -31,6 +31,21 @@ For external samples, use a neutral demonstration path, for example:
 dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release -- C:\SkyBrowserDemo\Samples
 ```
 
+To refresh only Image details, the inspection demonstration and its sky corner action, pass one supported
+source image; this does not require a solved overlapping pair or alter the other
+approved screenshots:
+
+```powershell
+dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release -- --inspection-only C:\SkyBrowserDemo\Samples\example.xisf
+```
+
+This mode retains the existing manifest entries and replaces only its three
+captures. Inspect all three complete PNGs before rebuilding the PDF. The inspection
+example writes a separate anonymous UInt8 image under `artifacts/` from display
+pixels, with fixed manual demonstration coordinates; its readouts never expose
+the original photograph's scientific samples or metadata. Its source path is not
+displayed. The details window still uses neutral paths, facts and metadata.
+
 The builder uses ReportLab and embeds the Windows Segoe UI fonts. Use
 `--font-directory` if they are installed elsewhere. It renders every page through
 PDFium into `artifacts/manual-preview` and writes `validation.json` with chapter

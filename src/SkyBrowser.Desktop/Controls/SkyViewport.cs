@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Globalization;
+using System.Windows.Automation;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -36,6 +37,17 @@ public sealed class SkyViewport : Grid
     private Point? _pointer;
     private readonly SkyDrawing _backdrop;
     private readonly SkyDrawing _annotations;
+    private readonly Canvas _imageActions = new();
+    private readonly Button _openSourceButton = new()
+    {
+        Name = "OpenSourceButton",
+        Width = 26,
+        Height = 26,
+        Padding = new(0),
+        Visibility = Visibility.Collapsed,
+        ToolTip = "Open original in default application",
+        Cursor = Cursors.Arrow
+    };
     private Point? _drag;
     private Point _dragStart;
     private double _dragDistance;
@@ -53,6 +65,7 @@ public sealed class SkyViewport : Grid
         {
             field = value;
             _annotations.InvalidateVisual();
+            UpdateSourceButton();
         }
     }
 
@@ -125,6 +138,8 @@ public sealed class SkyViewport : Grid
 
     public event EventHandler<SkyImageLayer>? OpenSourceRequested;
 
+    public event EventHandler<SkyImageLayer>? InspectImageRequested;
+
     public SkyViewport()
     {
         ClipToBounds = true;
@@ -142,6 +157,28 @@ public sealed class SkyViewport : Grid
         Children.Add(_backdrop);
         Children.Add(_viewport);
         Children.Add(_annotations);
+        Children.Add(_imageActions);
+        _imageActions.Children.Add(_openSourceButton);
+        _openSourceButton.Content = new System.Windows.Shapes.Path
+        {
+            Data = Geometry.Parse("M 2,5 L 2,12 L 12,12 L 12,9 M 7,2 L 14,2 L 14,9 M 14,2 L 6,10"),
+            Stroke = (Brush)FindResource("ControlTextBrush"),
+            StrokeThickness = 1.4,
+            Width = 14,
+            Height = 14,
+            Stretch = Stretch.Uniform,
+            IsHitTestVisible = false
+        };
+        AutomationProperties.SetName(_openSourceButton, "Open original in default application");
+        _openSourceButton.Click += (_, e) =>
+        {
+            e.Handled = true;
+            if (_openSourceButton.DataContext is SkyImageLayer layer && _brushes.ContainsKey(layer))
+            {
+                LayerSelected?.Invoke(this, layer);
+                OpenSourceRequested?.Invoke(this, layer);
+            }
+        };
         _viewport.Camera = _perspectiveCamera;
         _viewport.Children.Add(new ModelVisual3D { Content = _images });
         Layers.CollectionChanged += LayersChanged;
@@ -362,6 +399,96 @@ public sealed class SkyViewport : Grid
         }
 
         _annotations.InvalidateVisual();
+        UpdateSourceButton();
+    }
+
+    /// <summary>Opens the foremost sky image at the supplied viewport position for inspection.</summary>
+    public bool InspectImageAt(Point position)
+    {
+        if (ImageAt(position) is not { } layer)
+        {
+            return false;
+        }
+        InspectLayer(layer);
+        return true;
+    }
+
+    private void InspectLayer(SkyImageLayer layer)
+    {
+        LayerSelected?.Invoke(this, layer);
+        InspectImageRequested?.Invoke(this, layer);
+    }
+
+    private void UpdateSourceButton()
+    {
+        var layer = _openSourceButton.IsKeyboardFocusWithin
+            ? _openSourceButton.DataContext as SkyImageLayer
+            : HoveredLayer ?? SelectedLayer;
+        if (_drag is null && layer?.Placement is { } placement && _brushes.ContainsKey(layer) && ActualWidth > 0 && ActualHeight > 0)
+        {
+            Point? Project(double u, double v) => Camera.Project(placement.At(u, v).Vector, ActualWidth, ActualHeight) is { } p
+                ? new(p.X, p.Y) : null;
+
+            // Follow real image corners rather than a screen-aligned bounding box: fields
+            // can be rotated, mirrored, overlap, or cross the RA seam and celestial poles.
+            foreach (var (u, v) in new[] { (1d, 0d), (0d, 0d), (1d, 1d), (0d, 1d) })
+            {
+                if (Project(u, v) is not { } corner || Project(1 - u, v) is not { } horizontal || Project(u, 1 - v) is not { } vertical)
+                {
+                    continue;
+                }
+                Vector x = horizontal - corner, y = vertical - corner;
+                if (x.Length < 80 || y.Length < 80)
+                {
+                    continue;
+                }
+                x.Normalize();
+                y.Normalize();
+                if (PlaceButton(corner + (x + y) * 24))
+                {
+                    return;
+                }
+            }
+            // A zoomed field can extend beyond the viewport. Keep the action inside
+            // its visible portion, checking ownership so a covered background cannot win.
+            foreach (var point in new[]
+            {
+                new Point(ActualWidth - 22, 22), new Point(22, 22),
+                new Point(ActualWidth - 22, ActualHeight - 22), new Point(22, ActualHeight - 22),
+                new Point(ActualWidth / 2, 22), new Point(ActualWidth - 22, ActualHeight / 2),
+                new Point(22, ActualHeight / 2), new Point(ActualWidth / 2, ActualHeight - 22)
+            })
+            {
+                if (PlaceButton(point))
+                {
+                    return;
+                }
+            }
+
+            bool PlaceButton(Point center)
+            {
+                const double half = 13;
+                if (center.X < half || center.Y < half || center.X >= ActualWidth - half || center.Y >= ActualHeight - half)
+                {
+                    return false;
+                }
+                foreach (var offset in new[] { new Vector(-half, -half), new Vector(half, -half), new Vector(half, half), new Vector(-half, half), new Vector() })
+                {
+                    if (ImageAt(center + offset) != layer)
+                    {
+                        return false;
+                    }
+                }
+                _openSourceButton.DataContext = layer;
+                AutomationProperties.SetHelpText(_openSourceButton, layer.Name);
+                Canvas.SetLeft(_openSourceButton, center.X - half);
+                Canvas.SetTop(_openSourceButton, center.Y - half);
+                _openSourceButton.Visibility = Visibility.Visible;
+                return true;
+            }
+        }
+        _openSourceButton.Visibility = Visibility.Collapsed;
+        _openSourceButton.DataContext = null;
     }
 
     public static MeshGeometry3D CreateMesh(ImagePlacement placement, double radius = 1)
@@ -590,6 +717,7 @@ public sealed class SkyViewport : Grid
 
         _backdrop.InvalidateVisual();
         _annotations.InvalidateVisual();
+        UpdateSourceButton();
         ViewChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -600,8 +728,7 @@ public sealed class SkyViewport : Grid
         {
             Focus();
             e.Handled = true;
-            LayerSelected?.Invoke(this, layer);
-            OpenSourceRequested?.Invoke(this, layer);
+            InspectLayer(layer);
             return;
         }
 
@@ -612,6 +739,7 @@ public sealed class SkyViewport : Grid
         Cursor = Cursors.ScrollAll;
         e.Handled = true;
         UpdateHover(null);
+        UpdateSourceButton();
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
@@ -658,6 +786,7 @@ public sealed class SkyViewport : Grid
     {
         _drag = null;
         Cursor = Cursors.Hand;
+        UpdateSourceButton();
         base.OnLostMouseCapture(e);
     }
 

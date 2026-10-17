@@ -218,13 +218,15 @@
         VerticalAlignment="Center"
         TextWrapping="Wrap"
         Margin="0,0,16,0" />
-      <Button
-        Grid.Column="1"
+      <StackPanel Grid.Column="1" Orientation="Horizontal">
+        <Button x:Name="InspectImageButton" Content="Inspect full resolution…" Click="InspectClicked" Margin="0,0,8,0" />
+        <Button
         Content="Close"
         IsCancel="True"
         IsDefault="True"
         Click="CloseClicked"
         MinWidth="80" />
+      </StackPanel>
     </Grid>
   </Grid>
 </Window>

@@ -130,7 +130,7 @@ public static class SkyImageLoader
         return result.Select(image => image with { SourceImageCount = imageCount, RenderMode = mode }).ToArray();
     }
 
-    private static LoadedSkyImage Prepare(
+    internal static LoadedSkyImage Prepare(
         XisfImageData image,
         XisfAstrometricSolution? native,
         string path,
@@ -138,7 +138,8 @@ public static class SkyImageLoader
         DisplayMode mode,
         CancellationToken token,
         SkyFinishSettings? finishSettings,
-        IProgress<ImageProcessingProgress>? progress
+        IProgress<ImageProcessingProgress>? progress,
+        int maximumSize = 2048
     )
     {
         token.ThrowIfCancellationRequested();
@@ -196,7 +197,7 @@ public static class SkyImageLoader
                     EnhanceDetail = false
                 }
                 : finishSettings;
-            (preview, description) = SkyImageFinisher.Render(displayImage, processing, token, progress);
+            (preview, description) = SkyImageFinisher.Render(displayImage, processing, token, progress, maximumSize);
             if (mode == DisplayMode.Automatic)
             {
                 description += " · stretch only";
@@ -208,7 +209,7 @@ public static class SkyImageLoader
             var rendered = Render(displayImage, cfaWarning is not null && mode == DisplayMode.Finished ? DisplayMode.Linear : mode);
             token.ThrowIfCancellationRequested();
             progress?.Report(new("Resizing display preview"));
-            preview = Downsample(rendered.Pixels, 2048, token);
+            preview = Downsample(rendered.Pixels, maximumSize, token);
             description = rendered.Description;
         }
 

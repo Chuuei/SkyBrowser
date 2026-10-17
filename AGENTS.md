@@ -41,6 +41,8 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Core/Library/` | Durable archive index, recursive scans, search and source-bound ASTAP placements |
 | `src/SkyBrowser.Core/Astrometry/` | ASTAP process, temporary scientific solver inputs and validated TAN results |
 | `src/SkyBrowser.Desktop/LibraryWindow.xaml` | Staged folder management and confirmed recursive scene loading |
+| `src/SkyBrowser.Core/Imaging/ScientificImageInspection.cs` | On-demand full-resolution display, original samples, histogram/statistics and pixel-center coordinates |
+| `src/SkyBrowser.Desktop/ImageInspectionWindow.xaml` | Independent fit/100% inspection, panning, sample readouts and channel histogram |
 | `src/SkyBrowser.Core/Configuration/ApplicationOptions.cs` | Validated defaults, atomic settings persistence and recovery |
 | `src/SkyBrowser.Desktop/MainWindow.xaml.cs` | Import/display operations, collection, navigation and dialog coordination |
 | `src/SkyBrowser.Desktop/Controls/SkyViewport.cs` | WPF textured sky, overlays, batching, overlap rendering and hit testing |
@@ -262,6 +264,17 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   Image details must use retained metadata/previews rather than decode again.
   The circled info icon uses one geometry coordinate space for circle, stem and
   dot; font glyph substitution previously caused misalignment.
+- **Inspect full resolution…** is available in Selected image and Image details.
+  Opening details alone still never decodes scientific data. Inspection loads on a
+  worker with a serial allocation gate, revalidates source/sidecar signatures and
+  reads source-bound ASTAP placement without writing library records. Closing
+  cancels and releases data; late progress/results cannot update a closed window.
+  Preserve true source dimensions and 100% mapping to device pixels across DPI.
+  Readouts use stored pixel centers (`(x+.5)/width`, `(y+.5)/height`), original XISF
+  values or FITS physical values with BLANK as NaN. Bayer statistics/readouts use
+  the mosaic; alpha stays separate. UInt64 readouts must not round through double.
+  Histograms/statistics cover all source samples before display processing, count
+  non-finite values separately and use double precision for aggregate statistics.
 - Collection search covers filenames and retained metadata, normalizing case,
   accents, spacing and punctuation (`IC434` equals `IC 434`). All query terms must
   match. Filtering the list does not hide sky layers.
@@ -270,7 +283,12 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   on hover. Hover changes scene opacity only. With blending off, later collection
   entries are on top. Handle rotated fields, nested overlaps, poles and the seam.
 - Double-clicking a collection entry frames it. Double-clicking a sky image opens
-  the original in the default Windows application, choosing the foremost hit.
+  internal full-resolution inspection for the foremost hit. The hovered or selected
+  image has a small corner button to open its original in the default Windows app.
+  Keep the button inside a visible, foremost part of the image across rotation,
+  mirroring, overlap, zoom, RA seams and poles; hide it when no suitable space is
+  visible. It must not initiate sky dragging or inspection. Preserve native button
+  keyboard access, focus styling, tooltip and automation name.
 - **Find in the sky** starts collapsed, has filters and one shared **Go** button.
   Selecting a target adds its marker, fills coordinates and frames it; manual
   coordinate navigation retains zoom. The bundled catalogue covers Messier,

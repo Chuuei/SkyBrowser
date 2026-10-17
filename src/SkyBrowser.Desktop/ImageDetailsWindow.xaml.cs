@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using SkyBrowser.Core.Imaging;
+using SkyBrowser.Core.Library;
 using SkyBrowser.Desktop.Models;
 
 namespace SkyBrowser.Desktop;
@@ -9,9 +10,13 @@ namespace SkyBrowser.Desktop;
 public partial class ImageDetailsWindow : Window
 {
     private readonly ImageMetadataSnapshot _metadata;
+    private readonly SkyImageLayer _layer;
+    private readonly ImageLibrary? _library;
 
-    public ImageDetailsWindow(SkyImageLayer layer)
+    public ImageDetailsWindow(SkyImageLayer layer, ImageLibrary? library = null)
     {
+        _layer = layer;
+        _library = library;
         var image = layer.Image;
         _metadata = image.Details;
         InitializeComponent();
@@ -108,6 +113,9 @@ public partial class ImageDetailsWindow : Window
             ? $"{entry.Source} · {entry.Name}\n{entry.Value}{(entry.Comment.Length > 0 ? $"\n{entry.Comment}" : "")}"
             : "Select a metadata row to read and copy its value.";
     }
+
+    private void InspectClicked(object sender, RoutedEventArgs e) =>
+        new ImageInspectionWindow(_layer, _library) { Owner = this }.ShowDialog();
 
     private void CloseClicked(object sender, RoutedEventArgs e) => Close();
 }

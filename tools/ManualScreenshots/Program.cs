@@ -16,6 +16,7 @@ using SkyBrowser.Core.Library;
 using SkyBrowser.Desktop;
 using SkyBrowser.Desktop.Controls;
 using SkyBrowser.Desktop.Models;
+using XISFLib;
 
 namespace SkyBrowser.ManualScreenshots;
 
@@ -36,9 +37,14 @@ internal static class Program
         CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
         string root = Path.GetFullPath(".");
         string[] arguments = Environment.GetCommandLineArgs()[1..];
-        if (arguments.Length > 1)
+        bool inspectionOnly = arguments.FirstOrDefault() == "--inspection-only";
+        if (inspectionOnly)
         {
-            Console.Error.WriteLine("Usage: SkyBrowser.ManualScreenshots [sample-directory]");
+            arguments = arguments[1..];
+        }
+        if (arguments.Length > 1 || (inspectionOnly && arguments.Length != 1))
+        {
+            Console.Error.WriteLine("Usage: SkyBrowser.ManualScreenshots [sample-directory] | --inspection-only source-image");
             return 2;
         }
         string sampleDirectory = Path.GetFullPath(arguments.FirstOrDefault() ??
@@ -48,6 +54,10 @@ internal static class Program
             Path.GetFileName(path).Contains("horsehead", StringComparison.OrdinalIgnoreCase));
         string? detailPath = files.FirstOrDefault(path => Path.GetExtension(path).Equals(".xisf", StringComparison.OrdinalIgnoreCase) &&
             Path.GetFileName(path).Contains("434", StringComparison.OrdinalIgnoreCase));
+        if (inspectionOnly && File.Exists(sampleDirectory) && SkyImageLoader.IsSupported(sampleDirectory))
+        {
+            widePath = detailPath = sampleDirectory;
+        }
         if (widePath is null || detailPath is null)
         {
             Console.Error.WriteLine("Optional manual samples are missing. Supply a sample directory containing a plate-solved Horsehead .fits and a smaller overlapping IC434 .xisf. See docs/manual/README.md. No screenshots were changed.");
@@ -68,6 +78,14 @@ internal static class Program
             try
             {
                 var loader = new CachedSkyImageLoader(cache);
+                if (inspectionOnly)
+                {
+                    var source = await Task.Run(() => loader.LoadForBrowsing(detailPath)[0]);
+                    await CaptureInspection(new SkyImageLayer(DemoImage(source, true)), window, root, output);
+                    WriteManifest(output, merge: true);
+                    Console.WriteLine("Captured anonymous image details and inspection demonstrations.");
+                    return;
+                }
                 // Scientific pixels and sky geometry are useful illustrations. All identifying
                 // fields are replaced before any image enters a window or screenshot.
                 var originals = await Task.Run(() => new[]
@@ -75,6 +93,10 @@ internal static class Program
                     loader.LoadForBrowsing(widePath)[0],
                     loader.LoadForBrowsing(detailPath)[0]
                 });
+                if (originals.Any(image => image.Placement is null))
+                {
+                    throw new InvalidOperationException("Full manual capture requires supported sky placements for both overlapping images. Use --inspection-only for an unsolved source. No screenshots were changed.");
+                }
                 var wide = new SkyImageLayer(DemoImage(originals[0], false));
                 var detail = new SkyImageLayer(DemoImage(originals[1], true));
                 using (window.SkyView.DeferLayerUpdates())
@@ -157,15 +179,7 @@ internal static class Program
                 Capture(libraryWindow, "image-library.png", output);
                 libraryWindow.Close();
 
-                var information = new ImageDetailsWindow(detail) { Owner = window };
-                information.Show();
-                await Task.Delay(150);
-                // The path is deliberately an example, not a real source file on this machine.
-                ((TextBox)information.FindName("FileFacts")).Text =
-                    "Example source file: 22.0 MB\nExample modified time: 01 Jan 2000 12:00 UTC";
-                await Ready();
-                Capture(information, "image-details.png", output);
-                information.Close();
+                await CaptureInspection(detail, window, root, output);
 
                 var observer = new ObserverWindow(new(new(0, 0), false, DemoTime)) { Owner = window };
                 observer.Show();
@@ -210,18 +224,7 @@ internal static class Program
                 Capture(loading, "loading-progress.png", output);
                 loading.Finish();
 
-                // Reviewed hashes prevent a future PDF rebuild from silently picking up raw
-                // test screenshots whose hidden/cropped areas might contain identifying data.
-                var manifest = new
-                {
-                    Version = 1,
-                    Dataset = "anonymous-demonstration",
-                    ExampleRoot = DemoRoot,
-                    Observer = new { Latitude = 0, Longitude = 0, TimeUtc = DemoTime },
-                    Files = Screenshots
-                };
-                File.WriteAllText(Path.Combine(output, "manifest.json"),
-                    JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
+                WriteManifest(output, merge: false);
                 Console.WriteLine($"Captured {Screenshots.Count} anonymous demonstration screenshots.");
             }
             catch (Exception exception)
@@ -238,6 +241,87 @@ internal static class Program
 
         app.Run();
         return result;
+    }
+
+    private static async Task CaptureInspection(SkyImageLayer detail, MainWindow window, string root, string output)
+    {
+        var information = new ImageDetailsWindow(detail) { Owner = window };
+        information.Show();
+        await Task.Delay(150);
+        // The path is deliberately an example, not a real source file on this machine.
+        ((TextBox)information.FindName("FileFacts")).Text =
+            "Example source file: 22.0 MB\nExample modified time: 01 Jan 2000 12:00 UTC";
+        await Ready();
+        Capture(information, "image-details.png", output);
+        information.Close();
+
+        // Build a new, anonymous scientific demonstration from approved display
+        // pixels. Never expose an original photograph's samples or metadata here.
+        var preview = detail.Image.Preview;
+        byte[] demoSamples = new byte[preview.Width * preview.Height * 3];
+        for (int p = 0; p < preview.Width * preview.Height; p++)
+        {
+            demoSamples[p * 3] = preview.Bgra[p * 4 + 2];
+            demoSamples[p * 3 + 1] = preview.Bgra[p * 4 + 1];
+            demoSamples[p * 3 + 2] = preview.Bgra[p * 4];
+        }
+        string demoSource = Path.Combine(root, "artifacts", "inspection-demo.xisf");
+        var demoScientific = XisfImageData.FromSamples(demoSamples, [preview.Width, preview.Height], 3, XisfPixelLayout.Interleaved);
+        XisfWriter.Write(demoSource, [demoScientific]);
+        var demoLayer = new SkyImageLayer(SkyImageLoader.Load(demoSource, DisplayMode.Linear)[0] with { Name = "Image inspection demonstration" }, DisplayMode.Linear);
+        demoLayer.SetManual(new(85, -2, 2, 0));
+        var inspection = new ImageInspectionWindow(demoLayer) { Owner = window };
+        inspection.Show();
+        await inspection.InitializeAsync();
+        if (((Image)inspection.FindName("FullImage")).Source is null)
+        {
+            throw new InvalidOperationException("The anonymous inspection demonstration did not load.");
+        }
+        inspection.ReadPixel(preview.Width / 2, preview.Height / 2);
+        await Ready();
+        Capture(inspection, "image-inspection.png", output);
+        inspection.Close();
+
+        var sky = new SkyViewport();
+        var skyWindow = new Window { Owner = window, Content = sky, Width = 940, Height = 650, ShowInTaskbar = false };
+        // Reuse only the anonymous demonstration image, never an original source path.
+        var skyLayer = new SkyImageLayer(DemoImage(demoLayer.Image, true), DisplayMode.Linear);
+        skyLayer.SetManual(new(85, -2, 2, 0));
+        sky.Layers.Add(skyLayer);
+        sky.SelectedLayer = skyLayer;
+        skyWindow.Show();
+        sky.Fit(skyLayer);
+        await Ready();
+        sky.UpdateHover(null);
+        Capture(skyWindow, "sky-image-actions.png", output);
+        skyWindow.Close();
+    }
+
+    private static void WriteManifest(string output, bool merge)
+    {
+        var files = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (merge)
+        {
+            using var existing = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "manifest.json")));
+            foreach (var file in existing.RootElement.GetProperty("Files").EnumerateObject())
+            {
+                files.Add(file.Name, file.Value.GetString()!);
+            }
+        }
+        foreach (var file in Screenshots)
+        {
+            files[file.Key] = file.Value;
+        }
+        var manifest = new
+        {
+            Version = 1,
+            Dataset = "anonymous-demonstration",
+            ExampleRoot = DemoRoot,
+            Observer = new { Latitude = 0, Longitude = 0, TimeUtc = DemoTime },
+            Files = files
+        };
+        File.WriteAllText(Path.Combine(output, "manifest.json"),
+            JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static LoadedSkyImage DemoImage(LoadedSkyImage source, bool detail)

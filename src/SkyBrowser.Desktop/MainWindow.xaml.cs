@@ -134,6 +134,7 @@ public partial class MainWindow : Window
             LayerList.ScrollIntoView(layer);
         };
         Sky.OpenSourceRequested += OpenSourceRequested;
+        Sky.InspectImageRequested += (_, layer) => OpenInspection(layer);
         _updating = false;
         _observerClock.Tick += (_, _) => Sky.AdvanceObserverTime(DateTimeOffset.UtcNow);
         ApplySkyDefaults();
@@ -741,12 +742,23 @@ public partial class MainWindow : Window
         e.Handled = true;
         if (sender is FrameworkElement { DataContext: SkyImageLayer layer })
         {
-            new ImageDetailsWindow(layer)
+            new ImageDetailsWindow(layer, Library)
             {
                 Owner = this
             }.ShowDialog();
         }
     }
+
+    private void InspectImageClicked(object sender, RoutedEventArgs e)
+    {
+        if (Selected is { } layer)
+        {
+            OpenInspection(layer);
+        }
+    }
+
+    private void OpenInspection(SkyImageLayer layer) =>
+        new ImageInspectionWindow(layer, Library) { Owner = this }.Show();
 
     private void UpdateInspector()
     {

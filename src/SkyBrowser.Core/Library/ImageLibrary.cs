@@ -307,6 +307,13 @@ public sealed class ImageLibrary
         transaction.Commit();
     }
 
+    internal LoadedSkyImage WithSavedSolution(LoadedSkyImage image, SourceSnapshot snapshot)
+    {
+        using var connection = Open();
+        using var transaction = connection.BeginTransaction();
+        return ApplySolution(image, connection, transaction, Stamp(snapshot));
+    }
+
     internal ImagePlacement SolutionForExport(LoadedSkyImage image, SourceSnapshot snapshot)
     {
         using var connection = Open();

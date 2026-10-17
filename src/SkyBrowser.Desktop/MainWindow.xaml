@@ -389,6 +389,8 @@
                     ToolTip="Save original scientific pixels and the ASTAP solution as a new FITS or XISF file."
                     Padding="10,6" />
                 </WrapPanel>
+                <Button x:Name="InspectImageButton" Content="Inspect full resolution…" Click="InspectImageClicked"
+                  HorizontalAlignment="Left" Margin="0,10,0,0" Padding="10,6" />
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,12">
                   <Button
                     Content="Go to image"
@@ -803,7 +805,7 @@
         </Border>
         <TextBlock
           Grid.Row="1"
-          Text="Drag to explore  ·  Scroll to zoom  ·  Double-click image to open  ·  F to fit"
+          Text="Drag to explore  ·  Scroll to zoom  ·  Double-click image to inspect  ·  F to fit"
           Foreground="#6F8298"
           HorizontalAlignment="Right"
           VerticalAlignment="Bottom"

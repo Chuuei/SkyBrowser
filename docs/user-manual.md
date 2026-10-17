@@ -20,7 +20,7 @@ Explore your astronomical photographs in their place on the sky. SkyBrowser comb
 | Choose an image display | 5 | Loading and cancellation | 9 |
 | Return to saved folders | 10 | Place an unsolved image | 11 |
 | Troubleshooting | 12 | Quick reference | 13 |
-| Image library and ASTAP | 14 | | |
+| Image library and ASTAP | 14 | Full-resolution inspection | 15 |
 
 > **Your originals stay safe.** Display changes, blending and placement do not rewrite your scientific image files. Keep your originals available for future starts.
 
@@ -97,10 +97,15 @@ Use **Search names & metadata** to find an image by filename, target, telescope,
 
 Choose the small circled **i** beside an entry to open **Image details**. The window shows its preview, source path, original and preview dimensions, file size, display mode and sky placement. Search the metadata table to find a keyword, value or comment. Select a row to read and copy its value in the box below.
 
-<!-- figure height=335 crop=0,0,884,762 -->
+<!-- figure height=230 crop=0,0,884,762 -->
 ![Image details for the narrower Horsehead image. Metadata and the original source path are available together.](manual/screenshots/image-details.png)
 
-Large metadata values may be shortened for display; the original file keeps the full information. The sky uses resized display previews. **Double-click a photograph in the sky** to open its original file for full-resolution work in the Windows default application. With overlapping photographs, the foremost image under the pointer opens.
+**Double-click a photograph in the sky** to inspect it internally, choosing the foremost overlapping image. **Inspect full resolution…** here or under Selected image also opens 100% zoom, source values, sky coordinates, histograms and statistics (page 15).
+
+To open the original in the Windows default application, use the small arrow button in a corner of the hovered or selected sky image. Zoom in if the photograph is too small to show it. Large metadata values may be shortened.
+
+<!-- figure height=75 crop=500,40,620,150 -->
+![The corner arrow opens the original in its default application. Double-click the photograph itself for internal inspection.](manual/screenshots/sky-image-actions.png)
 
 ---
 
@@ -303,7 +308,7 @@ Read its warning in Selected image or the status-bar **Details** log. Some store
 | Fewer entries appear in the collection | Look for an active search. Clear it with the x button. Filtering the list does not hide photographs from the sky. |
 | A new default does not change a loaded image | Options do not reprocess the current collection. Use Reset defaults in Selected image. Remembered per-image choices can override global defaults. |
 | A file fails to open | Read status-bar Details. Check that it still exists, its format is supported, and any distributed XISF data files are present. |
-| Double-clicking the sky cannot open a source | Install or select a Windows application associated with FITS/XISF, and check that the original file is still available. |
+| The corner arrow cannot open a source | Check that the original file exists and Windows has a default application for FITS/XISF. Double-click the photograph for internal inspection. |
 | The local sky time seems wrong | Check your computer clock and time zone. For a fixed time, confirm Computer local time versus UTC. The map marker does not choose a time zone. |
 | Loading is slow again after an update | Updated processing, changed sources, a new stretch variant or an evicted preview may need another processing pass. Later cached visits should be quicker. |
 
@@ -328,7 +333,8 @@ The **circled i beside an image** shows that image's dimensions, source-file fac
 | Escape in collection search | Clear the search. |
 | Escape in the loading window | Request cancellation. |
 | Double-click a collection entry | Frame that image. |
-| Double-click a photograph in the sky | Open its original in the Windows default application. |
+| Double-click a photograph in the sky | Inspect full resolution internally. |
+| Corner arrow on a hovered or selected sky image | Open its original in the Windows default application. |
 | Drag the collection divider | Resize the collection and Selected image panels. |
 
 ## A few useful words
@@ -371,3 +377,27 @@ Use **Remove selected** (Ctrl/Shift for several) or **Remove all** to edit the l
 4. Choose **Save solved copy...** and select FITS or XISF to embed the solution in a new file with the original scientific pixels. The source stays unchanged. FITS may omit XISF-only metadata.
 
 Local solutions survive clearing previews; changed source files invalidate them. Saved solved copies carry their astrometry between computers without requiring the local library.
+
+---
+
+# 14 / Inspect source pixels
+
+Double-click a photograph in the sky, or choose **Inspect full resolution…** under Selected image or in Image details. This opens the scientific image in its own window with your selected display stretch. The sky keeps its smaller preview.
+
+<!-- figure height=270 -->
+![Full-resolution inspection with a channel histogram and a held pixel readout. This anonymous demonstration uses a separate image made from display pixels.](manual/screenshots/image-inspection.png)
+
+## Zoom, pan and read a pixel
+
+- **100%** maps one source pixel to one screen pixel, including Windows display scaling. **Fit** shows the frame at up to 100%.
+- Scroll or use **+ / -** to zoom; drag the image to pan. The sky camera stays where it was.
+- Move over the image for zero-based X/Y, one-based FITS pixel centers and original sample values. Click to hold or release the readout for copying.
+- J2000 sky coordinates appear when the file, saved ASTAP result or manual placement provides a supported solution. Manual coordinates remain approximate.
+
+## Understand the measurements
+
+Select a channel for its histogram, minimum, maximum, mean and population standard deviation. All source pixels contribute before stretch, cleanup or debayering. FITS values include BSCALE/BZERO scaling; undefined BLANK samples become NaN. Bayer readouts retain the original mosaic and alpha has its own channel.
+
+The 256 histogram bins span the finite minimum/maximum with a linear count axis. NaN and infinity are counted separately and excluded from the measurements. Aggregate statistics use double precision, so very large integers can round; individual UInt64 sample readouts retain every bit.
+
+> **Keep the original available.** Full-resolution loading needs memory and can take time. Close the window to cancel; a native decoder or filter may finish first. Missing or changing source files produce an explanation without changing your atlas or originals.

@@ -13,7 +13,7 @@ Display processing preserves your original scientific files.
 
 ## Download and start
 
-1. Download **SkyBrowser-0.3.0-win-x64.zip** from the
+1. Download **SkyBrowser-0.4.0-win-x64.zip** from the
    [latest release](https://github.com/Chuuei/SkyBrowser/releases/latest).
    Choose the application ZIP, rather than GitHub's automatically generated source ZIP.
 2. Extract the complete ZIP into a folder you can write to.
@@ -25,6 +25,8 @@ Display processing preserves your original scientific files.
    or **Remove all** to manage the list, or **Add images** for individual files.
    Double-click a collection entry to frame it.
    Drag to pan and scroll to zoom.
+   Double-click a photograph in the sky to inspect its full resolution. Use its
+   small corner arrow button to open the original in the default application.
 
 Saved library folders reopen automatically on startup. Valid cached previews load
 first; new images and missing or stale previews load from the source files.
@@ -55,6 +57,8 @@ limitations. Check the provider's terms before sharing downloaded photographs.
 Features include a persistent folder library, recursive image loading, ASTAP
 blind solving, overlap blending, collection metadata search, an offline deep-sky
 finder, automatic saved-folder startup, preview caching, and optional observer location/time controls.
+Choose **Inspect full resolution…** under Selected image or in Image details for
+100% inspection, original sample and sky-coordinate readouts, histograms and statistics.
 Large files are fully decoded before their display previews are reduced; allow
 enough memory. See the [technical reference](docs/technical-reference.md) for exact
 coordinate, file-format and processing contracts.

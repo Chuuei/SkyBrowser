@@ -21,10 +21,18 @@ copies. Recognized Bayer data produces color previews without changing original
 samples or astrometry. Future library work includes tags, thumbnails, sorting,
 relocation and more efficient initial decoding.
 
-## Next priorities
+## Released in 0.4.0
 
 3. **Full-resolution inspection:** internal 100% zoom, pixel/sky coordinates,
    scientific sample readout, histogram and image statistics.
+
+Available from Selected image and Image details. Inspection opens source pixels on
+demand, with fit/100% zoom, wheel zoom, drag panning and per-channel statistics.
+Measurements use unstretched original samples (FITS physical values); Bayer
+readouts retain the original mosaic. Source files and atlas previews stay unchanged.
+
+## Next priorities
+
 4. **Astrometry compatibility:** FITS SIP/TPV distortion and more existing solutions,
    including legacy PixInsight metadata, with physically accurate evaluation.
 5. **Export and sharing:** PNG/JPEG sky-view exports with optional labels, outlines

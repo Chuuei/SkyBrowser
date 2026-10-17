@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 - 2026-10-17
+
+- Double-click sky images to inspect them internally; move opening originals in the default Windows application to a small corner button on the hovered or selected image.
+- Add internal full-resolution inspection with fit/100% zoom, panning, pixel-center sky coordinates and exact scientific sample readouts.
+- Show per-channel original-sample histograms, finite/invalid counts, minimum, maximum, mean and population standard deviation; keep alpha and Bayer mosaic measurements separate from display processing.
+- Load inspection data on demand with cancellation, source/sidecar validation and source-bound ASTAP coordinates, preserving original files and atlas previews.
+
 ## 0.3.0 - 2026-10-16
 
 - Add a persistent folder-based image library with staged additions, multi-selection removal, clearing, cancellation and recursive loading on confirmation.

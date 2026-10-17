@@ -43,10 +43,12 @@ public static class SkyImageFinisher
         XisfImageData source,
         SkyFinishSettings settings,
         CancellationToken token = default,
-        IProgress<ImageProcessingProgress>? progress = null
+        IProgress<ImageProcessingProgress>? progress = null,
+        int maximumSize = 2048
     )
     {
         settings.Validate();
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumSize, 1);
         if (!Supports(source))
         {
             throw new NotSupportedException("Dark-sky finishing supports real two-dimensional grayscale/RGB images. Debayer CFA images first.");
@@ -56,7 +58,7 @@ public static class SkyImageFinisher
         int sourceWidth = source.Dimensions[0];
         int sourceHeight = source.Dimensions[1];
         int colors = source.ColorSpace == "RGB" ? 3 : 1;
-        double ratio = Math.Min(1, 2048d / Math.Max(sourceWidth, sourceHeight));
+        double ratio = Math.Min(1, (double)maximumSize / Math.Max(sourceWidth, sourceHeight));
         int width = Math.Max(1, (int)(sourceWidth * ratio));
         int height = Math.Max(1, (int)(sourceHeight * ratio));
         int count = checked(width * height);

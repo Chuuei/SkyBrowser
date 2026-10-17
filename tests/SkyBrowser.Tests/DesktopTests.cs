@@ -57,6 +57,7 @@ public sealed class DesktopTests
                         await VerifyObserver(currentWindow, directory);
                         await VerifyCollectionSearch(currentWindow, directory);
                         VerifyBlending(currentWindow);
+                        VerifySkyImageActions(currentWindow);
                         await VerifyTargetPicker(currentWindow, directory);
                         string xisf = Path.Combine(directory, "synthetic.xisf"), fits = Path.Combine(directory, "synthetic.fits");
                         var image = TestImages.Create();
@@ -65,6 +66,7 @@ public sealed class DesktopTests
                         await currentWindow.ImportAsync([xisf, fits]);
                         Assert.Equal(2, currentWindow.SkyView.Layers.Count);
                         await VerifyImageInfo(currentWindow, currentWindow.SkyView.Layers.Single(layer => layer.Image.SourcePath == fits));
+                        await VerifyInspection(currentWindow, currentWindow.SkyView.Layers.Single(layer => layer.Image.SourcePath == fits));
                         Assert.True(currentWindow.SkyView.Camera.Center.DistanceTo(new(83.822, -5.391)) < 1e-8);
                         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
                         // Opaque overlapping images must replace, not add their brightness.
@@ -99,6 +101,7 @@ public sealed class DesktopTests
                         SetBlending(currentWindow, true);
                         File.Delete(fits);
                         await VerifyImageInfo(currentWindow, currentWindow.SkyView.Layers.Single(layer => layer.Image.SourcePath == fits), missing: true);
+                        await VerifyInspection(currentWindow, currentWindow.SkyView.Layers.Single(layer => layer.Image.SourcePath == fits), missing: true);
                         string folderA = Path.Combine(directory, "browse-a"), folderB = Path.Combine(directory, "browse-b");
                         Directory.CreateDirectory(folderA);
                         Directory.CreateDirectory(folderB);
@@ -1244,6 +1247,78 @@ public sealed class DesktopTests
         window.SkyView.Layers.Clear();
     }
 
+    private static async Task VerifyInspection(MainWindow window, SkyBrowser.Desktop.Models.SkyImageLayer layer, bool missing = false)
+    {
+        var list = (ListBox)window.FindName("LayerList");
+        list.SelectedItem = layer;
+        var originalImage = layer.Image;
+        var center = window.SkyView.Camera.Center;
+        if (!missing)
+        {
+            // Sky activation uses the same hit-test path as a double-click, and opens
+            // the internal inspector without invoking the operating system association.
+            var point = window.SkyView.Camera.Project(layer.Placement!.Center.Vector, window.SkyView.ActualWidth, window.SkyView.ActualHeight)!.Value;
+            Assert.True(window.SkyView.InspectImageAt(new(point.X, point.Y)));
+        }
+        else
+        {
+            ((Button)window.FindName("InspectImageButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        }
+        var inspection = Application.Current.Windows.OfType<ImageInspectionWindow>().Single();
+        try
+        {
+            await inspection.InitializeAsync();
+            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            var status = (TextBlock)inspection.FindName("StatusText");
+            var controls = (WrapPanel)inspection.FindName("ZoomControls");
+            if (missing)
+            {
+                Assert.Contains("Could not inspect", status.Text);
+                Assert.False(controls.IsEnabled);
+                Assert.Null(((Image)inspection.FindName("FullImage")).Source);
+                return;
+            }
+            Assert.True(controls.IsEnabled, status.Text);
+            var image = (Image)inspection.FindName("FullImage");
+            var bitmap = Assert.IsAssignableFrom<BitmapSource>(image.Source);
+            Assert.Equal(layer.Image.Width, bitmap.PixelWidth);
+            Assert.Equal(layer.Image.Height, bitmap.PixelHeight);
+            ((Button)inspection.FindName("ActualSizeButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Assert.Equal(layer.Image.Width, image.Width * VisualTreeHelper.GetDpi(inspection).DpiScaleX, 6);
+            inspection.ReadPixel(0, 0);
+            string readout = ((TextBox)inspection.FindName("PixelReadout")).Text;
+            Assert.Contains("X 0", readout);
+            Assert.Contains("FITS pixel center (1, 1)", readout);
+            Assert.Contains("J2000", readout);
+            Assert.Contains("0.800000011920929", readout);
+            var channels = (ComboBox)inspection.FindName("ChannelChoice");
+            channels.SelectedIndex = 2;
+            var histogram = (SkyBrowser.Desktop.Controls.ScientificHistogram)inspection.FindName("Histogram");
+            Assert.Equal(layer.Image.Width * layer.Image.Height, histogram.Bins!.Sum());
+            Assert.Contains("Finite samples", ((TextBox)inspection.FindName("StatisticsText")).Text);
+            Capture(inspection, "full-resolution-inspection.png");
+            inspection.Width = inspection.MinWidth;
+            inspection.Height = inspection.MinHeight;
+            inspection.UpdateLayout();
+            Assert.True(((ScrollViewer)inspection.FindName("ImageScroll")).ViewportHeight > 100);
+            ((Button)inspection.FindName("FitImageButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Assert.Contains("fit", ((TextBlock)inspection.FindName("ZoomText")).Text);
+        }
+        finally
+        {
+            inspection.Close();
+        }
+        Assert.Null(((Image)inspection.FindName("FullImage")).Source);
+        Assert.Same(originalImage, layer.Image);
+        Assert.Equal(center, window.SkyView.Camera.Center);
+        var cancelled = new ImageInspectionWindow(layer) { Owner = window };
+        cancelled.Show();
+        var loading = cancelled.InitializeAsync();
+        cancelled.Close();
+        await loading;
+        Assert.Null(((Image)cancelled.FindName("FullImage")).Source);
+    }
+
     private static async Task VerifyImageInfo(
         MainWindow window,
         SkyBrowser.Desktop.Models.SkyImageLayer layer,
@@ -1626,6 +1701,84 @@ public sealed class DesktopTests
             {
                 yield return child;
             }
+        }
+    }
+
+    private static void VerifySkyImageActions(MainWindow window)
+    {
+        var sky = new SkyBrowser.Desktop.Controls.SkyViewport();
+        var host = new Window { Owner = window, Content = sky, Width = 900, Height = 620, ShowInTaskbar = false };
+        host.Show();
+        try
+        {
+            var wide = SolidLayer("Wide field", 4, 0, 0, 120);
+            var inset = SolidLayer("Rotated detail", 1.8, 180, 50, 0);
+            inset.SetManual(new(359.95, 70, 1.8, 37, true));
+            sky.Layers.Add(wide);
+            sky.Layers.Add(inset);
+            sky.SelectedLayer = wide;
+            sky.CenterOn(new(359.95, 70), 6);
+            host.UpdateLayout();
+            Point center = new(sky.ActualWidth / 2, sky.ActualHeight / 2);
+            var button = FindButtons(sky).Single(b => b.Name == "OpenSourceButton");
+            var inspections = new List<SkyBrowser.Desktop.Models.SkyImageLayer>();
+            var external = new List<SkyBrowser.Desktop.Models.SkyImageLayer>();
+            sky.InspectImageRequested += (_, layer) => inspections.Add(layer);
+            sky.OpenSourceRequested += (_, layer) => external.Add(layer);
+            sky.UpdateHover(center);
+            AssertButton(inset);
+            Assert.True(sky.InspectImageAt(center));
+            Assert.Same(inset, Assert.Single(inspections));
+            Assert.Empty(external);
+            button.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            Assert.Same(inset, Assert.Single(external));
+            Assert.Single(inspections); // The corner action must never open the inspector.
+            Capture(host, "sky-image-corner-action.png");
+            sky.ShowFootprints = sky.ShowLabels = false;
+            AssertButton(inset);
+            sky.Zoom(0.1); // All four source corners are off-screen at this scale.
+            AssertButton(inset);
+            sky.BlendOverlaps = false;
+            sky.Layers.Move(0, 1); // The large field is now foremost.
+            Assert.True(sky.InspectImageAt(center));
+            Assert.Same(wide, inspections.Last());
+            AssertButton(wide);
+            wide.IsVisible = false;
+            AssertButton(inset);
+            inset.IsVisible = false;
+            Assert.Equal(Visibility.Collapsed, button.Visibility);
+            Assert.Null(button.DataContext);
+            Assert.False(sky.InspectImageAt(center));
+            inset.IsVisible = true;
+            sky.CenterOn(new(0.01, 89), 4);
+            inset.SetManual(new(0.01, 89, 1.8, 135));
+            sky.UpdateHover(center);
+            AssertButton(inset);
+            host.Width = 800;
+            host.Height = 560;
+            host.UpdateLayout();
+            AssertButton(inset);
+            sky.Layers.Clear();
+            Assert.Equal(Visibility.Collapsed, button.Visibility);
+            Assert.Null(button.DataContext);
+
+            void AssertButton(SkyBrowser.Desktop.Models.SkyImageLayer expected)
+            {
+                host.UpdateLayout();
+                Assert.Equal(Visibility.Visible, button.Visibility);
+                Assert.Same(expected, button.DataContext);
+                Assert.Equal(26, button.ActualWidth);
+                Assert.Equal(26, button.ActualHeight);
+                var origin = button.TranslatePoint(new(), sky);
+                foreach (var offset in new[] { new Vector(0, 0), new Vector(26, 0), new Vector(26, 26), new Vector(0, 26) })
+                {
+                    Assert.Same(expected, sky.ImageAt(origin + offset));
+                }
+            }
+        }
+        finally
+        {
+            host.Close();
         }
     }
 
