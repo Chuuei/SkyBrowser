@@ -53,6 +53,20 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Desktop/Controls/SceneTimeline.xaml` | Scene time slider, day steps and live-clock controls |
 | `src/SkyBrowser.Desktop/Styles/Controls.xaml` | Shared dark control palette/templates, merged by App.xaml |
 | `src/SkyBrowser.Desktop/Models/` | Layer state and normalized collection search |
+| `src/SkyBrowser.Desktop/ComparisonWindow.xaml` | Independent aligned blink/swipe/linked sky views |
+| `src/SkyBrowser.Desktop/MainWindow.Collection.cs` | Collection sorting/filtering and cancellable batch actions |
+| `src/SkyBrowser.Core/Library/ImageOrganization.cs` | Durable per-path/image tags, favorites and groups |
+| `src/SkyBrowser.Core/Astronomy/SurveyImages.cs` | Opt-in CDS cutouts, validation and separate offline LRU cache |
+| `src/SkyBrowser.Core/Astronomy/TargetVisibility.cs` | UTC planning, geometric events, Sun/Moon and imaging windows |
+| `src/SkyBrowser.Core/Astronomy/SkyGeometry.cs` | Great-circle geometry and bookmark/measurement records |
+| `src/SkyBrowser.Core/Astronomy/TargetDistances.cs` | Offline sourced distance estimates, alias lookup and target-pair measurements |
+| `src/SkyBrowser.Core/Astronomy/DistanceSpaceCamera.cs` | Linear light-year positions, perspective projection and independent 3D camera |
+| `src/SkyBrowser.Desktop/DistanceSpaceWindow.xaml` | Search, scale presets, sourced two-target measurements and navigation for the 3D distance map |
+| `src/SkyBrowser.Desktop/Controls/DistanceSpaceView.cs` | Depth-sorted point cloud, equatorial rings, object picking and mouse/keyboard navigation |
+| `tools/Build-TargetDistances.py` | Rebuilds the attributed NASA/CDS distance snapshot from cached sources |
+| `tools/TargetDistanceSources.py` | Source identity, position, method, units and provenance validation |
+| `src/SkyBrowser.Desktop/SkyToolsWindow.xaml` | Survey, planning and bookmark/measurement controls |
+| `src/SkyBrowser.Desktop/Controls/VisibilityChart.cs` | Offline altitude chart, darkness/window shading and readouts |
 | `src/SkyBrowser.Desktop/Services/` | Window appearance and observer preferences |
 | `tests/SkyBrowser.Tests/` | xUnit scientific, cache, settings and real WPF integration tests |
 | `tests/SkyBrowser.CacheProbe/` | Separate-process persistence checks and performance probes |
@@ -251,6 +265,73 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   ASTAP results persist; transient layer/camera/target changes are not autosaved.
 
 ## UI behavior to preserve
+
+- Sky tools must not download images on open, pan, startup or scene-time changes.
+  Survey downloads are explicit allow-listed HTTPS CDS requests with bounded bodies,
+  cancellation and validated FITS WCS/dimensions. Survey cache payloads have a separate
+  512 MB LRU limit, with offline region selection and retained credits. Survey meshes
+  stay behind personal photos and outside collection hit testing. Preserve provider
+  acknowledgments in Data/LICENSE-DSS-SURVEYS.txt and visible atlas/export attribution.
+  ShowCachedSurveyImages restores all cached regions offline on startup/options enable,
+  preserving cache LRU order and the camera. Skip damaged entries, guard late restores
+  with survey revisions, and keep manual choices when disabling this startup default.
+  Composite overlapping surveys oldest to newest in independent Viewport3D depth
+  buffers below the personal-photo viewport, sharing its camera. Small radial
+  offsets cannot prevent intersections between differently sampled spherical meshes.
+  Retain pixel regressions for rotated wide fields, opacity, pan/zoom and export.
+- Planning uses the existing pinned Astronomy Engine, J2000 target coordinates,
+  topocentric Sun/Moon positions and an explicit UTC day. Keep geometric altitudes,
+  polar/circumpolar cases, refined crossings and documented two-minute detection
+  limits. Temporary planning input cannot change startup options. Avoid DefineStar's
+  shared mutable slots; concurrent reports must be independent. Closing cancels jobs.
+- Bookmarks/notes are durable library records independent of image paths and previews.
+  Load them off the UI thread and guard late startup reads with bookmark revisions.
+  Measurements use great-circle distances and remain transient.
+  Optional positive object distances from the observer, in light-years, add a scaled
+  half-angle cosine-rule 3D separation; retain small-angle accuracy, validation and
+  export labels. Starting/clearing a measurement clears its distance inputs.
+  Target distances offers 3,283 bundled NASA/CDS estimates cross-identified through
+  DeepSkyCatalog. Selecting a pair measures catalogue object centres and supplies
+  distances without network access or automatic camera changes. Preserve source
+  URLs/date/hashes, uncertainty wording and approximate (two significant figure)
+  atlas/export labels. Show coverage for Messier/Caldwell/NGC/IC and retain reported
+  asymmetric object errors in source details without claiming separation error bars.
+  Never infer distances from nearby clicks or redshift, use
+  zero for unknown values, or guess distances for missing objects. Manual edits
+  detach catalogue provenance; clearing/new picks clear selected target identities.
+  Regenerate Data/target-distances.json with tools/Build-TargetDistances.py; source
+  HTML/VOTable data stays under ignored artifacts/distance-sources. Preserve NASA and
+  SIMBAD/CDS provenance notices. Source priority is NASA Messier, NASA Caldwell,
+  reviewed NASA APOD facts, then latest eligible SIMBAD literature value. Exclude
+  redshift/flow/kinematic/unknown galaxy methods, uncertain flags, member-star IDs,
+  nonfinite values and identity/position disagreements. Check exact catalogue aliases
+  plus a bounded angular extent; never cross-match to a nearby object as a fallback.
+  The generator rejects capped/overflowed TAP responses. For ingestion changes run
+  `python -m unittest discover -s tools/tests -p test_target_distance_sources.py`.
+  Scale bars use the actual projected row; N/E indicates celestial directions,
+  not observer azimuth.
+  Keep seam/pole/antipode tests, export fidelity, and main-scene preservation.
+
+- Collection thumbnails reuse loaded frozen bitmaps. Multiple selection supports
+  Ctrl/Shift and Select all matching. Sorting/filtering changes only the collection
+  view, never scene layer order or visibility. Structured metadata matching stays
+  within its selected FITS/XISF field; tag/group matching is exact and ignores case.
+  Organization lives in the library's separate path/image-index table and survives
+  preview clearing and root removal. Batch annotation edits are transactional and
+  preserve unspecified fields; checked empty strings clear tags/groups. Batch
+  display changes retain per-image finish settings, continue after individual
+  failures and retain completed previews/committed annotations on cancellation.
+  Create progress reporters on the UI thread before passing them to workers.
+- Compare requires at least two placed selections. It uses independent full-opacity
+  preview/placement snapshots and two synchronized sky projections. Swipe clips a
+  full-size, frozen 2D renderings of the views rather than the live 3D meshes;
+  changing the clip on a live mesh can leave black columns during small divider
+  movements. Refresh swipe frames after camera/pair/size changes, coalesce layout
+  updates, retain them during divider motion, and release them on mode exit/close.
+  Keep the divider boundary on device pixels. Blink stops on deactivation/close;
+  closing detaches timer/layer handlers. Comparison cannot change the atlas's
+  camera, visibility, opacity or preview settings. Keep real pixel-render checks for
+  all modes and linked camera checks around the RA seam and celestial poles.
 
 - **Export…** in the header saves sky views or existing selected previews as PNG
   or JPEG. Sky capture uses an independent viewport at the chosen resolution,

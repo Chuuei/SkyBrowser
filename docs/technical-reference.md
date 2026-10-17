@@ -6,6 +6,176 @@ A Windows desktop sky atlas for your own FITS and XISF photographs, built with *
 
 Start with the illustrated [user manual](SkyBrowser-User-Manual.pdf) for a beginner's tour and step-by-step instructions. The PDF is also copied beside the executable on every publish. Its editable [Markdown source](user-manual.md) and [rebuild instructions](manual/README.md) are included in the repository.
 
+## Comparison and collection organization
+
+Ctrl/Shift-select loaded images and choose **Compare…**. Every selected image must
+have a placement. The comparison window snapshots the current preview and manual
+placement into independent layers at full opacity. Two `SkyViewport` instances share
+sky center and horizontal field of view, including seam/pole navigation. Side-by-side
+panes have equal dimensions; blink and swipe use overlapping, identically sized
+viewports. Swipe composites frozen, full-view 2D frames and clips only the top
+bitmap, avoiding partial 3D redraw artifacts during slow divider motion. Frames
+refresh after camera, image-pair or size changes; moving the device-pixel-aligned
+divider reuses them without resizing or rerendering the projection. Mode exit and
+window close release frames and pending capture callbacks.
+Blink timing is configurable and stops while inactive or closed. Closing clears layer
+subscriptions and timer handlers. Current source processing and atlas state are unchanged.
+
+Collection thumbnails reuse the frozen preview bitmap; no source is opened. Collection
+sorting affects only its `ListCollectionView`, preserving scene draw order. Structured
+filters read retained FITS/XISF fields for object, filter, telescope, camera or ISO
+observation date; they combine with exact case-insensitive tag/group matching,
+favorites and the existing normalized metadata search. Unknown fields do not match.
+
+`ImageLibrary` adds an independent `organization` table keyed by canonical source path
+and image index. Favorites, normalized comma-separated tags and one group survive
+source revisions, preview eviction and root removal. Batch annotation writes use a
+single transaction, preserving unspecified fields; empty provided strings clear them.
+Annotations do not relocate automatically with moved files. Database work stays off
+the UI thread. Batch display work uses the existing serial loader, preferences,
+operation/version-guarded progress and cancellation. Cancellation keeps committed
+organization and completed previews; errors are reported per image and remaining jobs
+continue. Visibility/opacity are transient scene choices.
+
+## Surveys, visibility planning and annotations
+
+`SkyToolsWindow` owns independent cancellable survey/planning operations. Opening it
+does not download or decode sources. CDS survey requests are explicit, square TAN
+cutouts with a centered ICRS WCS, fixed allow-listed survey IDs and HTTPS endpoint.
+Downloads are bounded to 32 MB and validated for FITS geometry/placement before
+commit. Scientific decoding and SQLite work stay off the UI thread. The separate
+`SurveyCache/surveys-v1.sqlite3` beside settings retains up to 512 MB of FITS payloads
+using transactional LRU eviction; SQLite/WAL overhead is additional. Saved regions
+reopen offline, corrupt entries are rejected, and cache clearing retains the displayed
+frames. Panning never starts a download. The saved `ShowCachedSurveyImages` option
+(off by default) restores all cached regions at startup or when enabled in Options,
+without network access or camera changes. Restoration skips missing/damaged frames,
+does not touch LRU order, and uses cancellation plus scene revisions to preserve
+newer manual choices. Disabling removes the automatically restored set unless it
+has since been changed manually. New cutouts join existing backgrounds; newest wins
+where they overlap. Each survey mesh has its own `Viewport3D` depth buffer, composited
+oldest to newest below the personal-photo viewport with the same perspective camera.
+This prevents differently sampled spherical facets from intersecting; small radial
+offsets alone do not provide a reliable draw order. Survey regions stay excluded
+from collection selection/hit actions. Pixel regressions cover overlapping rotated
+wide fields, panning/zooming, source-over opacity, foreground photos and exports.
+Credits remain visible in atlas/exports independently of Labels. The returned FITS
+WCS determines orientation; WCSLIB's solved zenithal LATPOLE=reference declination
+is equivalent to its omitted/default pole-selection preference for these projections.
+
+Visibility planning retains J2000 target coordinates, rotates them with ObserverFrame,
+and obtains topocentric J2000 Sun/Moon positions and lunar illumination from pinned
+Astronomy Engine. One UTC day has 721 two-minute samples. Target extrema refine
+geometric rise/set and upper transit; sampled darkness and imaging-criterion changes
+are bisected to half-second brackets. Sub-two-minute grazing windows may be missed.
+Criteria combine target altitude, Sun altitude and Moon separation, optionally
+ignoring separation below the geometric lunar horizon. No refraction, elevation,
+terrain or weather model is applied. Polar day/night and circumpolar/no-rise targets
+remain explicit. Planning location/time never overwrite startup observer options.
+
+Bookmarks and notes live in a path-independent `bookmarks` table in the durable
+library, keyed by GUID, and load at startup without source decoding. They retain
+J2000 position and field of view. Async callbacks are guarded by lifetime/revision;
+closing cancels work and detaches handlers. Measurements are transient, use robust
+vector/great-circle geometry and support seams/poles/antipodes. Optional positive,
+finite distances from the observer to A/B in light-years give their Euclidean 3D
+separation: `sqrt((dA-dB)^2 + 4*dA*dB*sin(theta/2)^2)`. The implementation scales
+before computing the hypotenuse to retain tiny angles and avoid intermediate
+overflow. Distances are manually supplied or selected from the offline catalogue,
+stay transient, clear for a new
+measurement and appear in atlas/export labels only when both are known. This is
+an estimate from the supplied distances, without uncertainty propagation or a
+cosmological distance model. Scale bars solve the
+angular distance at their actual screen row rather than assuming constant scale.
+Celestial N/E arrows follow the projected J2000 tangent frame and are hidden at an
+exact celestial pole. These scene overlays and survey attribution carry into sky
+exports; comparison snapshots remain independent.
+
+`TargetDistances` embeds 3,283 unique sourced estimates across Messier, Caldwell,
+NGC and IC, with original distance labels, URLs, a dated snapshot and source SHA-256
+hashes. Coverage is 107/110 Messier, 109/109 Caldwell, 2,554/8,098 NGC and 824/5,505 IC
+objects; alias/component counts follow the supported position catalogue and overlap.
+Canonical
+identity/coordinates come from `DeepSkyCatalog`; aliases and common-name searches
+share its cross-identifications. No runtime lookup or redshift inference occurs.
+M24, M40, M73 and objects without usable distance facts are absent, never zero.
+`tools/Build-TargetDistances.py --as-of YYYY-MM-DD` regenerates the data using cached
+source HTML under `artifacts/distance-sources` (`--offline` reuses it; `--refresh`
+fetches updated pages). Only numeric facts are retained, with provenance in
+`Data/LICENSE-NASA-DISTANCES.txt` and `Data/LICENSE-SIMBAD-DISTANCES.txt`.
+
+Source precedence is NASA Messier, NASA Caldwell (including the joint C60/C61 page),
+three reviewed NASA/APOD facts, then the latest eligible SIMBAD literature measurement.
+The generator requires exact cross-identified catalogue IDs and coordinate agreement
+within the catalogue angular extent, with a 1.2 arcminute floor and one degree cap.
+It rejects member-star/component names absent from the position catalogue, uncertain
+flags, invalid units/values and redshift/flow/kinematic methods. Unspecified methods
+are accepted only for nearby non-galaxy objects (within 150 kpc). Supported pc/kpc/Mpc
+values and asymmetric errors convert to Julian light-years at 3.261563777167433 ly/pc.
+Ties in publication year use reported fractional error, then stable bibliographic
+order. No measurements are averaged and no distances are inferred from redshift.
+VOTable query status and the row cap are checked before publishing a snapshot;
+`python -m unittest discover -s tools/tests -p test_target_distance_sources.py`
+checks ingestion without network access.
+
+Sky tools' Target distances tab independently filters/selects A and B. Both selected
+objects supply their J2000 catalogue centres and distances to the existing sky
+measurement. Frame selected pair is explicit; Use two marked targets requires
+exactly two marked objects with bundled estimates. Catalogue provenance remains in
+the transient measurement and export snapshot, and results display an approximate
+marker with at most two significant figures. This is a presentation limit, not an
+uncertainty estimate: NASA's fact tables do not provide error bars; SIMBAD's reported
+object errors, methods and references are retained in hover source details without
+propagating them to separation errors. Rounding can dominate close-pair separation.
+List virtualization keeps the larger selection lists responsive. Manual overrides detach source identities, while
+new/cleared measurements clear selectors. Arbitrary sky clicks never guess identities.
+
+### Three-dimensional distance map
+
+Target distances opens a separate modeless `DistanceSpaceWindow`; a single child is
+reused while open and closes with Sky tools. It has no persistent settings, observer
+changes or network requests except explicit source links. The independent camera
+starts centred on the Solar System. Each object centre is its J2000 direction vector
+multiplied by its published distance in light-years. Axes follow `SkyCoordinate`:
+Y north, X at RA 0, negative Z at RA 90. The reference plane is equatorial, not the
+Galactic plane. All distances are linear; no logarithmic compression or marker-size
+claims are made. The Euclidean snapshot inherits source uncertainty and does not
+model cosmology, travel times, object motion or physical extents.
+
+`DistanceSpaceCamera` provides 55-degree vertical perspective, an orbit pivot and
+camera-relative translation. Zoom changes eye-to-pivot distance; panning and WASD/QE
+translate both. Relative near/far clipping at 0.00001/8 times camera distance keeps
+the point cloud usable across scales; zooming out reveals more distant objects.
+Pitch is bounded away from poles; zoom is bounded to 10 through 1e12 light-years.
+Home and Reset to Sun clear the selection and restore the initial Solar System view.
+Selecting a point or search result immediately frames its position as the navigation
+pivot. Recenter on target restores that pivot after panning. Presets change only the
+scale around the current pivot, retaining orientation and object distance records. Catalogue filters affect points and search; text search affects only the list.
+Render points from far to near, pick nearby screen symbols with depth tie-breaking,
+and reserve label space for the Solar System and selection before other labels.
+Guides drop labelled points onto the equatorial plane. Labels are bounded and points
+are screen-sized. Tests cover independent axis/projection expectations, separation,
+scale invariance, navigation/clipping and the shared WPF desktop lifecycle.
+
+Shift-click on the map or search list adds a second measurement target without
+changing the primary target or camera. A checkbox provides the same selection mode
+without a modifier. Shift-drag continues to pan; only a completed click picks an
+endpoint. Selecting B before A establishes A; selecting A as B clears B rather
+than producing a self-measurement. Empty Shift-clicks retain the existing pair.
+`SelectTarget` centralizes these rules, while `ComparisonChanged` keeps the
+measurement presentation independent of navigation selection. New primary targets,
+catalogue changes and Reset to Sun clear the pair. Escape/Clear measurement remove
+only B. Search filtering and camera movement retain the pair.
+
+The result reuses `TargetDistances.Measure` and its approximate two-significant-
+figure formatter. Both endpoints are highlighted and labelled A/B, with a dashed
+gold line and a projected distance label when in view. The persistent result panel
+also shows both names and source details (including reported errors) in its tooltip,
+even if the endpoints leave the visible volume. Frame pair uses their Cartesian
+midpoint and separation to fit both in perspective. Distance errors are not
+propagated. Tests cover M81/M82's known separation, stable navigation when adding B,
+search selection, framing, invalid/self selections and clearing.
+
 ## Run
 
 Requires Windows and a .NET SDK with C# 14 support. The app targets `net10.0-windows`; the build's framework-dependent executable needs the .NET 10 Desktop Runtime. `global.json` permits a newer SDK when a .NET 10 SDK is unavailable.

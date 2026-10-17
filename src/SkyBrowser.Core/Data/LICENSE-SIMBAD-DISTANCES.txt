@@ -1,0 +1,35 @@
+SIMBAD / CDS: published literature distance facts
+
+This product has made use of the SIMBAD database, operated at CDS, Strasbourg,
+France. Reference: Wenger et al. (2000), "The SIMBAD astronomical database. The
+CDS reference database for astronomical objects", A&AS 143, 9.
+DOI: https://doi.org/10.1051/aas:2000332
+Service: https://simbad.cds.unistra.fr/simbad/
+Measurement documentation: https://simbad.cds.unistra.fr/Pages/guide/chG.htx
+Source use and attribution terms: https://cds.unistra.fr/legals/
+Snapshot date: 2026-10-17
+
+The adapted numerical subset in target-distances.json retains one eligible
+published value for each included object, its measurement method, original units,
+literature bibcode, source URL, snapshot date, source-response SHA-256 and reported
+asymmetric object errors where supplied. Please cite CDS/SIMBAD and the individual
+literature references when using these measurements. No images, article prose,
+logos or full source database are distributed here. Third-party sources retain
+their terms; the application's code license does not relicense source materials.
+The separate OpenNGC/Caldwell identity catalogue retains its existing notices.
+
+The source response is the mesDistance table joined to basic/ident using the
+SIMBAD TAP service. Its exact ADQL query and hash are retained in the JSON audit.
+An offline rebuild uses tools/Build-TargetDistances.py --as-of 2026-10-17 --offline
+with cached public responses under artifacts/distance-sources.
+
+Selection requires exact supported NGC/IC identity and bounded coordinate
+agreement. Member stars and unsupported component IDs are rejected. Redshift,
+flow, kinematic, uncertain or invalid measurements are excluded. Unspecified
+methods are accepted only for nearby non-galaxy objects. Within each object the
+latest eligible reference is chosen; ties use reported relative error and stable
+bibliographic order. Published pc/kpc/Mpc values and errors are converted using
+3.261563777167433 Julian light-years per parsec. This is not a new measurement or
+a homogeneous distance scale. Zero never stands for unknown, and no Hubble-law
+or parallax inversion is performed by the application. Reported object errors
+do not constitute propagated error bounds for a pair's Euclidean separation.

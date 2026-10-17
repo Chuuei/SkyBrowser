@@ -1,0 +1,63 @@
+<Window x:Class="SkyBrowser.Desktop.ComparisonWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:local="clr-namespace:SkyBrowser.Desktop.Controls"
+  Title="SkyBrowser · Compare images" Width="1160" Height="780" MinWidth="880" MinHeight="560"
+  Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterOwner"
+  PreviewKeyDown="ComparisonKeyDown">
+  <Window.Resources>
+    <DataTemplate x:Key="ComparisonImageTemplate">
+      <TextBlock Text="{Binding SourceLabel}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Image.SourcePath}" />
+    </DataTemplate>
+  </Window.Resources>
+  <Grid Margin="16">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
+      <RowDefinition Height="Auto" />
+      <RowDefinition />
+      <RowDefinition Height="Auto" />
+    </Grid.RowDefinitions>
+    <Grid Margin="0,0,0,10">
+      <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="16" /><ColumnDefinition /></Grid.ColumnDefinitions>
+      <StackPanel>
+        <TextBlock Text="A" Foreground="#8BE2C3" Margin="0,0,0,4" />
+        <ComboBox x:Name="ImageA" ItemTemplate="{StaticResource ComparisonImageTemplate}" SelectionChanged="ImagesChanged" AutomationProperties.Name="Comparison image A" />
+      </StackPanel>
+      <StackPanel Grid.Column="2">
+        <TextBlock Text="B" Foreground="#8BE2C3" Margin="0,0,0,4" />
+        <ComboBox x:Name="ImageB" ItemTemplate="{StaticResource ComparisonImageTemplate}" SelectionChanged="ImagesChanged" AutomationProperties.Name="Comparison image B" />
+      </StackPanel>
+    </Grid>
+    <WrapPanel Grid.Row="1" Margin="0,0,0,10">
+      <ComboBox x:Name="ModeChoice" SelectedIndex="0" Width="160" SelectionChanged="ModeChanged" AutomationProperties.Name="Comparison mode">
+        <ComboBoxItem Content="Linked side by side" /><ComboBoxItem Content="Aligned blink" /><ComboBoxItem Content="Swipe divider" />
+      </ComboBox>
+      <Button Content="Fit A" Click="FitA" Margin="8,0,0,0" /><Button Content="Fit B" Click="FitB" Margin="6,0,0,0" />
+      <StackPanel x:Name="BlinkControls" Orientation="Horizontal" Margin="12,0,0,0" Visibility="Collapsed">
+        <CheckBox x:Name="BlinkRunning" Content="Blink" IsChecked="True" VerticalAlignment="Center" Click="BlinkRunningChanged" />
+        <TextBlock Text="Seconds" VerticalAlignment="Center" Margin="8,0" />
+        <Slider x:Name="BlinkInterval" Width="100" Minimum="0.1" Maximum="3" Value="0.7" TickFrequency="0.1" ValueChanged="IntervalChanged" ToolTip="Seconds per frame" />
+        <TextBlock Text="{Binding Value, ElementName=BlinkInterval, StringFormat={}{0:0.0} s}" VerticalAlignment="Center" Margin="6,0,0,0" />
+        <Button Content="Show A/B" Click="SwitchFrame" Margin="8,0,0,0" />
+      </StackPanel>
+      <StackPanel x:Name="SwipeControls" Orientation="Horizontal" Margin="12,0,0,0" Visibility="Collapsed">
+        <TextBlock Text="Divider" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <Slider x:Name="DividerPosition" Width="180" Minimum="0" Maximum="1" Value="0.5" ValueChanged="DividerChanged" AutomationProperties.Name="Swipe divider position" />
+      </StackPanel>
+    </WrapPanel>
+    <Grid x:Name="Views" Grid.Row="2" ClipToBounds="True" SizeChanged="ViewsResized">
+      <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition /></Grid.ColumnDefinitions>
+      <local:SkyViewport x:Name="ViewA" />
+      <local:SkyViewport x:Name="ViewB" Grid.Column="1" />
+      <Grid x:Name="SwipeFrames" Grid.ColumnSpan="2" IsHitTestVisible="False" Visibility="Collapsed">
+        <Image x:Name="SwipeFrameA" Stretch="Fill" />
+        <Image x:Name="SwipeFrameB" Stretch="Fill" />
+      </Grid>
+      <Thumb x:Name="SwipeHandle" Grid.ColumnSpan="2" Width="12" HorizontalAlignment="Left" Cursor="SizeWE"
+        Visibility="Collapsed" DragDelta="DividerDragged" ToolTip="Drag to compare A on the left and B on the right">
+        <Thumb.Template><ControlTemplate TargetType="Thumb"><Grid Background="Transparent"><Border Width="2" Background="#8BE2C3" /></Grid></ControlTemplate></Thumb.Template>
+      </Thumb>
+    </Grid>
+    <TextBlock x:Name="ComparisonStatus" Grid.Row="3" Foreground="#8D9AAD" Margin="0,10,0,0" TextWrapping="Wrap" />
+  </Grid>
+</Window>

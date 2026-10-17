@@ -249,6 +249,9 @@
             x:Name="BlendOverlaps"
             Content="Blend overlapping images and reveal insets on hover"
             Margin="0,0,0,14" />
+          <CheckBox x:Name="ShowCachedSurveyImages" Content="Show cached DSS2 images by default" Margin="0,0,0,8" />
+          <TextBlock Text="Restore saved survey regions behind your images. Uses only the local survey cache; nothing is downloaded."
+            Foreground="#8D9AAD" FontSize="11" TextWrapping="Wrap" Margin="24,0,0,8" />
           <TextBlock
             Text="These defaults also apply when you save options and when the application starts."
             Foreground="#8D9AAD"

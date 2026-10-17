@@ -39,13 +39,15 @@ internal static class Program
         string root = Path.GetFullPath(".");
         string[] arguments = Environment.GetCommandLineArgs()[1..];
         bool inspectionOnly = arguments.FirstOrDefault() == "--inspection-only";
-        if (inspectionOnly)
+        bool collectionOnly = arguments.FirstOrDefault() == "--collection-only";
+        bool skyToolsOnly = arguments.FirstOrDefault() == "--sky-tools-only";
+        if (inspectionOnly || collectionOnly || skyToolsOnly)
         {
             arguments = arguments[1..];
         }
         if (arguments.Length > 1 || (inspectionOnly && arguments.Length != 1))
         {
-            Console.Error.WriteLine("Usage: SkyBrowser.ManualScreenshots [sample-directory] | --inspection-only source-image");
+            Console.Error.WriteLine("Usage: SkyBrowser.ManualScreenshots [sample-directory] | --inspection-only source-image | --collection-only sample-directory | --sky-tools-only");
             return 2;
         }
         string sampleDirectory = Path.GetFullPath(arguments.FirstOrDefault() ??
@@ -59,7 +61,7 @@ internal static class Program
         {
             widePath = detailPath = sampleDirectory;
         }
-        if (widePath is null || detailPath is null)
+        if (!skyToolsOnly && (widePath is null || detailPath is null))
         {
             Console.Error.WriteLine("Optional manual samples are missing. Supply a sample directory containing a plate-solved Horsehead .fits and a smaller overlapping IC434 .xisf. See docs/manual/README.md. No screenshots were changed.");
             return 2;
@@ -78,10 +80,17 @@ internal static class Program
         {
             try
             {
+                if (skyToolsOnly)
+                {
+                    await CaptureSkyTools(window, root, output);
+                    WriteManifest(output, merge: true);
+                    Console.WriteLine("Captured anonymous survey, planning, annotation and target-distance demonstrations.");
+                    return;
+                }
                 var loader = new CachedSkyImageLoader(cache);
                 if (inspectionOnly)
                 {
-                    var source = await Task.Run(() => loader.LoadForBrowsing(detailPath)[0]);
+                    var source = await Task.Run(() => loader.LoadForBrowsing(detailPath!)[0]);
                     await CaptureInspection(new SkyImageLayer(DemoImage(source, true)), window, root, output);
                     WriteManifest(output, merge: true);
                     Console.WriteLine("Captured anonymous image details and inspection demonstrations.");
@@ -91,9 +100,36 @@ internal static class Program
                 // fields are replaced before any image enters a window or screenshot.
                 var originals = await Task.Run(() => new[]
                 {
-                    loader.LoadForBrowsing(widePath)[0],
-                    loader.LoadForBrowsing(detailPath)[0]
+                    loader.LoadForBrowsing(widePath!)[0],
+                    loader.LoadForBrowsing(detailPath!)[0]
                 });
+                if (collectionOnly)
+                {
+                    var source = DemoImage(originals[0], false);
+                    source = source with
+                    {
+                        Placement = source.Placement ?? ImagePlacement.FromManual(new(85, -2, 5, 0), source.Width, source.Height)
+                    };
+                    // Compare two display versions of the same anonymous image. Their
+                    // geometry is identical even when optional source astrometry is absent.
+                    byte[] pixels = source.Preview.Bgra.ToArray();
+                    for (int i = 0; i < pixels.Length; i += 4)
+                    {
+                        for (int channel = 0; channel < 3; channel++)
+                        {
+                            pixels[i + channel] = (byte)Math.Min(255, pixels[i + channel] * 1.4);
+                        }
+                    }
+                    var version = source with
+                    {
+                        SourcePath = DemoRoot + @"\Images\horsehead-version.xisf", Name = "Processing version",
+                        Preview = new(source.Preview.Width, source.Preview.Height, pixels)
+                    };
+                    await CaptureCollection(window, new(source), new(version), output);
+                    WriteManifest(output, merge: true);
+                    Console.WriteLine("Captured anonymous collection and comparison demonstrations.");
+                    return;
+                }
                 if (originals.Any(image => image.Placement is null))
                 {
                     throw new InvalidOperationException("Full manual capture requires supported sky placements for both overlapping images. Use --inspection-only for an unsolved source. No screenshots were changed.");
@@ -126,6 +162,8 @@ internal static class Program
                     throw new InvalidOperationException("The hover illustration must show the inset at full selected opacity.");
                 }
                 Hover(window.SkyView, null);
+
+                await CaptureCollection(window, wide, detail, output);
 
                 var defaults = new ApplicationOptions { CacheDirectory = DemoRoot + @"\Cache" };
                 var welcome = new WelcomeWindow(defaults, defaults)
@@ -305,6 +343,108 @@ internal static class Program
             exportedPath, [demoSource], overwrite: true);
         Screenshots.Add("sky-export.png", Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(exportedPath))));
         skyWindow.Close();
+    }
+
+    private static async Task CaptureSkyTools(MainWindow window, string root, string output)
+    {
+        var library = new ImageLibrary(Path.Combine(root, "artifacts", "manual-sky-tools", "library.sqlite3"));
+        foreach (var bookmark in library.GetBookmarks()) { library.DeleteBookmark(bookmark.Id); }
+        var service = new SurveyImageService(Path.Combine(root, "artifacts", "manual-sky-surveys"));
+        window.SkyView.SetObserver(null);
+        window.SkyView.CenterOn(new(10.6847, 41.269), 4);
+        var tools = new SkyToolsWindow(window.SkyView, library, service) { Owner = window, ShowInTaskbar = false };
+        tools.Show();
+        try
+        {
+            await tools.InitializeAsync();
+            ((DatePicker)tools.FindName("PlanDate")).SelectedDate = DemoTime.UtcDateTime.Date;
+            ((TextBox)tools.FindName("PlanLatitude")).Text = "0";
+            ((TextBox)tools.FindName("PlanLongitude")).Text = "0";
+            ((TextBox)tools.FindName("PlanRa")).Text = "10.6847";
+            ((TextBox)tools.FindName("PlanDec")).Text = "41.269";
+            if (!await tools.LoadSurveyAsync(new(SurveyDefinition.Color.Id, new(10.6847, 41.269), 4, 512), false))
+            {
+                throw new InvalidOperationException("The public DSS demonstration could not load. No screenshots were changed.");
+            }
+            await Ready();
+            Capture(tools, "sky-tools-survey.png", output);
+            ((TabControl)tools.FindName("ToolsTabs")).SelectedIndex = 1;
+            tools.Height = 1050;
+            if (await tools.CalculateVisibilityAsync() is null) { throw new InvalidOperationException("Demonstration planning failed."); }
+            await Ready();
+            Capture(tools, "sky-tools-visibility.png", output);
+            tools.Height = 850;
+            ((TabControl)tools.FindName("ToolsTabs")).SelectedIndex = 2;
+            ((TextBox)tools.FindName("BookmarkName")).Text = "M31 demonstration";
+            ((TextBox)tools.FindName("BookmarkNotes")).Text = "Demonstration bookmark. Compare nearby fields at the same angular scale.";
+            if (!await tools.SaveBookmarkAsync()) { throw new InvalidOperationException("Demonstration bookmark failed."); }
+            foreach (string name in new[] { "ScaleBarChoice", "NorthEastChoice" })
+            {
+                var choice = (CheckBox)tools.FindName(name);
+                choice.IsChecked = true;
+                choice.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            }
+            window.SkyView.BeginMeasurement();
+            window.SkyView.PickMeasurementPoint(new(10.1847, 41.269));
+            window.SkyView.PickMeasurementPoint(new(11.1847, 41.269));
+            await Ready();
+            Capture(tools, "sky-tools-bookmarks.png", output);
+            Capture(window, "sky-tools-guides.png", output);
+            ((TabControl)tools.FindName("ToolsTabs")).SelectedIndex = 3;
+            tools.Width = 800;
+            tools.Height = 660;
+            ((TextBox)tools.FindName("DistanceSearchA")).Text = "M 81";
+            ((TextBox)tools.FindName("DistanceSearchB")).Text = "M 82";
+            ((ListBox)tools.FindName("DistanceTargetsA")).SelectedItem = TargetDistances.Find("M81");
+            ((ListBox)tools.FindName("DistanceTargetsB")).SelectedItem = TargetDistances.Find("M82");
+            await Ready();
+            Capture(tools, "sky-tools-distances.png", output);
+            var space = new DistanceSpaceWindow { Owner = tools, ShowInTaskbar = false };
+            try
+            {
+                space.Show();
+                await Ready();
+                Capture(space, "distance-space.png", output);
+                space.View.Selected = TargetDistances.Find("M81");
+                space.View.SelectTarget(TargetDistances.Find("M82"), second: true);
+                space.View.FramePair();
+                await Ready();
+                Capture(space, "distance-space-pair.png", output);
+            }
+            finally { space.Close(); }
+        }
+        finally
+        {
+            tools.Close();
+            window.SkyView.SetSurveyBackground(null);
+            window.SkyView.ClearMeasurement();
+        }
+    }
+
+    private static async Task CaptureCollection(MainWindow window, SkyImageLayer wide, SkyImageLayer detail, string output)
+    {
+        var comparison = new ComparisonWindow([wide, detail]) { Owner = window, ShowInTaskbar = false };
+        comparison.Show();
+        await Ready();
+        Capture(comparison, "comparison-linked.png", output);
+        ((ComboBox)comparison.FindName("ModeChoice")).SelectedIndex = (int)ComparisonMode.Swipe;
+        await Ready();
+        Capture(comparison, "comparison-swipe.png", output);
+        comparison.Close();
+        wide.SetOrganization(new(true, "Broadband, Winter", "Horsehead"));
+        detail.SetOrganization(new(true, "Detail, Winter", "Horsehead"));
+        var list = (ListBox)window.FindName("LayerList");
+        list.SelectAll();
+        var batch = new CollectionBatchWindow([wide, detail]) { Owner = window, ShowInTaskbar = false };
+        batch.Show();
+        ((ComboBox)batch.FindName("FavoriteChoice")).SelectedIndex = 1;
+        ((CheckBox)batch.FindName("SetGroup")).IsChecked = true;
+        await Ready();
+        Capture(batch, "collection-batch.png", output);
+        batch.Close();
+        list.SelectedItem = wide;
+        wide.SetOrganization(new());
+        detail.SetOrganization(new());
     }
 
     private static void WriteManifest(string output, bool merge)

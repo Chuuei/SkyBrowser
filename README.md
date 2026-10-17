@@ -57,6 +57,30 @@ limitations. Check the provider's terms before sharing downloaded photographs.
 Features include a persistent folder library, recursive image loading, ASTAP
 blind solving, overlap blending, collection metadata search, an offline deep-sky
 finder, automatic saved-folder startup, preview caching, and optional observer location/time controls.
+Ctrl/Shift-select collection entries and choose **Compare…** for aligned blinking,
+a swipe divider or linked side-by-side views. **Sort & filter** provides metadata,
+tag, group and favorite filters; **Organize…** applies persistent annotations and
+batch visibility, opacity or display changes. Collection thumbnails reuse loaded previews.
+**Sky tools…** provides optional DSS/HiPS survey backgrounds with offline caching,
+target/Sun/Moon visibility planning, saved sky bookmarks and notes, great-circle
+measurements with optional light-year separation from known object distances,
+angular scale bars and celestial direction guides.
+**Sky tools → Target distances** measures between two selected objects using an
+offline list of 3,283 sourced distance estimates across Messier, Caldwell, NGC and
+IC, including all 109 Caldwell objects. Search by designation or common name;
+coverage counts, source links and reported error details are provided. Missing
+distances remain unavailable; separation results are approximate.
+Choose **Explore objects in 3D…** in that tab for a Solar System-centred perspective
+map of all known-distance objects. Orbit, pan, scroll to zoom, or use WASD and Q/E
+to travel. Click a point or search result to centre navigation on it, use **Recenter on target**
+after panning, or **Reset to Sun** to return home. Scale presets retain this centre;
+distance rings use a linear light-year scale in the J2000 equatorial plane.
+**Shift-click** a second object, or enable **Pick second target** before choosing it
+in search, to display the pair's approximate 3D separation and a connecting line.
+Use **Frame pair** to see both endpoints; **Clear measurement** or Escape removes
+the second target.
+Enable **Options → Sky → Show cached DSS2 images by default** to restore saved survey regions without downloading.
+Survey downloads occur only when requested; their attribution remains visible in sky exports.
 Choose **Inspect full resolution…** under Selected image or in Image details for
 100% inspection, original sample and sky-coordinate readouts, histograms and statistics.
 Use **Export…** in the top bar to save a PNG/JPEG sky view with overlay choices,

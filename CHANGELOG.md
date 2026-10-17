@@ -1,5 +1,26 @@
 # Changelog
 
+## Unreleased
+
+## 0.6.0 - 2026-10-17
+
+- Measure between two objects directly in the 3D map with Shift-click or a second-target selection mode, a labelled connecting line, source details, Frame pair and Clear measurement controls.
+- Centre 3D navigation immediately on a selected object, retain that centre when changing scale, and add explicit Recenter on target and Reset to Sun actions.
+- Add an offline 3D object map centred on the Solar System, with linear light-year positions, perspective orbit/pan/zoom, keyboard travel, scale presets, catalogue filters, searchable object focus and source details.
+- Expand offline distances to 3,283 unique objects across Messier (107/110), Caldwell (109/109), NGC (2,554/8,098) and IC (824/5,505), with NASA/CDS provenance, literature references, methods and reported object errors.
+- Fix jagged artifacts where restored DSS2 regions overlap by compositing survey viewports with separate depth buffers and a shared camera.
+- Add a saved option to restore all cached DSS2 regions behind photographs on startup, without downloads or changing the camera.
+- Extend two-point measurements with optional object distances in light-years and a straight-line 3D separation in the atlas and sky exports.
+- Add Sky tools with opt-in CDS DSS2 colour/red HiPS cutouts, a bounded offline survey cache, catalogue positions and retained survey credits in atlas/export views.
+- Add 24-hour UTC target visibility charts, geometric rise/set/transit, Moon phase/separation, darkness and configurable imaging windows, including polar/circumpolar cases.
+- Save named sky bookmarks and notes in the durable library; add great-circle measurements, angular scale bars and celestial north/east indicators.
+- Recognize the solved zenithal LATPOLE metadata written by WCSLIB/CDS while retaining coordinate-frame and pole-orientation validation.
+- Prevent vertical black-column artifacts during slow swipe-divider movement by compositing full-view 2D frames instead of clipping live 3D meshes.
+- Add aligned preview blinking, a draggable swipe divider and linked side-by-side sky views, with independent comparison snapshots and shared coordinate navigation.
+- Add collection thumbnails, sorting, field-specific metadata filters, tags, favorites and groups retained in the durable library.
+- Add multiple selection and batch visibility, opacity, organization and display changes with progress, cancellation and per-image failure reporting.
+- Extend the manual with comparison and collection workflows and anonymous demonstration screenshots.
+
 ## 0.5.0 - 2026-10-17
 
 - Evaluate FITS SIP and TPV distortion, additional zenithal projections, swapped celestial axes and legacy CROTA rotation; retain exact FITS forward models in cached previews.

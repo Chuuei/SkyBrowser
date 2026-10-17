@@ -1,0 +1,36 @@
+NASA / Hubble and APOD: distance facts
+
+Source: https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/
+Source: https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/
+Supplementary numerical facts: NASA Astronomy Picture of the Day (APOD)
+Snapshot date: 2026-10-17
+
+SkyBrowser's target-distances.json retains only numerical Distance facts from
+Messier and Caldwell object pages and three reviewed NASA/APOD pages. Each estimate
+retains its original value, source URL and cached-page SHA-256. The shared Caldwell
+60/61 page explicitly covers both objects; unrelated objects never inherit a value.
+It contains no NASA/ESA/STScI photographs, logos or article prose. Object positions
+and cross-identifications come from the application's separately attributed
+OpenNGC/Messier/Caldwell position catalogue, not from these distance pages.
+
+Attribution: NASA / Hubble's Messier and Caldwell Catalogs; NASA / APOD.
+Factual numerical values are
+reproduced with source attribution; SkyBrowser's application license does not
+grant rights to NASA or third-party imagery, marks or other website materials.
+NASA does not endorse this application.
+
+These are rounded educational distance estimates, not a homogeneous precision
+distance survey. The source fact tables do not provide error bars. Different
+estimators, epochs and rounding can substantially affect inferred separations
+of nearby objects. No uncertainty bounds or equal-distance assumptions are
+invented. Three-dimensional separations use Euclidean geometry and the published
+central values, with no cosmological model. An absent entry means unknown to this
+snapshot, never zero. M24, a line-of-sight star cloud without a single Distance
+fact in the source table, is deliberately excluded.
+
+Rebuild: python tools/Build-TargetDistances.py --as-of 2026-10-17
+The builder caches HTML under artifacts/distance-sources; --offline reproduces a
+snapshot from that cache, while --refresh explicitly obtains updated pages.
+No network request occurs in the application when selecting or measuring targets.
+Additional literature estimates are supplied by SIMBAD/CDS; see the separate
+LICENSE-SIMBAD-DISTANCES.txt notice. Errors are not propagated to separation results.

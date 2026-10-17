@@ -106,6 +106,7 @@ public partial class OptionsWindow : Window
             ShowLabels.IsChecked = options.ShowLabels;
             ShowOutlines.IsChecked = options.ShowOutlines;
             BlendOverlaps.IsChecked = options.BlendOverlaps;
+            ShowCachedSurveyImages.IsChecked = options.ShowCachedSurveyImages;
             AstapPathInput.Text = options.AstapExecutablePath;
             AstapDatabaseInput.Text = options.AstapDatabaseDirectory;
             AstapTimeoutInput.Text = options.AstapTimeoutSeconds.ToString(CultureInfo.InvariantCulture);
@@ -160,6 +161,7 @@ public partial class OptionsWindow : Window
             ShowLabels = ShowLabels.IsChecked == true,
             ShowOutlines = ShowOutlines.IsChecked == true,
             BlendOverlaps = BlendOverlaps.IsChecked == true,
+            ShowCachedSurveyImages = ShowCachedSurveyImages.IsChecked == true,
             AstapExecutablePath = AstapPathInput.Text.Trim().Trim('"'),
             AstapDatabaseDirectory = AstapDatabaseInput.Text.Trim().Trim('"'),
             AstapTimeoutSeconds = timeout,

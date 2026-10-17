@@ -182,9 +182,14 @@ internal sealed class FitsSkySolution
             string frame = Get("RADESYS") is { Length: > 0 } system ? system : Get("RADECSYS");
             double referenceDec = Number(swapped ? "CRVAL1" : "CRVAL2");
             double pole = Number("LONPOLE", referenceDec == 90 ? 0 : 180);
+            double latitudePole = Number("LATPOLE", 90);
+            // Zenithal CRVAL identifies the native pole. WCSLIB writes its solved
+            // latitude (CRVAL declination); an omitted/default LATPOLE=90 is only
+            // the pole-selection preference. Both describe the same rotation.
             if (frame is not ("" or "ICRS" or "FK5") || Number("EQUINOX", 2000) != 2000 ||
                 Get("CUNIT1") is not ("" or "DEG") || Get("CUNIT2") is not ("" or "DEG") ||
-                (pole != 180 && !(pole == 0 && referenceDec == 90)) || Number("LATPOLE", 90) != 90)
+                (pole != 180 && !(pole == 0 && referenceDec == 90)) ||
+                (latitudePole != 90 && Math.Abs(latitudePole - referenceDec) > 1e-10))
             {
                 throw new NotSupportedException("unsupported coordinate frame, units or pole orientation");
             }

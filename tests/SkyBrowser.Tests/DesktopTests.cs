@@ -16,7 +16,7 @@ using XISFLib;
 
 namespace SkyBrowser.Tests;
 
-public sealed class DesktopTests
+public sealed partial class DesktopTests
 {
     [Fact]
     public async Task WindowImportsRendersAndRestoresSavedFolders()
@@ -56,6 +56,9 @@ public sealed class DesktopTests
                         await VerifyLoadProgress(currentWindow, cache, directory);
                         await VerifyObserver(currentWindow, directory);
                         await VerifyCollectionSearch(currentWindow, directory);
+                        await VerifyCollectionOrganization(currentWindow, directory);
+                        await VerifyComparisons(currentWindow);
+                        await VerifySkyTools(currentWindow, directory);
                         VerifyBlending(currentWindow);
                         VerifySkyImageActions(currentWindow);
                         await VerifyTargetPicker(currentWindow, directory);

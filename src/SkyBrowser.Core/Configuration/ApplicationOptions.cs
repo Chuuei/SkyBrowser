@@ -33,6 +33,8 @@ public sealed record ApplicationOptions
 
     public bool BlendOverlaps { get; init; } = true;
 
+    public bool ShowCachedSurveyImages { get; init; }
+
     public string AstapExecutablePath { get; init; } = "";
 
     public string AstapDatabaseDirectory { get; init; } = "";

@@ -1,0 +1,158 @@
+<Window x:Class="SkyBrowser.Desktop.SkyToolsWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:controls="clr-namespace:SkyBrowser.Desktop.Controls"
+  Title="SkyBrowser · Sky tools" Width="960" Height="850" MinWidth="800" MinHeight="660"
+  Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterOwner">
+  <Grid Margin="20">
+    <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+    <TabControl x:Name="ToolsTabs">
+      <TabItem Header="Survey background">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="14">
+            <TextBlock Text="Survey imagery behind your photographs" FontSize="20" Margin="0,0,0,10" />
+            <TextBlock Text="Load a DSS survey cutout for the current atlas view. Downloads occur only when requested and send its sky coordinates to CDS. Saved regions work offline." TextWrapping="Wrap" Foreground="#8D9AAD" Margin="0,0,0,14" />
+            <ComboBox x:Name="SurveyChoice" AutomationProperties.Name="Survey dataset" />
+            <WrapPanel Margin="0,14,0,12" x:Name="SurveyLoadControls">
+              <CheckBox x:Name="SurveyOffline" Content="Offline only" VerticalAlignment="Center" />
+              <Button x:Name="LoadSurveyButton" Content="Load current view" Click="LoadSurveyClicked" />
+              <Button x:Name="RemoveSurveyButton" Content="Remove backgrounds" Click="RemoveSurveyClicked" Margin="8,0,0,0" />
+            </WrapPanel>
+            <Button x:Name="CancelSurveyButton" Content="Cancel survey load" Click="CancelSurveyClicked" HorizontalAlignment="Left" Visibility="Collapsed" Margin="0,0,0,12" />
+            <TextBlock Text="Background opacity" Foreground="#8D9AAD" />
+            <Slider x:Name="SurveyOpacityChoice" Minimum="0" Maximum="1" Value="0.75" ValueChanged="SurveyOpacityChanged" Margin="0,7,0,15" AutomationProperties.Name="Survey background opacity" />
+            <CheckBox x:Name="CatalogOverlayChoice" Content="Show catalogue positions (OpenNGC / Messier / Caldwell)" Click="OverlayChoicesChanged" Margin="0,0,0,16" />
+            <TextBlock Text="Saved survey regions" FontWeight="SemiBold" Margin="0,0,0,7" />
+            <ListBox x:Name="CachedSurveyList" Height="230" AutomationProperties.Name="Cached survey regions" />
+            <WrapPanel Margin="0,10,0,8" x:Name="SurveyCacheControls">
+              <Button Content="Show selected saved region" Click="ShowCachedSurveyClicked" />
+              <Button Content="Clear survey cache" Click="ClearSurveyCacheClicked" Margin="8,0,0,0" />
+            </WrapPanel>
+            <TextBlock x:Name="SurveyCacheSummary" Foreground="#8D9AAD" Margin="0,0,0,14" />
+            <TextBlock x:Name="SurveyAttribution" TextWrapping="Wrap" Foreground="#A2B6CA" />
+            <TextBlock Text="Data credits and survey terms: Data/LICENSE-DSS-SURVEYS.txt. Survey attribution stays visible in the atlas and exported sky images." TextWrapping="Wrap" Foreground="#8D9AAD" Margin="0,8,0,0" />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="Target visibility">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="14">
+            <TextBlock Text="Plan a 24-hour observing period" FontSize="20" Margin="0,0,0,12" />
+            <WrapPanel>
+              <StackPanel Width="135"><TextBlock Text="Target RA (J2000 degrees)" FontSize="10" /><TextBox x:Name="PlanRa" Margin="0,5,0,0" /></StackPanel>
+              <StackPanel Width="135" Margin="10,0,0,0"><TextBlock Text="Declination (degrees)" FontSize="10" /><TextBox x:Name="PlanDec" Margin="0,5,0,0" /></StackPanel>
+              <Button Content="Use atlas center" Click="UsePlanningCenterClicked" Margin="12,16,0,0" />
+            </WrapPanel>
+            <WrapPanel Margin="0,12,0,0">
+              <StackPanel Width="135"><TextBlock Text="Latitude (north +)" FontSize="10" /><TextBox x:Name="PlanLatitude" Margin="0,5,0,0" /></StackPanel>
+              <StackPanel Width="135" Margin="10,0,0,0"><TextBlock Text="Longitude (east +)" FontSize="10" /><TextBox x:Name="PlanLongitude" Margin="0,5,0,0" /></StackPanel>
+              <Button Content="Use observer location" Click="UseObserverClicked" Margin="12,16,0,0" />
+            </WrapPanel>
+            <WrapPanel Margin="0,12,0,0">
+              <StackPanel Width="150"><TextBlock Text="Start date (UTC)" FontSize="10" /><DatePicker x:Name="PlanDate" Margin="0,5,0,0" /></StackPanel>
+              <StackPanel Width="110" Margin="10,0,0,0"><TextBlock Text="Start time (HH:mm UTC)" FontSize="10" /><TextBox x:Name="PlanTime" Text="12:00" Margin="0,5,0,0" /></StackPanel>
+              <StackPanel Width="120" Margin="10,0,0,0"><TextBlock Text="Target at least (°)" FontSize="10" /><TextBox x:Name="PlanMinAltitude" Text="30" Margin="0,5,0,0" /></StackPanel>
+              <StackPanel Width="120" Margin="10,0,0,0"><TextBlock Text="Sun at most (°)" FontSize="10" /><TextBox x:Name="PlanMaxSun" Text="-18" Margin="0,5,0,0" /></StackPanel>
+              <StackPanel Width="135" Margin="10,0,0,0"><TextBlock Text="Moon separation at least (°)" FontSize="10" /><TextBox x:Name="PlanMinMoon" Text="30" Margin="0,5,0,0" /></StackPanel>
+            </WrapPanel>
+            <WrapPanel Margin="0,12,0,8">
+              <CheckBox x:Name="PlanIgnoreLowMoon" Content="Ignore separation while Moon is below horizon" IsChecked="True" VerticalAlignment="Center" />
+              <Button x:Name="CalculateVisibilityButton" Content="Calculate visibility" Click="CalculateVisibilityClicked" />
+              <Button x:Name="CancelPlanningButton" Content="Cancel" Click="CancelPlanningClicked" Margin="8,0,0,0" Visibility="Collapsed" />
+            </WrapPanel>
+            <TextBlock Text="Mint: target · Gold: Sun · Blue: Moon · Green shading: imaging windows · Time axis: UTC" Foreground="#8D9AAD" FontSize="11" />
+            <controls:VisibilityChart x:Name="AltitudeChart" Height="280" Margin="0,10,0,10" />
+            <TextBlock x:Name="VisibilitySummary" TextWrapping="Wrap" LineHeight="19" />
+            <TextBlock Text="Geometric altitudes use a flat horizon, without atmospheric refraction, terrain or weather. Curves and short-window detection use two-minute samples; detected boundaries are refined. Results use the temporary location above and do not change startup options." TextWrapping="Wrap" Foreground="#8D9AAD" FontSize="11" Margin="0,14,0,0" />
+          </StackPanel>
+        </ScrollViewer>
+      </TabItem>
+      <TabItem Header="Bookmarks &amp; measurements">
+        <Grid Margin="14">
+          <Grid.ColumnDefinitions><ColumnDefinition Width="240" /><ColumnDefinition Width="16" /><ColumnDefinition /></Grid.ColumnDefinitions>
+          <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+          <DockPanel>
+            <TextBlock Text="Saved sky bookmarks" FontWeight="SemiBold" DockPanel.Dock="Top" Margin="0,0,0,10" />
+            <ListBox x:Name="BookmarkList" SelectionChanged="BookmarkSelected" AutomationProperties.Name="Saved sky bookmarks" />
+          </DockPanel>
+          <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,10,0">
+              <TextBlock Text="Name" FontSize="11" /><TextBox x:Name="BookmarkName" MaxLength="160" Margin="0,5,0,10" />
+              <WrapPanel>
+                <StackPanel Width="125"><TextBlock Text="RA (J2000 degrees)" FontSize="10" /><TextBox x:Name="BookmarkRa" Margin="0,5,0,0" /></StackPanel>
+                <StackPanel Width="125" Margin="10,0,0,0"><TextBlock Text="Dec (degrees)" FontSize="10" /><TextBox x:Name="BookmarkDec" Margin="0,5,0,0" /></StackPanel>
+                <StackPanel Width="100" Margin="10,0,0,0"><TextBlock Text="Field (degrees)" FontSize="10" /><TextBox x:Name="BookmarkField" Margin="0,5,0,0" /></StackPanel>
+              </WrapPanel>
+              <TextBlock Text="Notes" FontSize="11" Margin="0,12,0,5" />
+              <TextBox x:Name="BookmarkNotes" AcceptsReturn="True" TextWrapping="Wrap" Height="160" MaxLength="8192" VerticalScrollBarVisibility="Auto" />
+              <WrapPanel Margin="0,12,0,0" x:Name="BookmarkActions">
+                <Button Content="New at atlas center" Click="NewBookmarkClicked" />
+                <Button Content="Save bookmark" Click="SaveBookmarkClicked" Margin="6,0,0,0" />
+                <Button Content="Go to bookmark" Click="GoBookmarkClicked" Margin="6,0,0,0" />
+                <Button Content="Delete selected" Click="DeleteBookmarkClicked" Margin="0,6,0,0" />
+              </WrapPanel>
+              <TextBlock Text="Bookmarks and notes are saved locally in your library. Their coordinates and field of view remain available after preview-cache clearing or folder removal." Foreground="#8D9AAD" TextWrapping="Wrap" Margin="0,12,0,0" />
+            </StackPanel>
+          </ScrollViewer>
+          <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,18,0,0">
+            <WrapPanel>
+              <CheckBox x:Name="BookmarkOverlayChoice" Content="Show bookmarks" IsChecked="True" Click="OverlayChoicesChanged" />
+              <CheckBox x:Name="ScaleBarChoice" Content="Angular scale bar" Click="OverlayChoicesChanged" />
+              <CheckBox x:Name="NorthEastChoice" Content="Celestial north / east" Click="OverlayChoicesChanged" ToolTip="J2000 sky directions, separate from the observer's horizon compass" />
+            </WrapPanel>
+            <WrapPanel Margin="0,14,0,8">
+              <Button Content="Measure two points on sky" Click="BeginMeasurementClicked" />
+              <Button Content="Use atlas center as next point" Click="MeasureCenterClicked" Margin="8,0,0,0" />
+              <Button Content="Clear measurement" Click="ClearMeasurementClicked" Margin="8,0,0,0" />
+            </WrapPanel>
+            <TextBlock x:Name="MeasurementSummary" Text="Distances follow the shortest great-circle arc. Click two points in the atlas; Escape cancels." TextWrapping="Wrap" Foreground="#8D9AAD" />
+            <WrapPanel x:Name="MeasurementDistanceInputs" Margin="0,12,0,6" IsEnabled="False">
+              <TextBlock Text="Distance from us (light-years):" VerticalAlignment="Center" Margin="0,0,12,0" />
+              <TextBlock Text="A" VerticalAlignment="Center" Margin="0,0,6,0" />
+              <TextBox x:Name="MeasurementDistanceA" Width="125" TextChanged="MeasurementDistancesChanged" AutomationProperties.Name="Distance to object A in light-years" ToolTip="Optional distance from us to the first measured object, in light-years" />
+              <TextBlock Text="B" VerticalAlignment="Center" Margin="16,0,6,0" />
+              <TextBox x:Name="MeasurementDistanceB" Width="125" TextChanged="MeasurementDistancesChanged" AutomationProperties.Name="Distance to object B in light-years" ToolTip="Optional distance from us to the second measured object, in light-years" />
+            </WrapPanel>
+            <TextBlock x:Name="PhysicalDistanceSummary" Text="Supply both known object distances, or select a pair in Target distances for an offline published estimate." TextWrapping="Wrap" Foreground="#8D9AAD" />
+          </StackPanel>
+        </Grid>
+      </TabItem>
+      <TabItem Header="Target distances">
+        <Grid Margin="14">
+          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+          <StackPanel Margin="0,0,0,14">
+            <TextBlock Text="Measure between known targets" FontSize="20" Margin="0,0,0,8" />
+            <TextBlock x:Name="DistanceCoverage" TextWrapping="Wrap" Foreground="#8D9AAD" />
+          </StackPanel>
+          <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="18" /><ColumnDefinition /></Grid.ColumnDefinitions>
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+            <TextBlock Text="Target A" FontWeight="SemiBold" />
+            <TextBlock Grid.Column="2" Text="Target B" FontWeight="SemiBold" />
+            <TextBox x:Name="DistanceSearchA" Grid.Row="1" Margin="0,7,0,8" TextChanged="DistanceSearchChanged" AutomationProperties.Name="Search distance target A" ToolTip="Search a designation or common name, for example M 81, NGC 3031 or Bode" />
+            <TextBox x:Name="DistanceSearchB" Grid.Row="1" Grid.Column="2" Margin="0,7,0,8" TextChanged="DistanceSearchChanged" AutomationProperties.Name="Search distance target B" ToolTip="Search a designation or common name, for example M82 or Cigar" />
+            <ListBox x:Name="DistanceTargetsA" Grid.Row="2" MinHeight="44" SelectionChanged="DistanceTargetChanged" AutomationProperties.Name="Distance target A" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
+            <ListBox x:Name="DistanceTargetsB" Grid.Row="2" Grid.Column="2" MinHeight="44" SelectionChanged="DistanceTargetChanged" AutomationProperties.Name="Distance target B" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
+            <TextBlock x:Name="DistanceSourceA" Grid.Row="3" Margin="0,10,0,6" TextWrapping="Wrap" Foreground="#A2B6CA" />
+            <TextBlock x:Name="DistanceSourceB" Grid.Row="3" Grid.Column="2" Margin="0,10,0,6" TextWrapping="Wrap" Foreground="#A2B6CA" />
+            <Button x:Name="DistanceSourceButtonA" Grid.Row="4" Content="Open source for A" Click="OpenDistanceSourceClicked" HorizontalAlignment="Left" IsEnabled="False" />
+            <Button x:Name="DistanceSourceButtonB" Grid.Row="4" Grid.Column="2" Content="Open source for B" Click="OpenDistanceSourceClicked" HorizontalAlignment="Left" IsEnabled="False" />
+          </Grid>
+          <StackPanel Grid.Row="2" Margin="0,12,0,0">
+            <TextBlock x:Name="TargetDistanceResult" Text="Select target A and target B to measure their separation." FontSize="17" Foreground="#8BE2C3" TextWrapping="Wrap" />
+            <TextBlock x:Name="TargetDistanceAngle" TextWrapping="Wrap" Foreground="#A2B6CA" Margin="0,7,0,0" />
+            <TextBlock Text="Published estimates; close-pair separations can be uncertain. Reported object errors appear in source details; separation uncertainty and cosmology are not modelled. Other objects: manual distances in Bookmarks &amp; measurements."
+              TextWrapping="Wrap" Foreground="#8D9AAD" Margin="0,6,0,8" />
+            <WrapPanel>
+              <Button x:Name="DistanceFrameButton" Content="Frame selected pair" Click="FrameDistancePairClicked" />
+              <Button x:Name="DistanceMarkedButton" Content="Use two marked targets" Click="UseMarkedDistanceTargetsClicked" Margin="8,0,0,0" />
+              <Button x:Name="DistanceClearButton" Content="Clear target pair" Click="ClearDistancePairClicked" Margin="8,0,0,0" />
+              <Button x:Name="DistanceSpaceButton" Content="Explore objects in 3D…" Click="OpenDistanceSpaceClicked" Margin="8,0,0,0" />
+            </WrapPanel>
+          </StackPanel>
+        </Grid>
+      </TabItem>
+    </TabControl>
+    <TextBlock x:Name="SkyToolsStatus" Grid.Row="1" Text="Ready" Foreground="#8BE2C3" TextWrapping="Wrap" Margin="0,12,0,0" />
+  </Grid>
+</Window>

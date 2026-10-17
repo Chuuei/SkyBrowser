@@ -4,7 +4,7 @@
 
 Explore your astronomical photographs in their place on the sky. SkyBrowser combines your FITS and XISF images with a simple star map. You can look around, compare photographs and return to your saved image folders later.
 
-<!-- figure height=200 crop=0,0,1424,881 markers=1:0.89:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
+<!-- figure height=120 crop=0,0,1424,881 markers=1:0.89:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
 ![The main window, showing a wide Horsehead field and a smaller image of the same region.](manual/screenshots/main-window.png)
 
 - **1. Top bar:** see the app version, open Options and add images.
@@ -21,7 +21,10 @@ Explore your astronomical photographs in their place on the sky. SkyBrowser comb
 | Return to saved folders | 10 | Place an unsolved image | 11 |
 | Troubleshooting | 12 | Quick reference | 13 |
 | Image library and ASTAP | 14 | Full-resolution inspection | 15 |
-| Export and sharing | 16 | | |
+| Export and sharing | 16 | Aligned image comparisons | 17 |
+| Organize your collection | 18 | Survey background | 19 |
+| Target visibility | 20 | Bookmarks and measurements | 21 |
+| Published target distances | 22 | Explore objects in 3D | 23 |
 
 > **Your originals stay safe.** Display changes, blending and placement do not rewrite your scientific image files. Keep your originals available for future starts.
 
@@ -428,3 +431,178 @@ The export keeps the current center and horizontal field. A different aspect rat
 Select an image first, then choose **Selected image preview** in Export. This saves its current display processing at preview resolution, up to 2048 pixels on the longest side. PNG preserves transparency; JPEG uses a dark background. The original is not decoded again.
 
 > **Display exports are pictures for sharing.** They omit private source metadata and do not carry scientific samples or embedded astrometry. To save original scientific data with a solved position, use **Save solved copy…** instead. Source and XISF sidecar destinations are protected; choose a new filename if sidecars cannot be checked.
+
+---
+
+# 16 / Aligned image comparisons
+
+Select two or more placed collection entries with **Ctrl** or **Shift**, then choose **Compare…** below the collection search. Use the A and B lists to choose a pair from that selection. Unplaced images need a file solution, manual placement or ASTAP result first.
+
+<!-- figure height=160 -->
+![Two processing versions in linked views. The demonstration uses the same image geometry with different display brightness.](manual/screenshots/comparison-linked.png)
+
+| Mode | How to use it |
+| --- | --- |
+| Linked side by side | Drag or zoom either pane. Both retain the same sky center and horizontal field. |
+| Aligned blink | Alternate A and B at the selected seconds per frame. Uncheck Blink to pause, or use Space with the sky focused. Show A/B steps between frames. |
+| Swipe divider | Drag the mint divider or use its slider. A appears to the left and B to the right. |
+
+<!-- figure height=160 -->
+![The swipe divider reveals two display versions at the same sky coordinates.](manual/screenshots/comparison-swipe.png)
+
+**Fit A** and **Fit B** frame either image. These tools use each image's sky placement, including rotation, mirroring and distortion. Areas outside an image show the sky background. Incorrect manual placements produce incorrect alignment.
+
+Comparison uses the current display previews, up to 2048 pixels on the longest side. It opens independent snapshots at full opacity, including hidden selected images. Closing the window leaves the atlas camera, visibility, opacity and processing unchanged. Reopen it after changing a preview or placement.
+
+---
+
+# 17 / Organize your collection
+
+Collection entries now show thumbnails from the loaded previews. Use **Ctrl** or **Shift** to select several entries; **Select all** selects every matching entry, including entries outside the visible scroll area.
+
+## Sort and narrow the list
+
+Expand **Sort & filter**. Sort by name, object, filter, telescope, camera, observation date, favorites or group. **Layer order** returns to the scene's drawing order. Sorting and filtering the list leave the sky layers in place.
+
+Choose a metadata field and enter text it must contain. Observation dates use the source's ISO text, so a year or year-month narrows a date. Tag and group filters match whole names, ignoring case. **Favorites only** combines with all other filters and the existing filename/metadata search. **Clear all filters** restores the complete list.
+
+## Apply changes to selected images
+
+Choose **Organize…**. Check only the fields you want to replace. Tags are comma separated; an empty checked field clears tags or group. Each image belongs to one group and may have several tags.
+
+<!-- figure height=245 -->
+![The batch dialog changes only the chosen fields for the selected images.](manual/screenshots/collection-batch.png)
+
+Favorites, tags and groups are saved in the library, per source path and image number. They survive restarts, folder removal and clearing previews. Keep the original paths to retain those associations; moved-file recovery remains future work.
+
+The same dialog can show/hide images, set opacity or change display mode using each image's current background/cleanup settings. Visibility and opacity apply to this scene. Display choices persist. Cancellation keeps saved organization and completed previews; other previews keep their prior display. Failures appear in **Details** and do not stop the remaining batch.
+
+---
+
+# 18 / Add a survey background
+
+Open **Sky tools… > Survey background**. DSS images provide context behind your own photographs. They are separate from your collection and never change your scientific sources.
+
+1. Center and zoom the atlas on the region you want.
+2. Choose **DSS2 colour (HiPS)** or **DSS2 red (HiPS)**, then **Load current view**. This requests a square, 1024-pixel FITS cutout from CDS using the current sky coordinates. It can take a moment; Cancel retains the previous background.
+3. Adjust **Background opacity**. Your photographs remain in front. **Show catalogue positions** adds the offline OpenNGC, Messier and Caldwell overlay; close views show more objects.
+4. New cutouts join the displayed regions; newest wins where they overlap. Choose **Remove backgrounds** to return to the star map. Moving the atlas never downloads imagery.
+
+<!-- figure height=240 -->
+![Survey controls and a saved M31 region. Only public demonstration coordinates are used.](manual/screenshots/sky-tools-survey.png)
+
+## Use saved regions offline
+
+The separate survey cache keeps up to **512 MB** of downloaded FITS payloads. Select a region under **Saved survey regions**, then **Show selected saved region** to load it without a connection and frame its position. **Offline only** prevents network access; loading an uncached view explains that it is unavailable.
+
+**Clear survey cache** removes saved regions immediately, retaining the displayed background and your image previews. Older survey regions are evicted as the limit is reached. A missing or damaged region can be downloaded again when online.
+
+Enable **Options > Sky > Show cached DSS2 images by default** to restore all saved regions behind your photographs at startup. It also applies when you save Options, preserves your view, and never downloads. The option is off initially; damaged regions are skipped.
+
+> **Retain survey credits when sharing.** The atlas and sky exports show DSS/STScI/NASA and CDS attribution even with Labels off. Full provider acknowledgments and ODbL-1.0 references are supplied in **Data/LICENSE-DSS-SURVEYS.txt**. The application license does not relicense downloaded survey data.
+
+---
+
+# 19 / Plan target visibility
+
+Open **Sky tools… > Target visibility**. The planner works offline and uses a temporary location without changing your startup options.
+
+1. Choose a target in the atlas and select **Use atlas center**, or enter its J2000 RA and declination in degrees.
+2. Enter latitude (north positive) and longitude (east positive), or choose **Use observer location** when one is active.
+3. Choose the start date and time in **UTC**. The report covers the next 24 hours, including across computer-local daylight-saving changes.
+4. Set a minimum target altitude, maximum Sun altitude and minimum Moon separation. Start with **30°**, **-18°** and **30°**. Optionally ignore Moon separation while the Moon is below the horizon, then **Calculate visibility**.
+
+<!-- figure height=130 crop=30,370,910,660 -->
+![Target, Sun and Moon altitude curves. Green shading marks imaging windows; darker bands mark twilight and astronomical darkness.](manual/screenshots/sky-tools-visibility.png)
+
+## Read the chart and times
+
+The mint curve is your target; gold is the Sun and blue is the Moon. The dashed line is your altitude threshold. Hover over a time for altitude, Moon separation and illumination readouts. Green intervals satisfy all three imaging criteria.
+
+<!-- figure height=110 crop=30,665,910,900 -->
+![A fixed demonstration report for M31, latitude 0 and longitude 0, beginning at noon UTC on 1 January 2000.](manual/screenshots/sky-tools-visibility.png)
+
+The report lists geometric rise/set events, upper transit, maximum altitude, Moon phase/illumination and separation, darkness windows and imaging windows. Circumpolar targets and polar day/night produce explicit results instead of invented crossings.
+
+> **Interpret the limits.** Altitudes assume a flat horizon at sea level, without refraction, terrain or weather. Curves and detection of short windows use two-minute samples; detected boundaries are refined. Very brief grazing windows can be missed. A useful geometric window does not guarantee clear skies or suitable local conditions.
+
+---
+
+# 20 / Bookmarks and measurements
+
+Open **Sky tools… > Bookmarks & measurements** to keep named sky positions and notes, or measure separations on the celestial sphere.
+
+## Save a place and its notes
+
+1. Choose **New at atlas center**, enter a name and notes, then **Save bookmark**. You can edit its RA, declination and field of view before saving.
+2. Select a saved bookmark to read or update it. **Go to bookmark** restores that position and zoom; **Delete selected** removes it.
+3. **Show bookmarks** toggles their sky markers. Labels controls their names. Bookmarks and notes survive restarts, preview-cache clearing and folder removal; source images remain unchanged.
+
+<!-- pair -->
+<!-- figure height=190 -->
+![The bookmark editor and a fixed demonstration note.](manual/screenshots/sky-tools-bookmarks.png)
+<!-- figure height=160 crop=330,120,1424,846 -->
+![M31 in the public DSS survey with a measurement, celestial directions and angular scale. Survey credits remain at the bottom.](manual/screenshots/sky-tools-guides.png)
+
+## Measure and orient the sky
+
+Choose **Measure two points on sky**, then click a start and end in the atlas. Moving the pointer previews the arc after the first click. The result gives the shortest great-circle separation in degrees, arcminutes or arcseconds, including across the RA seam and near poles. **Escape** cancels an unfinished measurement; **Clear measurement** removes it.
+
+For keyboard use, navigate the atlas and choose **Use atlas center as next point** twice. Measurements apply to the current scene and are not saved automatically; copy values into a bookmark note if needed.
+
+After choosing both points, enter their known **Distance from us (light-years)** under **A** and **B** for a straight-line 3D separation. For prepared object distances, use **Target distances** (page 22). For example, two objects each 1,000 light-years away and 1° apart are about 17.45 light-years apart. Both manual distances must be positive; leaving either blank keeps only the angle. New/cleared measurements reset the inputs. The Euclidean estimate inherits distance uncertainties and does not model cosmological distances.
+
+**Angular scale bar** measures angles at its displayed position. **Celestial north / east** follows J2000 sky directions through the current projection, including observer-mode rotation. It is separate from the horizon compass and is hidden at an exact celestial pole, where north has no unique direction.
+
+---
+
+# 21 / Use published target distances
+
+Open **Sky tools… > Target distances** to measure between known objects without typing distances. The offline list contains **3,283 unique objects** from NASA and SIMBAD/CDS: **107/110 Messier**, **109/109 Caldwell**, **2,554/8,098 NGC** and **824/5,505 IC** entries. Aliases share estimates, so counts overlap. Missing estimates remain unavailable.
+
+1. Search under **Target A** by designation or common name: **M 81**, **NGC 3031**, **Caldwell 102** or **IC 2602**. Select the result.
+2. Search under **Target B**, for example **M82** or **Cigar**, and select it. The result and atlas measurement update automatically using the objects' catalogue centres.
+3. Choose **Frame selected pair** to see both endpoints. Selection alone preserves your view. If you already added two eligible markers with **Find in the sky**, use **Use two marked targets** instead.
+
+<!-- figure height=260 -->
+![The expanded offline list shows coverage for all four catalogues. Each selected object retains its source; separation is approximate.](manual/screenshots/sky-tools-distances.png)
+
+## Read the estimate and its sources
+
+The NASA values for M81 and M82 are **11.6 million** and **12 million light-years** from us, giving an estimated separation of **about 420,000 light-years**. **Open source for A/B** opens the cited page in your browser. Hover over source text for its method, literature reference and reported object errors. Selection and calculation work offline.
+
+> **An estimate, not an exact measurement.** The app marks separation with **≈** and rounds it to two significant figures. Sources differ in method and precision; error bars are shown when supplied, but are not propagated to separation errors. Rounding can strongly affect close pairs such as M81/M82. The calculation uses Euclidean geometry without a cosmological model or inferred redshift distances.
+
+Objects outside this list can still use manual inputs in **Bookmarks & measurements**. Manual edits detach the catalogue source; starting a new measurement or **Clear target pair** clears the selected pair. Ordinary sky clicks never assume an object identity. Measurements and selections apply to the current scene and are not saved automatically.
+
+---
+
+# 22 / Explore objects in 3D
+
+Open **Sky tools… > Target distances > Explore objects in 3D…**. Explore 3,283 objects using their sky directions and published distances, starting at our **Solar System**. This works offline.
+
+<!-- figure height=160 -->
+![M81 and M82 connected by their estimated straight-line separation in light-years.](manual/screenshots/distance-space-pair.png)
+
+## Move through space
+
+| Control | Action |
+| --- | --- |
+| Left-drag | Orbit around the current focus |
+| Right-drag or Shift-drag | Pan the focus and camera together |
+| Mouse wheel or + / - | Zoom in or out |
+| W/S, A/D, Q/E | Move forward/back, left/right, down/up |
+| Arrow keys / F | Orbit / focus the selected object |
+| Home or Reset to Sun | Restore the starting view |
+
+Click the map for keyboard controls; hold **Shift** to move faster. **Jump to scale…** changes scale around the current centre. Scroll out to reveal more distant objects.
+
+## Find an object and read the scale
+
+Click a point or search result to centre zoom and orbit on it. **Recenter on target** returns after panning; **Reset to Sun** restores the starting view. Search filters the list; the catalogue choice filters both list and map. **Open source** opens the citation; hover for errors and references.
+
+**Measure a pair:** Click A, then **Shift-click B**, or enable **Pick second target** and choose B. The gold line shows their estimated separation in light-years. **Frame pair** fits both points; **Clear measurement** or **Escape** removes B. A normal new selection or reset clears the pair.
+
+Rings measure **light-years from the Solar System** in the **J2000 equatorial plane**. Cyan points are north of it; amber points are south. Guides connect labelled objects to the plane. Toggle guides and labels below the map; labels are reduced to limit overlap.
+
+**Scale and limits:** Linear positions; symbol sizes. Distance errors and cosmological effects are not modelled. Navigation leaves the atlas unchanged and resets on closing.

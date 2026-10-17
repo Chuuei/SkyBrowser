@@ -65,6 +65,33 @@ dotnet publish src/SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 --arti
 
 ## Source format and screenshots
 
+Refresh the survey, planning and annotation illustrations independently:
+
+```powershell
+dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release -- --sky-tools-only
+```
+
+This mode needs no private sample images. It requests one public M31 DSS2 cutout
+from CDS (or reuses its local survey cache), retains provider credits, and uses a
+separate demonstration library under `artifacts/`. All planning locations are 0/0
+and planning dates are fixed to 1 January 2000. The target-distance illustration
+uses the bundled, public M81/M82 distance estimates and shows their source snapshot
+date. The same mode captures the offline 3D map as `distance-space.png`, using only
+bundled public coordinates/distances. It also captures the public M81/M82 pair as
+`distance-space-pair.png`. Inspect all seven complete PNGs before rebuilding the PDF.
+It merges their hashes into the existing manifest.
+
+Refresh comparison and batch-organization illustrations while retaining the other
+approved figures with:
+
+```powershell
+dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release -- --collection-only C:\SkyBrowserDemo\Samples
+```
+
+This mode compares two display-brightness variants of one anonymous preview with
+identical geometry. Missing astrometry receives fixed demonstration coordinates;
+source files are untouched. Inspect all three complete new PNGs before rebuilding.
+
 The builder supports the subset used by this manual: headings, paragraphs, bold
 text, lists, tables, callouts and local images. A horizontal rule starts a new page.
 The small HTML comments before images specify PDF-only clipping, height and numbered

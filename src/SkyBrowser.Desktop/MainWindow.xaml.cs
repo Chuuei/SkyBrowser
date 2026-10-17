@@ -116,7 +116,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         _collectionView = new(Sky.Layers)
         {
-            Filter = item => item is SkyImageLayer layer && _collectionSearch.Matches(layer.Image)
+            Filter = item => item is SkyImageLayer layer && _collectionSearch.Matches(layer.Image) && _collectionFilter.Matches(layer)
         };
         LayerList.ItemsSource = _collectionView;
         ((INotifyCollectionChanged)_collectionView).CollectionChanged += (_, _) => UpdateCollection();
@@ -128,6 +128,7 @@ public partial class MainWindow : Window
             if (!_collectionView.Contains(layer))
             {
                 CollectionSearch.Clear();
+                ClearCollectionFiltersClicked(this, new());
             }
 
             LayerList.SelectedItem = layer;
@@ -143,9 +144,13 @@ public partial class MainWindow : Window
         {
             Sky.Refresh();
             UpdateCollection();
+            var surveyRestore = RestoreCachedSurveyBackgroundsAsync();
             try
             {
                 await Task.Run(_cache.ApplySizeLimit);
+                long bookmarkRevision = Sky.BookmarkRevision;
+                var bookmarks = await Task.Run(_library.GetBookmarks);
+                if (!_closing && Sky.BookmarkRevision == bookmarkRevision) { Sky.SetBookmarks(bookmarks); }
             }
             catch (Exception exception)
             {
@@ -156,6 +161,7 @@ public partial class MainWindow : Window
             }
 
             await RefreshRecentFoldersAsync();
+            await surveyRestore;
             if (!_closing && _optionsStore.LastError is { } error)
             {
                 _details.AppendLine($"Options: {error}");
@@ -278,6 +284,7 @@ public partial class MainWindow : Window
     private void SetBusy(bool busy)
     {
         LibraryButton.IsEnabled = !busy;
+        CollectionActions.IsEnabled = !busy;
         FileActions.IsEnabled = !busy;
         AddFolderButton.IsEnabled = !busy;
         FolderButton.IsEnabled = !_applyingOptions;
@@ -348,10 +355,10 @@ public partial class MainWindow : Window
 
     private void UpdateCollection()
     {
-        LayerCount.Text = _collectionSearch.IsActive
+        LayerCount.Text = _collectionSearch.IsActive || _collectionFilter.IsActive
             ? $"{_collectionView.Count:N0} / {Sky.Layers.Count:N0}"
             : $"{Sky.Layers.Count} image{(Sky.Layers.Count == 1 ? "" : "s")}";
-        LayerCount.ToolTip = _collectionSearch.IsActive
+        LayerCount.ToolTip = _collectionSearch.IsActive || _collectionFilter.IsActive
             ? $"{_collectionView.Count:N0} matching images of {Sky.Layers.Count:N0} loaded"
             : "Loaded images";
         EmptyCollection.Visibility = Sky.Layers.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -543,6 +550,8 @@ public partial class MainWindow : Window
                 {
                     var progress = ProcessingReporter(operation);
                     var loaded = await Task.Run(() => PrepareForCollection(_imageLoader.LoadForBrowsing(path, operation.Token, progress)), operation.Token);
+                    var organizations = await Task.Run(() => loaded.ToDictionary(image => image.ImageIndex,
+                        image => _library.GetOrganization(image.SourcePath, image.ImageIndex)), operation.Token);
                     operation.Token.ThrowIfCancellationRequested();
                     using (Sky.DeferLayerUpdates())
                     {
@@ -554,6 +563,7 @@ public partial class MainWindow : Window
                             {
                                 var manual = existing.Manual;
                                 existing.ReplaceDisplay(image, image.RenderMode);
+                                existing.SetOrganization(organizations[image.ImageIndex]);
                                 if (manual is not null)
                                 {
                                     existing.SetManual(manual);
@@ -562,6 +572,7 @@ public partial class MainWindow : Window
                                 continue;
                             }
                             var layer = new SkyImageLayer(image, image.RenderMode);
+                            layer.SetOrganization(organizations[image.ImageIndex]);
                             Sky.Layers.Add(layer);
                             added++;
                             if (image.IsFromCache)
@@ -1308,6 +1319,7 @@ public partial class MainWindow : Window
         }
 
         _closing = true;
+        _surveyRestoreOperation?.Cancel();
         _operation?.Cancel();
         _loadProgress?.Finish();
         _observerClock.Stop();
@@ -1631,6 +1643,7 @@ public partial class MainWindow : Window
                 _optionsStore.Write(requested);
             });
             bool observerChanged = requested.Observer != _options.Observer;
+            bool cachedSurveysChanged = requested.ShowCachedSurveyImages != _options.ShowCachedSurveyImages;
             _options = requested;
             if (cacheChanged)
             {
@@ -1650,6 +1663,10 @@ public partial class MainWindow : Window
             }
 
             ApplySkyDefaults();
+            if (cachedSurveysChanged)
+            {
+                await RestoreCachedSurveyBackgroundsAsync();
+            }
             if (observerChanged)
             {
                 ApplyObserver(requested.Observer);

@@ -19,7 +19,7 @@ public sealed record LibraryImage(string SourcePath, int ImageIndex, string Name
 public sealed record LibraryScanProgress(int Checked, int Updated, int Failed, string Path);
 
 /// <summary>Durable archive metadata and external solutions, independent of disposable previews.</summary>
-public sealed class ImageLibrary
+public sealed partial class ImageLibrary
 {
     private readonly object _initialization = new();
     private readonly SemaphoreSlim _scanGate = new(1, 1);
@@ -46,6 +46,13 @@ public sealed class ImageLibrary
                 command.CommandText = """
                     PRAGMA journal_mode=WAL;
                     CREATE TABLE IF NOT EXISTS roots(path TEXT PRIMARY KEY);
+                    CREATE TABLE IF NOT EXISTS bookmarks(
+                        id TEXT PRIMARY KEY,name TEXT NOT NULL,ra REAL NOT NULL,dec REAL NOT NULL,
+                        fov REAL NOT NULL,notes TEXT NOT NULL);
+                    CREATE TABLE IF NOT EXISTS organization(
+                        path TEXT NOT NULL, image_index INTEGER NOT NULL,
+                        favorite INTEGER NOT NULL DEFAULT 0, tags TEXT NOT NULL DEFAULT '',
+                        group_name TEXT NOT NULL DEFAULT '', PRIMARY KEY(path,image_index));
                     CREATE TABLE IF NOT EXISTS images(
                         path TEXT NOT NULL, image_index INTEGER NOT NULL, name TEXT NOT NULL,
                         width INTEGER NOT NULL, height INTEGER NOT NULL, summary TEXT NOT NULL,

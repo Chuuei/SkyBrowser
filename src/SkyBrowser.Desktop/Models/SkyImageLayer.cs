@@ -4,11 +4,26 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using SkyBrowser.Core.Astronomy;
 using SkyBrowser.Core.Imaging;
+using SkyBrowser.Core.Library;
 
 namespace SkyBrowser.Desktop.Models;
 
 public sealed class SkyImageLayer : INotifyPropertyChanged
 {
+    public ImageOrganization Organization { get; private set; } = new();
+
+    public string OrganizationLabel => string.Join(" · ", new[]
+    {
+        Organization.IsFavorite ? "★ Favorite" : "", Organization.Group, Organization.Tags
+    }.Where(value => value.Length > 0));
+
+    public void SetOrganization(ImageOrganization organization)
+    {
+        Organization = organization;
+        Changed(nameof(Organization));
+        Changed(nameof(OrganizationLabel));
+    }
+
     public LoadedSkyImage Image { get; private set; }
 
     public string Name => Image.Name;

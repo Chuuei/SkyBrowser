@@ -2,7 +2,13 @@
 
 ## Observer orientation and offline map
 
-Observer rotations use [Astronomy Engine](https://github.com/cosinekitty/astronomy), **CosineKitty.AstronomyEngine 2.1.19**, by Don Cross, under the MIT license. The library converts between J2000 equatorial coordinates and the observer's horizontal frame, including precession, nutation and Earth rotation. Its license is included as `Data/LICENSE-AstronomyEngine.txt`.
+Observer rotations and visibility planning use [Astronomy Engine](https://github.com/cosinekitty/astronomy), **CosineKitty.AstronomyEngine 2.1.19**, by Don Cross, under the MIT license. It supplies horizon rotations and Sun/Moon ephemerides, including precession, nutation and Earth rotation. Its license is included as `Data/LICENSE-AstronomyEngine.txt`.
+
+## Optional DSS survey backgrounds
+
+Sky tools requests FITS cutouts from the public [CDS HiPS2FITS service](https://alasky.cds.unistra.fr/hips-image-services/hips2fits). DSS imagery is credited to STScI/NASA; colour composition and HEALPix products are by CDS, CNRS/Unistra. The provider identifies its HiPS products as ODbL-1.0. Downloaded survey imagery retains these terms and is independent of the application's license. Raw survey photographs are not bundled with the application; manual figures include public M31 cutouts with retained attribution.
+
+Complete provider acknowledgments, source-property URLs and data-license references are in [LICENSE-DSS-SURVEYS.txt](src/SkyBrowser.Core/Data/LICENSE-DSS-SURVEYS.txt), copied into `Data/` on build/publish. Sky backgrounds and sky exports retain visible survey attribution even when catalogue labels are disabled.
 
 The embedded `world-countries.geojson` is the unmodified [Natural Earth 1:110m country dataset](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_110m_admin_0_countries.geojson), downloaded on 2026-10-15. Natural Earth map data are public domain. Credits and terms are included as `Data/LICENSE-Natural-Earth.txt`. Map boundaries are for orientation and do not determine observer time zones.
 
@@ -41,6 +47,18 @@ The cache uses **Microsoft.Data.Sqlite 10.0.13** and its Core package (MIT, .NET
 The SQLitePCLRaw bundle supplies the native SQLite runtime. SQLite's deliverable code is dedicated to the public domain; see the [SQLite copyright statement](https://www.sqlite.org/copyright.html). The database is created locally at runtime and contains user-generated previews; no example photographs are bundled.
 
 ## Application license and complete distribution
+
+The bundled `target-distances.json` contains 3,283 numerical estimates cross-identified
+through the position catalogue. Sources include NASA/Hubble's
+[Messier](https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-messier-catalog/)
+and [Caldwell](https://science.nasa.gov/mission/hubble/science/explore-the-night-sky/hubble-caldwell-catalog/)
+catalogues, three reviewed NASA/APOD facts and published literature distances from
+[SIMBAD / CDS](https://simbad.cds.unistra.fr/simbad/). Each estimate retains a source
+URL, original value/units, date and source hash; SIMBAD records also retain their
+method, literature bibcode and reported errors where available. No website images
+or article prose are bundled. Provenance and use notes are supplied as
+`Data/LICENSE-NASA-DISTANCES.txt` and `Data/LICENSE-SIMBAD-DISTANCES.txt`. This product
+has made use of the SIMBAD database, operated at CDS, Strasbourg, France.
 
 SkyBrowser-authored code is Apache-2.0. Preserve the relevant attribution in
 `NOTICE`. `SkyImageFinisher` identifies its adaptation from XISFLib.Net and its

@@ -1,0 +1,30 @@
+DSS survey backgrounds in SkyBrowser
+====================================
+
+Survey cutouts are optional downloads, not bundled source photographs.
+DSS imagery and CDS HiPS products retain their provider terms. The application
+license does not relicense survey data. Retain the following credits when sharing.
+
+CDS HiPS2FITS service: https://alasky.cds.unistra.fr/hips-image-services/hips2fits
+This research made use of hips2fits, a service provided by CDS.
+
+ODbL-1.0: https://opendatacommons.org/licenses/odbl/1-0/
+DSS copyright: https://archive.stsci.edu/dss/copyright.html
+
+Source: https://alasky.cds.unistra.fr/DSS/DSSColor/properties
+creator_did          = ivo://CDS/P/DSS2/color
+obs_title            = DSS colored
+obs_copyright        = Digitized Sky Survey - STScI/NASA, Colored & Healpixed by CDS
+obs_copyright_url    = http://archive.stsci.edu/dss/copyright.html
+hips_copyright       = CNRS/Unistra
+hips_license         = ODbL-1.0
+obs_ack              = The Digitized Sky Surveys were produced at the Space Telescope Science Institute under U.S. Government grant NAG W-2166. The images of these surveys are based on photographic data obtained using the Oschin Schmidt Telescope on Palomar Mountain and the UK Schmidt Telescope. The plates were processed into the present compressed digital form with the permission of these institutions. The National Geographic Society - Palomar Observatory Sky Atlas (POSS-I) was made by the California Institute of Technology with grants from the National Geographic Society. The Second Palomar Observatory Sky Survey (POSS-II) was made by the California Institute of Technology with funds from the National Science Foundation, the National Geographic Society, the Sloan Foundation, the Samuel Oschin Foundation, and the Eastman Kodak Corporation. The Oschin Schmidt Telescope is operated by the California Institute of Technology and Palomar Observatory. The UK Schmidt Telescope was operated by the Royal Observatory Edinburgh, with funding from the UK Science and Engineering Research Council (later the UK Particle Physics and Astronomy Research Council), until 1988 June, and thereafter by the Anglo-Australian Observatory. The blue plates of the southern Sky Atlas and its Equatorial Extension (together known as the SERC-J), as well as the Equatorial Red (ER), and the Second Epoch [red] Survey (SES) were all taken with the UK Schmidt. Supplemental funding for sky-survey work at the ST ScI is provided by the European Southern Observatory.
+
+Source: https://alasky.cds.unistra.fr/DSS/DSS2Merged/properties
+creator_did          = ivo://CDS/P/DSS2/red
+obs_title            = DSS2 Red (F+R)
+obs_copyright        = Digitized Sky Survey - STScI/NASA, Healpixed by CDS
+obs_copyright_url    = http://archive.stsci.edu/dss/copyright.html
+hips_copyright       = CNRS/Unistra
+hips_license         = ODbL-1.0
+obs_ack              = The Digitized Sky Surveys were produced at the Space Telescope Science Institute under U.S. Government grant NAG W-2166. The images of these surveys are based on photographic data obtained using the Oschin Schmidt Telescope on Palomar Mountain and the UK Schmidt Telescope. The plates were processed into the present compressed digital form with the permission of these institutions. The National Geographic Society - Palomar Observatory Sky Atlas (POSS-I) was made by the California Institute of Technology with grants from the National Geographic Society. The Second Palomar Observatory Sky Survey (POSS-II) was made by the California Institute of Technology with funds from the National Science Foundation, the National Geographic Society, the Sloan Foundation, the Samuel Oschin Foundation, and the Eastman Kodak Corporation. The Oschin Schmidt Telescope is operated by the California Institute of Technology and Palomar Observatory. The UK Schmidt Telescope was operated by the Royal Observatory Edinburgh, with funding from the UK Science and Engineering Research Council (later the UK Particle Physics and Astronomy Research Council), until 1988 June, and thereafter by the Anglo-Australian Observatory. The blue plates of the southern Sky Atlas and its Equatorial Extension (together known as the SERC-J), as well as the Equatorial Red (ER), and the Second Epoch [red] Survey (SES) were all taken with the UK Schmidt. Supplemental funding for sky-survey work at the ST ScI is provided by the European Southern Observatory.

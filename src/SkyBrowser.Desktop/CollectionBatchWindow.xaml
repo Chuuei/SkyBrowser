@@ -1,0 +1,39 @@
+<Window x:Class="SkyBrowser.Desktop.CollectionBatchWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  Title="SkyBrowser · Organize selected images" Width="520" Height="680" MinWidth="480" MinHeight="600"
+  Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <Grid Margin="22">
+    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+    <TextBlock x:Name="Heading" FontSize="19" Margin="0,0,0,14" />
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="0,0,12,0">
+        <TextBlock Text="Library organization" Foreground="#8BE2C3" FontWeight="SemiBold" />
+        <TextBlock Text="Saved for each source image, including after clearing previews. Only checked fields replace existing values." TextWrapping="Wrap" Foreground="#8D9AAD" Margin="0,6,0,12" />
+        <ComboBox x:Name="FavoriteChoice" SelectedIndex="0" AutomationProperties.Name="Batch favorites">
+          <ComboBoxItem Content="Keep favorites unchanged" /><ComboBoxItem Content="Mark as favorites" /><ComboBoxItem Content="Remove from favorites" />
+        </ComboBox>
+        <CheckBox x:Name="SetTags" Content="Replace tags (comma separated; empty clears)" Margin="0,14,0,6" />
+        <TextBox x:Name="TagsInput" MaxLength="1024" IsEnabled="{Binding IsChecked, ElementName=SetTags}" AutomationProperties.Name="Tags for selected images" />
+        <CheckBox x:Name="SetGroup" Content="Set group (empty clears)" Margin="0,14,0,6" />
+        <TextBox x:Name="GroupInput" MaxLength="128" IsEnabled="{Binding IsChecked, ElementName=SetGroup}" AutomationProperties.Name="Group for selected images" />
+        <TextBlock Text="Scene and display" Foreground="#8BE2C3" FontWeight="SemiBold" Margin="0,22,0,8" />
+        <ComboBox x:Name="VisibilityChoice" SelectedIndex="0" AutomationProperties.Name="Batch visibility">
+          <ComboBoxItem Content="Keep visibility unchanged" /><ComboBoxItem Content="Show selected images" /><ComboBoxItem Content="Hide selected images" />
+        </ComboBox>
+        <CheckBox x:Name="SetOpacity" Content="Set opacity" Margin="0,14,0,5" />
+        <Slider x:Name="BatchOpacity" Minimum="0" Maximum="1" Value="1" IsEnabled="{Binding IsChecked, ElementName=SetOpacity}" AutomationProperties.Name="Batch opacity" />
+        <TextBlock Text="Display mode" Foreground="#8D9AAD" Margin="0,14,0,5" />
+        <ComboBox x:Name="BatchDisplay" SelectedIndex="0" AutomationProperties.Name="Batch display mode">
+          <ComboBoxItem Content="Keep display unchanged" /><ComboBoxItem Content="Automatic · dark sky (fast)" />
+          <ComboBoxItem Content="Linear / already stretched" /><ComboBoxItem Content="Library auto stretch (25%)" />
+          <ComboBoxItem Content="Stored display function" /><ComboBoxItem Content="Dark sky + cleanup" />
+        </ComboBox>
+        <TextBlock Text="Display changes use each image's existing background and cleanup settings. Cancel during processing keeps completed images; remaining previews keep their prior display. Visibility and opacity apply to this scene." TextWrapping="Wrap" Foreground="#8D9AAD" Margin="0,10,0,8" />
+      </StackPanel>
+    </ScrollViewer>
+    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button Content="Cancel" IsCancel="True" /><Button Content="Apply to selected" Click="ApplyClicked" IsDefault="True" Margin="8,0,0,0" />
+    </StackPanel>
+  </Grid>
+</Window>

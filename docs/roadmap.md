@@ -47,25 +47,47 @@ new plate solution. Exact FITS models survive preview-cache reloads.
 or the selected image's existing display preview. PNG retains preview alpha;
 JPEG composites onto a dark background. Sources and XISF sidecars are protected.
 
-## Next priorities
+## Implemented for the next release
 
 6. **Comparison tools:** aligned blinking, swipe divider and linked side-by-side
    views for filters, processing versions and observing dates.
 7. **Collection organization:** thumbnails, sorting, structured metadata filters,
    tags, favorites, groups and batch visibility/display operations.
+9. **Survey background:** optional DSS/HiPS imagery and catalogue overlays behind
+   personal photographs, with cached/offline behavior and retained attribution.
+11. **Target visibility:** altitude charts, transit/rise/set times, darkness windows,
+    Moon phase/separation and useful imaging windows.
+12. **Annotations and measurements:** named bookmarks, notes, angular distances,
+    scale bars and north/east indicators.
+
+Select placed collection entries with Ctrl/Shift and choose **Compare…** for linked
+sky cameras, timed blinking or a draggable swipe divider. Comparison uses independent
+display snapshots and the existing astrometric projection. **Sort & filter** narrows
+the loaded collection without changing sky layers; **Organize…** saves tags, favorites
+and a group per source/image in the durable library and applies batch scene/display
+changes with progress and cancellation. Source files remain unchanged.
+
+**Sky tools…** adds explicit CDS HiPS2FITS downloads of DSS2 colour/red fields,
+a separate 512 MB offline cache, catalogue overlays and retained data credits.
+An optional startup default restores all cached DSS2 regions without downloads.
+Visibility planning evaluates a 24-hour UTC period with the existing Astronomy
+Engine, target/Sun/Moon curves, geometric horizon events, transit and configurable
+imaging windows. Bookmarks and notes are durable library records; great-circle
+measurements, angular scales and celestial direction guides apply to the scene.
+Known, manually supplied object distances can also give a light-year 3D separation.
+The Target distances tab additionally supplies 3,283 attributed NASA/CDS estimates
+across Messier, Caldwell, NGC and IC through searchable object selectors, with
+coverage counts, source/error details and approximate separation labels.
+
+## Next priorities
+
 8. **Full workspace recovery:** restore camera/layer choices, undo/redo, locate
    missing files and remap moved archive folders, beyond the saved folder list.
 
 ## Astronomy and planning
 
-9. **Survey background:** optional DSS/HiPS imagery and catalogue overlays behind
-   personal photographs, with cached/offline behavior and retained attribution.
 10. **Camera framing and mosaics:** equipment profiles, rotatable field-of-view
     rectangles, overlap/panel planning and coordinate export.
-11. **Target visibility:** altitude charts, transit/rise/set times, darkness windows,
-    Moon phase/separation and useful imaging windows.
-12. **Annotations and measurements:** named bookmarks, notes, angular distances,
-    scale bars and north/east indicators.
 13. **Processed-image imports:** TIFF/PNG/JPEG with solving or saved placement.
 
 Current product focus: a browsable atlas of the user's photographs. Library,

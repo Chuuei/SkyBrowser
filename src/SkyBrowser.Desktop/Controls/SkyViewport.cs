@@ -20,6 +20,7 @@ public sealed class SkyViewport : Grid
 {
     private readonly SkyCatalog _catalog = new();
     private readonly Viewport3D _viewport = new();
+    private readonly Grid _surveyViewports = new() { IsHitTestVisible = false };
     private readonly PerspectiveCamera _perspectiveCamera = new()
     {
         NearPlaneDistance = 0.001,
@@ -54,8 +55,141 @@ public sealed class SkyViewport : Grid
     private Point _dragStart;
     private double _dragDistance;
     private bool _exporting;
+    private SurveyFrame[] _surveyFrames = [];
+    private readonly List<ImageBrush> _surveyBrushes = [];
+    private SkyCoordinate? _measurementStart;
+
+    public SurveyFrame? SurveyBackground => _surveyFrames.FirstOrDefault();
+    public IReadOnlyList<SurveyFrame> SurveyBackgrounds => Array.AsReadOnly(_surveyFrames);
+    public long SurveyRevision { get; private set; }
+    public IReadOnlyList<SkyBookmark> Bookmarks { get; private set; } = [];
+    public long BookmarkRevision { get; private set; }
+    public SkyMeasurement? Measurement { get; private set; }
+    public bool IsMeasuring { get; private set; }
+    public event EventHandler? MeasurementChanged;
+
+    public bool ShowCatalogTargets { get; set { field = value; Refresh(); } }
+    public bool ShowScaleBar { get; set { field = value; Refresh(); } }
+    public bool ShowNorthEast { get; set { field = value; Refresh(); } }
+    public bool ShowBookmarks { get; set { field = value; Refresh(); } } = true;
+    public double SurveyOpacity
+    {
+        get;
+        set
+        {
+            field = Math.Clamp(value, 0, 1);
+            foreach (var brush in _surveyBrushes) { brush.Opacity = field; }
+            _annotations.InvalidateVisual();
+        }
+    } = 0.75;
+
+    public void SetSurveyBackground(SurveyFrame? frame) => SetSurveyBackgrounds(frame is null ? [] : [frame]);
+
+    public void AddSurveyBackground(SurveyFrame frame) => SetSurveyBackgrounds(new[] { frame }.Concat(_surveyFrames));
+
+    public void SetSurveyBackgrounds(IEnumerable<SurveyFrame> frames)
+    {
+        _surveyFrames = frames.DistinctBy(frame => frame.Request.Key).ToArray();
+        SurveyRevision++;
+        _surveyViewports.Children.Clear();
+        _surveyBrushes.Clear();
+        // Differently sampled spherical meshes can intersect even at distinct radii.
+        // Composite each survey in its own viewport/depth buffer, oldest to newest,
+        // below the photo viewport. All viewports share the exact same camera.
+        for (int i = _surveyFrames.Length - 1; i >= 0; i--)
+        {
+            var frame = _surveyFrames[i];
+            var layer = new SkyImageLayer(frame.Image);
+            var brush = new ImageBrush(layer.Bitmap) { Opacity = SurveyOpacity, Stretch = Stretch.Fill };
+            _surveyBrushes.Add(brush);
+            var material = new DiffuseMaterial(brush);
+            var scene = new Model3DGroup();
+            scene.Children.Add(new AmbientLight(Colors.White));
+            scene.Children.Add(new GeometryModel3D(CreateMesh(frame.Image.Placement!, 1.5), material) { BackMaterial = material });
+            var viewport = new Viewport3D { Camera = _perspectiveCamera };
+            viewport.Children.Add(new ModelVisual3D { Content = scene });
+            _surveyViewports.Children.Add(viewport);
+        }
+        RebuildImages();
+    }
+
+    public void SetBookmarks(IEnumerable<SkyBookmark> bookmarks)
+    {
+        Bookmarks = bookmarks.ToArray();
+        BookmarkRevision++;
+        _annotations.InvalidateVisual();
+    }
+
+    public void BeginMeasurement()
+    {
+        _measurementStart = null;
+        Measurement = null;
+        IsMeasuring = true;
+        Cursor = Cursors.Cross;
+        _annotations.InvalidateVisual();
+        MeasurementChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void PickMeasurementPoint(SkyCoordinate coordinate)
+    {
+        SkyGeometry.Validate(coordinate);
+        if (!IsMeasuring) { BeginMeasurement(); }
+        if (_measurementStart is not { } start)
+        {
+            _measurementStart = coordinate;
+            Measurement = new(coordinate, coordinate);
+        }
+        else
+        {
+            Measurement = new(start, coordinate);
+            IsMeasuring = false;
+            Cursor = Cursors.Hand;
+        }
+        _annotations.InvalidateVisual();
+        MeasurementChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void ClearMeasurement()
+    {
+        IsMeasuring = false;
+        _measurementStart = null;
+        Measurement = null;
+        Cursor = Cursors.Hand;
+        _annotations.InvalidateVisual();
+        MeasurementChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public void SetMeasurementDistances(double? start, double? end)
+    {
+        if (start is { } a) { SkyGeometry.ValidateObjectDistance(a); }
+        if (end is { } b) { SkyGeometry.ValidateObjectDistance(b); }
+        if (Measurement is null || IsMeasuring) { return; }
+        var updated = Measurement with
+        {
+            StartDistanceLightYears = start, EndDistanceLightYears = end,
+            StartDistanceSource = null, EndDistanceSource = null
+        };
+        _ = updated.SeparationLightYears;
+        if (updated == Measurement) { return; }
+        Measurement = updated;
+        _annotations.InvalidateVisual();
+        MeasurementChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     public SkyCamera Camera { get; } = new();
+
+    public void MeasureTargets(string first, string second)
+    {
+        var measurement = TargetDistances.Measure(first, second);
+        _measurementStart = null;
+        IsMeasuring = false;
+        Cursor = Cursors.Hand;
+        Measurement = measurement;
+        _annotations.InvalidateVisual();
+        MeasurementChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public bool ShowImageActions { get; set; } = true;
 
     public ObservableCollection<SkyImageLayer> Layers { get; } = [];
 
@@ -158,6 +292,7 @@ public sealed class SkyViewport : Grid
             IsHitTestVisible = false
         };
         Children.Add(_backdrop);
+        Children.Add(_surveyViewports);
         Children.Add(_viewport);
         Children.Add(_annotations);
         Children.Add(_imageActions);
@@ -427,7 +562,7 @@ public sealed class SkyViewport : Grid
         var layer = _openSourceButton.IsKeyboardFocusWithin
             ? _openSourceButton.DataContext as SkyImageLayer
             : HoveredLayer ?? SelectedLayer;
-        if (!_exporting && _drag is null && layer?.Placement is { } placement && _brushes.ContainsKey(layer) && ActualWidth > 0 && ActualHeight > 0)
+        if (!_exporting && ShowImageActions && _drag is null && layer?.Placement is { } placement && _brushes.ContainsKey(layer) && ActualWidth > 0 && ActualHeight > 0)
         {
             Point? Project(double u, double v) => Camera.Project(placement.At(u, v).Vector, ActualWidth, ActualHeight) is { } p
                 ? new(p.X, p.Y) : null;
@@ -721,6 +856,14 @@ public sealed class SkyViewport : Grid
             copy.Camera.Observer = Camera.Observer;
             copy.Camera.Center = Camera.Center;
             copy.Camera.FieldOfView = Camera.FieldOfView;
+            copy.SurveyOpacity = SurveyOpacity;
+            copy.SetSurveyBackgrounds(_surveyFrames);
+            copy.ShowCatalogTargets = ShowCatalogTargets;
+            copy.ShowScaleBar = ShowScaleBar;
+            copy.ShowNorthEast = ShowNorthEast;
+            copy.ShowBookmarks = ShowBookmarks;
+            copy.SetBookmarks(Bookmarks);
+            copy.Measurement = Measurement;
             copy.RestoreTargets(AddedTargets.Select(t => t.Id));
             using (copy.DeferLayerUpdates())
             {
@@ -775,6 +918,14 @@ public sealed class SkyViewport : Grid
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);
+        if (IsMeasuring)
+        {
+            var point = e.GetPosition(this);
+            PickMeasurementPoint(Camera.Unproject(point.X, point.Y, ActualWidth, ActualHeight));
+            Focus();
+            e.Handled = true;
+            return;
+        }
         if (e.ClickCount == 2 && _dragDistance < 4 && ImageAt(e.GetPosition(this)) is { } layer)
         {
             Focus();
@@ -796,6 +947,14 @@ public sealed class SkyViewport : Grid
     protected override void OnMouseMove(MouseEventArgs e)
     {
         base.OnMouseMove(e);
+        if (IsMeasuring && _measurementStart is { } start)
+        {
+            var point = e.GetPosition(this);
+            Measurement = new(start, Camera.Unproject(point.X, point.Y, ActualWidth, ActualHeight));
+            _annotations.InvalidateVisual();
+            MeasurementChanged?.Invoke(this, EventArgs.Empty);
+            return;
+        }
         if (_drag is not { } previous)
         {
             UpdateHover(e.GetPosition(this));
@@ -855,6 +1014,12 @@ public sealed class SkyViewport : Grid
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        if (e.Key == Key.Escape && IsMeasuring)
+        {
+            ClearMeasurement();
+            e.Handled = true;
+            return;
+        }
         switch (e.Key)
         {
             case Key.Left:
@@ -1080,6 +1245,7 @@ public sealed class SkyViewport : Grid
 
         private void DrawAnnotations(DrawingContext dc)
         {
+            DrawSkyTools(dc);
             if (owner.Camera.Observer is { } observer)
             {
                 Point? previous = null;
@@ -1208,6 +1374,95 @@ public sealed class SkyViewport : Grid
             dc.DrawLine(FootprintPen, center + new Vector(0, -8), center + new Vector(0, -3));
             dc.DrawLine(FootprintPen, center + new Vector(0, 3), center + new Vector(0, 8));
             dc.Pop();
+        }
+
+        private void DrawSkyTools(DrawingContext dc)
+        {
+            if (owner.ShowCatalogTargets)
+            {
+                int count = 0;
+                var candidates = owner.Camera.FieldOfView <= 15 ? DeepSkyCatalog.Targets : DeepSkyCatalog.PopularTargets;
+                foreach (var target in candidates)
+                {
+                    if (Project(target.Position) is not { } point || !Inside(point, 0)) { continue; }
+                    dc.DrawEllipse(null, FootprintPen, point, 4, 4);
+                    if (owner.ShowLabels) { Text(dc, target.PreferredDesignation, point + new Vector(7, -12), "#829FB4", 10); }
+                    if (++count >= 250) { break; }
+                }
+            }
+            if (owner.ShowBookmarks)
+            {
+                foreach (var bookmark in owner.Bookmarks)
+                {
+                    if (Project(bookmark.Position) is not { } point || !Inside(point, 0)) { continue; }
+                    dc.DrawEllipse(null, SelectedPen, point, 6, 6);
+                    if (owner.ShowLabels) { Text(dc, bookmark.Name, point + new Vector(10, 4), "#D8C398", 11); }
+                }
+            }
+            if (owner.Measurement is { } measurement)
+            {
+                Point? previous = null;
+                for (int i = 0; i <= 128; i++)
+                {
+                    DrawSegment(dc, ref previous, Project(SkyGeometry.Interpolate(measurement.Start, measurement.End, i / 128d)), SelectedPen);
+                }
+                foreach (var coordinate in new[] { measurement.Start, measurement.End })
+                {
+                    if (Project(coordinate) is { } point && Inside(point)) { dc.DrawEllipse(null, SelectedPen, point, 4, 4); }
+                }
+                if (Project(SkyGeometry.Interpolate(measurement.Start, measurement.End, 0.5)) is { } midpoint && Inside(midpoint))
+                {
+                    Text(dc, measurement.DisplayLabel, midpoint + new Vector(8, -20), "#8BE2C3", 12);
+                }
+            }
+            if (owner.ShowNorthEast && Math.Abs(owner.Camera.Center.Declination) < 89.9999)
+            {
+                Point origin = new(ActualWidth - 65, 65);
+                double step = Math.Min(1, owner.Camera.FieldOfView / 10);
+                var center = Project(owner.Camera.Center)!.Value;
+                foreach (var (angle, label) in new[] { (0d, "N"), (90d, "E") })
+                {
+                    if (Project(SkyGeometry.Offset(owner.Camera.Center, angle, step)) is not { } endpoint) { continue; }
+                    var direction = endpoint - center;
+                    if (direction.Length < 1e-6) { continue; }
+                    direction.Normalize();
+                    var tip = origin + direction * 30;
+                    dc.DrawLine(SelectedPen, origin, tip);
+                    Text(dc, label, tip + direction * 8 + new Vector(-4, -7), "#8BE2C3", 12);
+                }
+            }
+            if (owner.ShowScaleBar && ActualWidth > 250 && ActualHeight > 120)
+            {
+                double x = ActualWidth - 180, y = ActualHeight - 65;
+                var start = owner.Camera.Unproject(x, y, ActualWidth, ActualHeight);
+                double reference = start.DistanceTo(owner.Camera.Unproject(x + 120, y, ActualWidth, ActualHeight));
+                double power = Math.Pow(10, Math.Floor(Math.Log10(reference)));
+                double length = new[] { 1d, 2d, 5d, 10d }.Select(n => n * power).Last(n => n <= reference);
+                double low = 0, high = 120;
+                for (int i = 0; i < 32; i++)
+                {
+                    double middle = (low + high) / 2;
+                    if (start.DistanceTo(owner.Camera.Unproject(x + middle, y, ActualWidth, ActualHeight)) < length) { low = middle; }
+                    else { high = middle; }
+                }
+                double width = (low + high) / 2;
+                dc.DrawLine(SelectedPen, new(x, y), new(x + width, y));
+                dc.DrawLine(SelectedPen, new(x, y - 4), new(x, y + 4));
+                dc.DrawLine(SelectedPen, new(x + width, y - 4), new(x + width, y + 4));
+                Text(dc, SkyGeometry.FormatAngle(length), new(x, y - 22), "#8BE2C3", 11);
+            }
+            if (owner._surveyFrames.Length > 0 && owner.SurveyOpacity > 0)
+            {
+                string attribution = string.Join("\n", owner._surveyFrames.Select(frame => frame.Request.Survey.Attribution).Distinct());
+                var credit = new FormattedText(attribution, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                    new Typeface("Segoe UI"), 9, Brushes.LightSlateGray, _pixelsPerDip)
+                {
+                    MaxTextWidth = Math.Max(40, ActualWidth - 20)
+                };
+                dc.DrawRectangle(new SolidColorBrush(Color.FromArgb(215, 5, 10, 18)), null,
+                    new Rect(5, ActualHeight - credit.Height - 9, Math.Max(40, ActualWidth - 10), credit.Height + 6));
+                dc.DrawText(credit, new(10, ActualHeight - credit.Height - 6));
+            }
         }
 
         private void DrawAddedTarget(DrawingContext dc, DeepSkyTarget target)

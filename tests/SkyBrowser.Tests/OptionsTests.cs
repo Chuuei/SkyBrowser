@@ -19,6 +19,7 @@ public sealed class OptionsTests
             var store = new ApplicationOptionsStore(Path.Combine(dir, "settings.json"));
             Assert.True(store.NeedsFirstRunSetup);
             Assert.Equal(10, store.Read().CacheSizeGb);
+            Assert.False(store.Read().ShowCachedSurveyImages);
             Assert.True(store.NeedsFirstRunSetup); // Reading defaults does not complete setup.
             Assert.Equal(10L * 1024 * 1024 * 1024, ProcessedImageCache.DefaultLimitBytes);
             var options = new ApplicationOptions
@@ -38,6 +39,7 @@ public sealed class OptionsTests
                 ShowConstellations = false,
                 ShowOutlines = false,
                 BlendOverlaps = false,
+                ShowCachedSurveyImages = true,
                 AstapExecutablePath = Path.Combine(dir, "astap.exe"),
                 AstapDatabaseDirectory = Path.Combine(dir, "stars"),
                 AstapTimeoutSeconds = 240,
