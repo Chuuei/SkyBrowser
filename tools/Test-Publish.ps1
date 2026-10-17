@@ -1,4 +1,7 @@
-param([Parameter(Mandatory)] [string] $PublishDirectory)
+param(
+    [Parameter(Mandatory)] [string] $PublishDirectory,
+    [string] $DependencyManifest
+)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
@@ -8,13 +11,16 @@ $required = @(
     'Data/deep-sky.json', 'Data/LICENSE-OpenNGC.txt', 'Data/LICENSE-OpenNGC-ATTRIBUTION.txt',
     'Data/LICENSE-Natural-Earth.txt', 'Data/LICENSE-d3-celestial.txt', 'Data/LICENSE-Zstandard.txt', 'Data/LICENSE-LZ4.txt',
     'Data/DotNet-THIRD-PARTY-NOTICES.txt', 'Data/WindowsDesktop-THIRD-PARTY-NOTICES.txt',
-    'Data/XISFLib-LICENSE.txt', 'Data/XISFLib-NOTICE.txt', 'Data/XISFLib-THIRD-PARTY-NOTICES.md'
+    'Data/XISFLib-LICENSE.txt', 'Data/XISFLib-NOTICE.txt', 'Data/XISFLib-THIRD-PARTY-NOTICES.md',
+    'Data/LICENSE-DSS-SURVEYS.txt', 'Data/LICENSE-NASA-DISTANCES.txt', 'Data/LICENSE-SIMBAD-DISTANCES.txt'
 )
 $licenseInventory = Get-Content (Join-Path $PSScriptRoot 'third-party-packages.json') -Raw | ConvertFrom-Json -AsHashtable
 $inventory = $licenseInventory['packages']
 # The generated runtime dependency graph excludes SDK build tools that are not
 # redistributed. Auditing their versions as runtime code would tie releases to one SDK.
-$depsPath = Join-Path $root 'artifacts/bin/SkyBrowser.Desktop/release_win-x64/SkyBrowser.deps.json'
+$depsPath = if ($DependencyManifest) { [IO.Path]::GetFullPath($DependencyManifest) } else {
+    Join-Path $root 'artifacts/bin/SkyBrowser.Desktop/release_win-x64/SkyBrowser.deps.json'
+}
 $deps = Get-Content $depsPath -Raw | ConvertFrom-Json -AsHashtable
 $packages = @($deps['libraries'].GetEnumerator() | Where-Object { $_.Value['type'] -eq 'package' } | ForEach-Object Key)
 $runtimePacks = @($deps['libraries'].GetEnumerator() | Where-Object { $_.Value['type'] -eq 'runtimepack' })

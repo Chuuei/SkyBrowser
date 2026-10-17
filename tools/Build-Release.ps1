@@ -22,6 +22,8 @@ try {
     $binaryZip = Join-Path $output "SkyBrowser-$Version-win-x64.zip"
     if (Test-Path -LiteralPath $binaryZip) { throw 'A release ZIP already exists; use a new version/output directory.' }
     [IO.Compression.ZipFile]::CreateFromDirectory($publish, $binaryZip)
+    & (Join-Path $PSScriptRoot 'New-CompactPackage.ps1') -PublishDirectory $publish `
+        -OutputPath (Join-Path $output "SkyBrowser-$Version-win-x64-compact.zip")
 
     $source = Join-Path $work 'source'
     $mainZip = Join-Path $work 'application-source.zip'

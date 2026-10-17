@@ -50,6 +50,7 @@ jobs:
           dotnet publish src/SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 --artifacts-path ./artifacts
           if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
           ./tools/Test-Publish.ps1 -PublishDirectory ./artifacts/publish/SkyBrowser.Desktop/release_win-x64
+          ./tools/New-CompactPackage.ps1 -PublishDirectory ./artifacts/publish/SkyBrowser.Desktop/release_win-x64 -OutputPath ./artifacts/compact/SkyBrowser-win-x64-compact.zip
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

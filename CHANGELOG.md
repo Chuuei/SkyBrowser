@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.7.0 - 2026-10-17
+
+- Add a compact self-contained Windows release ZIP with three files: the executable, PDF manual and a companion archive preserving all licences, notices and catalogue data. Validate both package formats during CI and generate checksums for both release downloads.
+
 ## 0.6.0 - 2026-10-17
 
 - Measure between two objects directly in the 3D map with Shift-click or a second-target selection mode, a labelled connecting line, source details, Frame pair and Clear measurement controls.

@@ -49,6 +49,12 @@ Apache license at the repository root. Dependency updates require a new review.
 license/NOTICE files, PDF, catalogue attribution, absence of scientific images and
 debug/XML files, and the native-source lock. It generates SHA-256 checksums and an
 application source ZIP that includes the submodule's actual tracked files.
+The compact Windows ZIP uses the identical executable, keeps the PDF beside it,
+and groups all remaining supporting files in `SkyBrowser-Notices.zip`. This archive
+must accompany redistributions; it retains the original directory structure,
+licences, notices and the adapted catalogue JSON. `New-CompactPackage.ps1` verifies
+all archived file hashes against the validated full package. The compact format
+does not remove source-compliance assets from the release.
 Do not use GitHub's automatic source ZIP as the only application source bundle:
 it omits Git submodule contents.
 

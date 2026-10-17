@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
     <!-- The application, Windows file metadata and release tag share this SemVer. -->
-    <Version>0.6.0</Version>
+    <Version>0.7.0</Version>
   </PropertyGroup>
 </Project>

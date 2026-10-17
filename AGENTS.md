@@ -509,4 +509,8 @@ licenses and catalogue data.
 - README.md is the short user entry point; docs/technical-reference.md retains detailed behavior.
 - Apache-2.0 and NOTICE cover authored code. Preserve separate third-party/data licenses.
 - Build-release tooling verifies notices, package contents and source-compliance assets before publication.
+- Build-Release also creates a compact Windows ZIP with the identical self-contained
+  executable, loose PDF and SkyBrowser-Notices.zip. New-CompactPackage.ps1 must retain
+  all supporting files byte-for-byte, reject external runtime dependencies and
+  validate both ZIP layers. Do not trim WPF or enable Native AOT as a size shortcut.
 - Windows CI checks builds/tests and version tags publish validated release assets. Keep PR jobs read-only.
