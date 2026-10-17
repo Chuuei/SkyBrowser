@@ -67,6 +67,7 @@ public sealed class DesktopTests
                         Assert.Equal(2, currentWindow.SkyView.Layers.Count);
                         await VerifyImageInfo(currentWindow, currentWindow.SkyView.Layers.Single(layer => layer.Image.SourcePath == fits));
                         await VerifyInspection(currentWindow, currentWindow.SkyView.Layers.Single(layer => layer.Image.SourcePath == fits));
+                        await VerifyImageExports(currentWindow, directory);
                         Assert.True(currentWindow.SkyView.Camera.Center.DistanceTo(new(83.822, -5.391)) < 1e-8);
                         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
                         // Opaque overlapping images must replace, not add their brightness.
@@ -1245,6 +1246,121 @@ public sealed class DesktopTests
         Assert.Equal("", search.Text);
         Assert.Equal(Visibility.Collapsed, ((FrameworkElement)window.FindName("NoSearchResults")).Visibility);
         window.SkyView.Layers.Clear();
+    }
+
+    private static async Task VerifyImageExports(MainWindow window, string directory)
+    {
+        var sky = window.SkyView;
+        var center = sky.Camera.Center;
+        var field = sky.Camera.FieldOfView;
+        var selected = sky.SelectedLayer;
+        var hovered = sky.HoveredLayer;
+        var options = new ImageExportOptions { Width = 640, Height = 480, Labels = false, Outlines = false, Grid = false, Coordinates = false };
+        var plain = sky.CaptureExport(options);
+        Assert.True(plain.IsFrozen);
+        Assert.Equal(640, plain.PixelWidth);
+        Assert.Equal(480, plain.PixelHeight);
+        byte[] Sample(BitmapSource bitmap, int x, int y)
+        {
+            var bgra = new FormatConvertedBitmap(bitmap, PixelFormats.Bgra32, null, 0);
+            byte[] sample = new byte[4];
+            bgra.CopyPixels(new Int32Rect(x, y, 1, 1), sample, 4, 0);
+            return sample;
+        }
+        var middle = Sample(plain, 320, 240);
+        Assert.True(middle[0] > 40 && middle[1] > 40 && middle[2] > 40, $"Sky export did not capture the texture: {string.Join(',', middle)}");
+        var annotated = sky.CaptureExport(options with { Labels = true, Outlines = true, Grid = true, Coordinates = true });
+        Assert.NotEqual(Sample(plain, 10, 470), Sample(annotated, 10, 470));
+        Assert.Equal(center, sky.Camera.Center);
+        Assert.Equal(field, sky.Camera.FieldOfView);
+        Assert.Same(selected, sky.SelectedLayer);
+        Assert.Same(hovered, sky.HoveredLayer);
+
+        string skyFile = Path.Combine(directory, "sky.png");
+        Assert.True(await window.ExportImageAsync(skyFile, options));
+        Assert.True(((Button)window.FindName("ExportButton")).IsEnabled);
+        Assert.Equal(Visibility.Collapsed, ((Button)window.FindName("CancelButton")).Visibility);
+        using (var input = File.OpenRead(skyFile))
+        {
+            var decoded = BitmapDecoder.Create(input, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+            Assert.Equal(640, decoded.Frames[0].PixelWidth);
+            Assert.Equal(480, decoded.Frames[0].PixelHeight);
+            Assert.Equal(middle, Sample(decoded.Frames[0], 320, 240));
+        }
+        byte[] existingSky = File.ReadAllBytes(skyFile);
+        Assert.False(await window.ExportImageAsync(skyFile, options));
+        Assert.Equal(existingSky, File.ReadAllBytes(skyFile));
+        Assert.True(((Button)window.FindName("ExportButton")).IsEnabled);
+        Assert.Equal(Visibility.Collapsed, ((Button)window.FindName("CancelButton")).Visibility);
+        var image = selected!.Image;
+        string previewFile = Path.Combine(directory, "preview.png");
+        Assert.True(await window.ExportImageAsync(previewFile, options with { SelectedPreview = true }));
+        using (var input = File.OpenRead(previewFile))
+        {
+            var decoded = BitmapDecoder.Create(input, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+            var bgra = new FormatConvertedBitmap(decoded.Frames[0], PixelFormats.Bgra32, null, 0);
+            byte[] pixels = new byte[image.Preview.Bgra.Length];
+            bgra.CopyPixels(pixels, image.Preview.Width * 4, 0);
+            Assert.Equal(image.Preview.Bgra, pixels);
+        }
+        byte[] transparent = new byte[24 * 24 * 4];
+        for (int p = 0; p < transparent.Length; p += 4)
+        {
+            transparent[p + 2] = 255;
+        }
+        var transparentBitmap = ImageExport.Preview(new(24, 24, transparent));
+        string transparentPng = Path.Combine(directory, "alpha.png"), jpeg = Path.Combine(directory, "alpha.jpg");
+        await Task.Run(() => ImageExport.Save(transparentBitmap, transparentPng, []));
+        await Task.Run(() => ImageExport.Save(transparentBitmap, jpeg, [], 100));
+        using (var input = File.OpenRead(transparentPng))
+        {
+            var decoded = BitmapDecoder.Create(input, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+            Assert.Equal(0, Sample(decoded.Frames[0], 12, 12)[3]);
+        }
+        using (var input = File.OpenRead(jpeg))
+        {
+            var decoded = BitmapDecoder.Create(input, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+            var pixel = Sample(decoded.Frames[0], 12, 12);
+            Assert.InRange(pixel[0], 19, 25);
+            Assert.InRange(pixel[1], 11, 17);
+            Assert.InRange(pixel[2], 5, 11);
+            Assert.Equal(255, pixel[3]);
+        }
+        byte[] saved = File.ReadAllBytes(jpeg);
+        Assert.Throws<OperationCanceledException>(() => ImageExport.Save(transparentBitmap, jpeg, [], overwrite: true, token: new(true)));
+        Assert.Equal(saved, File.ReadAllBytes(jpeg));
+        Assert.Throws<IOException>(() => ImageExport.Save(transparentBitmap, jpeg, []));
+        string header = Path.Combine(directory, "protected.xish"), sidecar = Path.Combine(directory, "scientific.png");
+        XisfWriter.WriteDistributed(header, sidecar, [TestImages.Create()]);
+        saved = File.ReadAllBytes(sidecar);
+        Assert.Throws<IOException>(() => ImageExport.Save(transparentBitmap, sidecar, [header], overwrite: true));
+        Assert.Equal(saved, File.ReadAllBytes(sidecar));
+        Assert.Empty(Directory.GetFiles(directory, ".sky-export-*.tmp"));
+
+        var dialog = new ExportWindow(640, 480, image.Preview.Width, image.Preview.Height) { Owner = window };
+        dialog.Show();
+        try
+        {
+            var export = (Button)dialog.FindName("ExportButton");
+            Assert.True(export.IsEnabled);
+            ((TextBox)dialog.FindName("WidthInput")).Text = "99999";
+            Assert.False(export.IsEnabled);
+            ((ComboBox)dialog.FindName("TargetChoice")).SelectedIndex = 1;
+            Assert.True(export.IsEnabled);
+            Assert.False(((Grid)dialog.FindName("DimensionsPanel")).IsEnabled);
+            ((ComboBox)dialog.FindName("FormatChoice")).SelectedIndex = 1;
+            ((TextBox)dialog.FindName("QualityInput")).Text = "101";
+            Assert.False(export.IsEnabled);
+            ((TextBox)dialog.FindName("QualityInput")).Text = "92";
+            Assert.True(export.IsEnabled);
+            Capture(dialog, "image-export-dialog.png");
+        }
+        finally
+        {
+            dialog.Close();
+        }
+        Assert.Equal(center, sky.Camera.Center);
+        Assert.Equal(field, sky.Camera.FieldOfView);
     }
 
     private static async Task VerifyInspection(MainWindow window, SkyBrowser.Desktop.Models.SkyImageLayer layer, bool missing = false)

@@ -279,7 +279,7 @@ class ManualDocument(BaseDocTemplate):
         canvas.restoreState()
 
     def afterFlowable(self, flowable) -> None:
-        if hasattr(self, "frame") and not isinstance(flowable, PageBreak):
+        if getattr(self, "frame", None) is not None and not isinstance(flowable, PageBreak):
             self.layout.append({
                 "page": self.page, "type": type(flowable).__name__, "bottom": self.frame._y,
                 "text": flowable.getPlainText()[:60] if isinstance(flowable, Paragraph) else "",

@@ -177,7 +177,9 @@ public sealed class ProcessedImageCache : IDisposable
                         throw new InvalidDataException("Unexpected cached preview length.");
                     }
 
-                    ImagePlacement? placement = metadata.SkyGrid is null
+                    ImagePlacement? placement = metadata.FitsSolution is { } exact
+                        ? ImagePlacement.FromFits(exact, metadata.Width, metadata.Height)
+                        : metadata.SkyGrid is null
                         ? null
                         : ImagePlacement.FromSampleGrid(metadata.PlacementDescription ?? "Cached sky solution", metadata.SkyGrid);
                     images.Add(new LoadedSkyImage(
@@ -262,6 +264,7 @@ public sealed class ProcessedImageCache : IDisposable
                 )
                 {
                     Mode = image.RenderMode,
+                    FitsSolution = image.Placement?.FitsSolution,
                     Details = image.Details
                 };
                 string json = JsonSerializer.Serialize(metadata, CacheJsonContext.Default.CachedImageMetadata);
@@ -742,6 +745,8 @@ internal sealed record CachedImageMetadata(
 )
 {
     public DisplayMode Mode { get; init; }
+
+    public FitsSolutionData? FitsSolution { get; init; }
 
     public ImageMetadataSnapshot Details { get; init; } = ImageMetadataSnapshot.Empty;
 }

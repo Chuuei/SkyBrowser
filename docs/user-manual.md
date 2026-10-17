@@ -4,7 +4,7 @@
 
 Explore your astronomical photographs in their place on the sky. SkyBrowser combines your FITS and XISF images with a simple star map. You can look around, compare photographs and return to your saved image folders later.
 
-<!-- figure height=220 crop=0,0,1424,881 markers=1:0.89:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
+<!-- figure height=200 crop=0,0,1424,881 markers=1:0.89:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
 ![The main window, showing a wide Horsehead field and a smaller image of the same region.](manual/screenshots/main-window.png)
 
 - **1. Top bar:** see the app version, open Options and add images.
@@ -21,6 +21,7 @@ Explore your astronomical photographs in their place on the sky. SkyBrowser comb
 | Return to saved folders | 10 | Place an unsolved image | 11 |
 | Troubleshooting | 12 | Quick reference | 13 |
 | Image library and ASTAP | 14 | Full-resolution inspection | 15 |
+| Export and sharing | 16 | | |
 
 > **Your originals stay safe.** Display changes, blending and placement do not rewrite your scientific image files. Keep your originals available for future starts.
 
@@ -293,7 +294,7 @@ Choose **Apply placement**, then **Go to image**. Inspect alignment against know
 
 ## If a solved image still cannot be placed
 
-Read its warning in Selected image or the status-bar **Details** log. Some stored projections, distortion models and coordinate reference systems are not supported. A compatible J2000/ICRS solution or a manual placement may be needed. Use the image's circled i button to inspect its retained metadata.
+Read its warning in Selected image or status-bar **Details**. Supported FITS solutions include SIP/TPV distortion and common zenithal projections; legacy linear PixInsight metadata is recognized too. Other frames, lookup distortions and opaque legacy spline models still need a new plate solution or manual placement. Use the circled i to inspect retained metadata.
 
 ---
 
@@ -401,3 +402,29 @@ Select a channel for its histogram, minimum, maximum, mean and population standa
 The 256 histogram bins span the finite minimum/maximum with a linear count axis. NaN and infinity are counted separately and excluded from the measurements. Aggregate statistics use double precision, so very large integers can round; individual UInt64 sample readouts retain every bit.
 
 > **Keep the original available.** Full-resolution loading needs memory and can take time. Close the window to cancel; a native decoder or filter may finish first. Missing or changing source files produce an explanation without changing your atlas or originals.
+
+---
+
+# 15 / Export and sharing
+
+Choose **Export…** in the top bar to save a PNG or JPEG without changing your photographs.
+
+<!-- figure height=200 -->
+![Export settings let you choose the sky or a selected preview, dimensions, overlays and format.](manual/screenshots/image-export.png)
+
+## Save the sky view
+
+1. Choose **Sky view** and enter the output width and height in pixels. Each side can be 128–8192 pixels, up to 32 million pixels in total.
+2. Choose whether to include **Labels**, **Image outlines**, a **Coordinate grid** and **Center coordinates**.
+3. Choose PNG or JPEG, then **Choose file & export…**. Pick the destination and save. For JPEG, quality 92 is a useful starting point.
+
+The export keeps the current center and horizontal field. A different aspect ratio changes how much sky fits vertically. It leaves your live scene unchanged and excludes toolbar controls, corner buttons and temporary hover emphasis.
+
+<!-- figure height=100 -->
+![An anonymous exported sky view with labels, grid and a coordinate caption.](manual/screenshots/sky-export.png)
+
+## Save one image preview
+
+Select an image first, then choose **Selected image preview** in Export. This saves its current display processing at preview resolution, up to 2048 pixels on the longest side. PNG preserves transparency; JPEG uses a dark background. The original is not decoded again.
+
+> **Display exports are pictures for sharing.** They omit private source metadata and do not carry scientific samples or embedded astrometry. To save original scientific data with a solved position, use **Save solved copy…** instead. Source and XISF sidecar destinations are protected; choose a new filename if sidecars cannot be checked.

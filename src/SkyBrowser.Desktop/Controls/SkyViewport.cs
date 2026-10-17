@@ -8,8 +8,10 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
+using System.Windows.Media.Imaging;
 using SkyBrowser.Core.Astronomy;
 using SkyBrowser.Desktop.Models;
+using SkyBrowser.Desktop.Services;
 
 namespace SkyBrowser.Desktop.Controls;
 
@@ -51,6 +53,7 @@ public sealed class SkyViewport : Grid
     private Point? _drag;
     private Point _dragStart;
     private double _dragDistance;
+    private bool _exporting;
 
     public SkyCamera Camera { get; } = new();
 
@@ -424,7 +427,7 @@ public sealed class SkyViewport : Grid
         var layer = _openSourceButton.IsKeyboardFocusWithin
             ? _openSourceButton.DataContext as SkyImageLayer
             : HoveredLayer ?? SelectedLayer;
-        if (_drag is null && layer?.Placement is { } placement && _brushes.ContainsKey(layer) && ActualWidth > 0 && ActualHeight > 0)
+        if (!_exporting && _drag is null && layer?.Placement is { } placement && _brushes.ContainsKey(layer) && ActualWidth > 0 && ActualHeight > 0)
         {
             Point? Project(double u, double v) => Camera.Project(placement.At(u, v).Vector, ActualWidth, ActualHeight) is { } p
                 ? new(p.X, p.Y) : null;
@@ -701,6 +704,54 @@ public sealed class SkyViewport : Grid
     {
         Camera.FieldOfView *= multiplier;
         Refresh();
+    }
+
+    public BitmapSource CaptureExport(ImageExportOptions options)
+    {
+        options.Validate();
+        var copy = new SkyViewport
+        {
+            _exporting = true, Width = options.Width, Height = options.Height,
+            BlendOverlaps = BlendOverlaps, ShowLabels = options.Labels, ShowFootprints = options.Outlines,
+            ShowGrid = options.Grid, ShowConstellations = ShowConstellations
+        };
+        try
+        {
+            copy.Observer = Observer;
+            copy.Camera.Observer = Camera.Observer;
+            copy.Camera.Center = Camera.Center;
+            copy.Camera.FieldOfView = Camera.FieldOfView;
+            copy.RestoreTargets(AddedTargets.Select(t => t.Id));
+            using (copy.DeferLayerUpdates())
+            {
+                foreach (var layer in Layers)
+                {
+                    copy.Layers.Add(layer);
+                }
+            }
+            copy.Measure(new(options.Width, options.Height));
+            copy.Arrange(new Rect(0, 0, options.Width, options.Height));
+            copy.UpdateLayout();
+            copy.Refresh();
+            var bitmap = new RenderTargetBitmap(options.Width, options.Height, 96, 96, PixelFormats.Pbgra32);
+            bitmap.Render(copy);
+            bitmap.Freeze();
+            if (!options.Coordinates)
+            {
+                return bitmap;
+            }
+            string coordinate = $"J2000 / ICRS · RA {Camera.Center.RaText} · Dec {Camera.Center.DecText} · Horizontal field {Camera.FieldOfView:0.###}°";
+            if (Camera.Observer is { } observer)
+            {
+                var horizontal = observer.ToHorizontal(Camera.Center);
+                coordinate += $" · Az {horizontal.Azimuth:0.##}° · Alt {horizontal.Altitude:0.##}°";
+            }
+            return ImageExport.WithCoordinates(bitmap, coordinate);
+        }
+        finally
+        {
+            copy.Layers.Clear();
+        }
     }
 
     public void Refresh()

@@ -113,7 +113,7 @@ public sealed class AstrometryTests
 
     [Theory]
     [InlineData("RA---TAN-SIP", "DEC--TAN-SIP")]
-    [InlineData("RA---SIN", "DEC--SIN")]
+    [InlineData("RA---MOL", "DEC--MOL")]
     [InlineData("GLON-TAN", "GLAT-TAN")]
     public void UnsupportedWcsIsNeverSilentlyTreatedAsTan(string first, string second)
     {
@@ -127,7 +127,7 @@ public sealed class AstrometryTests
     [Theory]
     [InlineData("EQUINOX", "1950")]
     [InlineData("RADESYS", "'FK4'")]
-    [InlineData("PV1_0", "0.1")]
+    [InlineData("CPDIS1", "'LOOKUP'")]
     [InlineData("CUNIT1", "'rad'")]
     [InlineData("LONPOLE", "0")]
     [InlineData("RADECSYS", "'FK4'")]

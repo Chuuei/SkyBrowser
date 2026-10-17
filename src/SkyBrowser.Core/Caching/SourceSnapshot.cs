@@ -110,7 +110,7 @@ internal sealed record SourceSnapshot(CachedFileStamp[] Files)
 
     // Only locations allowed by XISFLib's default policy are cacheable. Persist every sidecar
     // dependency, including metadata/property blocks, rather than trusting just the .xish timestamp.
-    private static IEnumerable<string> ReadDependencies(string path, CancellationToken token)
+    internal static IEnumerable<string> ReadDependencies(string path, CancellationToken token)
     {
         using var stream = File.OpenRead(path);
         byte[] prefix = new byte[16];

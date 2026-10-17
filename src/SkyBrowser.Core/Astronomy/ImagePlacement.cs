@@ -1,4 +1,3 @@
-using System.Globalization;
 using XISFLib;
 
 namespace SkyBrowser.Core.Astronomy;
@@ -24,6 +23,7 @@ public sealed class ImagePlacement
 {
     private readonly Func<double, double, SkyCoordinate> _map;
     private SkyCoordinate[]? _sampleGrid;
+    internal FitsSolutionData? FitsSolution { get; private init; }
 
     public string Description { get; }
 
@@ -156,6 +156,80 @@ public sealed class ImagePlacement
             return new(sky.RightAscension, sky.Declination);
         });
 
+    internal static ImagePlacement FromFits(FitsSolutionData data, int width, int height)
+    {
+        var solution = new FitsSkySolution(data);
+        return new(solution.Description, (u, v) => solution.PixelToSky(u * width - 0.5, v * height - 0.5))
+        {
+            FitsSolution = solution.Capture()
+        };
+    }
+
+    private static ImagePlacement? FromLegacy(XisfImageData image, out string? warning)
+    {
+        const string prefix = "PCL:AstrometricSolution:";
+        warning = null;
+        bool hasLegacy = image.Properties.Keys.Any(k => k.StartsWith(prefix, StringComparison.Ordinal)) ||
+            image.Properties.ContainsKey("Transformation_ImageToProjection");
+        if (!hasLegacy)
+        {
+            return null;
+        }
+        if (image.Properties.Keys.Any(k => k.StartsWith(prefix + "SplineWorldTransformation", StringComparison.Ordinal) || k == "Transformation_ImageToProjection"))
+        {
+            warning = "This legacy PixInsight solution contains a spline/serialized distortion model that cannot be safely interpreted. Use a new plate solution; its linear approximation is not used.";
+            return null;
+        }
+        static XisfPropertyData Typed(object? property) => property switch
+        {
+            XisfPropertyData data => data,
+            XisfProperty { IsAvailable: true } parsed => new(parsed.Type, parsed.Value),
+            string text => new("String", text),
+            double[] vector => new("F64Vector", vector),
+            double[,] matrix => new("F64Matrix", matrix),
+            double number => new("Float64", number),
+            _ => throw new InvalidDataException("Unavailable or invalid legacy property.")
+        };
+        try
+        {
+            var properties = new Dictionary<string, XisfPropertyData> { ["AstrometricSolution:Version"] = new("String", "1.0") };
+            foreach (string name in new[] { "ProjectionSystem", "ReferenceCelestialCoordinates", "ReferenceImageCoordinates", "ReferenceNativeCoordinates", "CelestialPoleNativeCoordinates", "LinearTransformationMatrix" })
+            {
+                if (image.Properties.TryGetValue(prefix + name, out var property))
+                {
+                    properties["AstrometricSolution:" + name] = Typed(property);
+                }
+            }
+            if (image.Properties.TryGetValue("Observation:CelestialReferenceSystem", out var frame))
+            {
+                properties["AstrometricSolution:CelestialReferenceSystem"] = Typed(frame);
+            }
+            if (image.Properties.TryGetValue("Observation:Equinox", out var equinox) &&
+                (Typed(equinox).Value is not double value || value != 2000))
+            {
+                warning = "Legacy PixInsight coordinates require a J2000 equinox. Use manual placement or a new plate solution.";
+                return null;
+            }
+            var solution = XisfAstrometricSolution.Create(properties);
+            if (solution.CelestialReferenceSystem is not ("ICRS" or "FK5"))
+            {
+                warning = "Unsupported legacy PixInsight reference frame.";
+                return null;
+            }
+            int width = image.Dimensions[0], height = image.Dimensions[1];
+            return new("PixInsight legacy · " + solution.ProjectionSystem, (u, v) =>
+            {
+                var point = solution.ImageToCelestial(u * width, v * height);
+                return new(point.RightAscension, point.Declination);
+            });
+        }
+        catch (Exception exception) when (exception is InvalidDataException or XisfFormatException or ArgumentException)
+        {
+            warning = "Invalid or unsupported legacy PixInsight solution. " + exception.Message;
+            return null;
+        }
+    }
+
     public static ImagePlacement? TryFromMetadata(XisfImageData image, XisfAstrometricSolution? native, out string? warning)
     {
         warning = null;
@@ -172,72 +246,16 @@ public sealed class ImagePlacement
             }
         }
 
-        var keywords = image.FitsKeywords.GroupBy(k => k.Name, StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.Last()
-            .Value.Trim()
-            .Trim('\'')
-                .Trim(), StringComparer.OrdinalIgnoreCase);
-
-        string Get(string name) => keywords.GetValueOrDefault(name, "");
-        bool hasWcs = keywords.ContainsKey("CRVAL1");
-        bool unsupportedDistortion = keywords.Keys.Any(k => k.StartsWith("PV1_", StringComparison.OrdinalIgnoreCase) ||
-            k.StartsWith("PV2_", StringComparison.OrdinalIgnoreCase) ||
-            k is "A_ORDER" or "B_ORDER");
-        string frame = Get("RADESYS") is { Length: > 0 } system ? system : Get("RADECSYS");
-
-        bool NumberIs(string key, double expected) => !keywords.ContainsKey(key) ||
-                    (double.TryParse(Get(key), NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
-                    double.IsFinite(value) &&
-                    Math.Abs(value - expected) < 0.0001);
-        bool wrongFrame = frame is not ("" or "ICRS" or "FK5") || !NumberIs("EQUINOX", 2000);
-        bool wrongUnits = Get("CUNIT1") is not ("" or "deg") || Get("CUNIT2") is not ("" or "deg");
-        bool hasCd = keywords.Keys.Any(k => k is "CD1_1" or "CD1_2" or "CD2_1" or "CD2_2");
-        bool hasPc = keywords.Keys.Any(k => k.StartsWith("PC1_", StringComparison.OrdinalIgnoreCase) ||
-            k.StartsWith("PC2_", StringComparison.OrdinalIgnoreCase));
-        bool unsupportedOrientation = !NumberIs("LONPOLE", 180) ||
-            !NumberIs("LATPOLE", 90) ||
-            (!hasCd &&
-            !hasPc &&
-            (!NumberIs("CROTA1", 0) ||
-            !NumberIs("CROTA2", 0)));
-        if (hasWcs &&
-            (Get("CTYPE1") != "RA---TAN" ||
-            Get("CTYPE2") != "DEC--TAN" ||
-            unsupportedDistortion ||
-            wrongFrame ||
-            wrongUnits ||
-            unsupportedOrientation))
+        var legacy = FromLegacy(image, out warning);
+        if (legacy is not null || warning is not null)
         {
-            warning = "This FITS WCS uses an unsupported projection, distortion or coordinate frame. Use manual placement; automatic placement requires J2000/ICRS TAN in degrees.";
-            return null;
+            return legacy;
         }
-
-        // FITS CD matrix elements omitted from an otherwise present matrix default to zero.
-        var normalized = image.FitsKeywords.ToList();
-        if (hasCd)
+        var fits = FitsSkySolution.TryCreate(image.FitsKeywords, out warning);
+        if (fits is not null)
         {
-            foreach (string key in new[]
-            {
-                "CD1_1",
-                "CD1_2",
-                "CD2_1",
-                "CD2_2"
-            }
-
-            )
-            {
-                if (!keywords.ContainsKey(key))
-                {
-                    normalized.Add(new(key, "0", null));
-                }
-            }
+            return FromFits(fits.Capture(), width, height);
         }
-
-        if (hasWcs && CelestialWorldCoordinateSystem.TryCreate(normalized, out var wcs))
-        {
-            return FromFits(wcs!, width, height);
-        }
-
         warning ??= native is not null
             ? "The native XISF solution is not evaluable. " + string.Join(" ", native.Diagnostics)
             : "No usable sky solution. Enter a center, image width and rotation to place this image.";

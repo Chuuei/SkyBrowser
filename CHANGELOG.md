@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 - 2026-10-17
+
+- Evaluate FITS SIP and TPV distortion, additional zenithal projections, swapped celestial axes and legacy CROTA rotation; retain exact FITS forward models in cached previews.
+- Recognize legacy linear PixInsight astrometry, keeping native Revision 1 precedence and explicit warnings for undecoded legacy spline models.
+- Add PNG/JPEG sky-view and selected-preview export with resolution, label, outline, coordinate-grid and caption choices; preserve source files, sidecars and live scene state.
+- Verify coordinates against synthetic Astropy/WCSLIB references and refresh the illustrated manual.
+
 ## 0.4.0 - 2026-10-17
 
 - Double-click sky images to inspect them internally; move opening originals in the default Windows application to a small corner button on the hovered or selected image.

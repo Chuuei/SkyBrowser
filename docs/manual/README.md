@@ -31,7 +31,7 @@ For external samples, use a neutral demonstration path, for example:
 dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release -- C:\SkyBrowserDemo\Samples
 ```
 
-To refresh only Image details, the inspection demonstration and its sky corner action, pass one supported
+To refresh Image details, inspection, its sky corner action and export illustrations, pass one supported
 source image; this does not require a solved overlapping pair or alter the other
 approved screenshots:
 
@@ -39,8 +39,8 @@ approved screenshots:
 dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release -- --inspection-only C:\SkyBrowserDemo\Samples\example.xisf
 ```
 
-This mode retains the existing manifest entries and replaces only its three
-captures. Inspect all three complete PNGs before rebuilding the PDF. The inspection
+This mode retains the other manifest entries and refreshes these five illustrations.
+Inspect all five complete PNGs before rebuilding the PDF. The inspection
 example writes a separate anonymous UInt8 image under `artifacts/` from display
 pixels, with fixed manual demonstration coordinates; its readouts never expose
 the original photograph's scientific samples or metadata. Its source path is not

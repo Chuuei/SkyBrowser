@@ -13,7 +13,7 @@ Display processing preserves your original scientific files.
 
 ## Download and start
 
-1. Download **SkyBrowser-0.4.0-win-x64.zip** from the
+1. Download **SkyBrowser-0.5.0-win-x64.zip** from the
    [latest release](https://github.com/Chuuei/SkyBrowser/releases/latest).
    Choose the application ZIP, rather than GitHub's automatically generated source ZIP.
 2. Extract the complete ZIP into a folder you can write to.
@@ -59,6 +59,9 @@ blind solving, overlap blending, collection metadata search, an offline deep-sky
 finder, automatic saved-folder startup, preview caching, and optional observer location/time controls.
 Choose **Inspect full resolution…** under Selected image or in Image details for
 100% inspection, original sample and sky-coordinate readouts, histograms and statistics.
+Use **Export…** in the top bar to save a PNG/JPEG sky view with overlay choices,
+or the selected image's display preview. Placement supports SIP/TPV distortion and
+legacy linear PixInsight metadata; unsupported legacy spline formats show a warning.
 Large files are fully decoded before their display previews are reduced; allow
 enough memory. See the [technical reference](docs/technical-reference.md) for exact
 coordinate, file-format and processing contracts.

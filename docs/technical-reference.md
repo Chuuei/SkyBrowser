@@ -173,8 +173,32 @@ Export revalidates the saved source signature, recovers the centered TAN matrix 
 ### Positioning
 
 - Native XISF Revision 1 solutions are evaluated through the library, including its supported projection, projective and distortion layers. These take precedence over FITS keywords.
-- FITS automatic placement supports **RA/Dec TAN** WCS in degrees with `CD`, or `PC`/`CDELT` matrices, in ICRS or FK5/J2000. FITS one-based reference pixels and the library's zero-based pixel API are handled separately from native XISF half-pixel centers.
-- Unsupported FITS projections, SIP/TPV distortion and non-J2000 coordinate frames require manual placement. Acquisition RA/Dec alone is insufficient to infer scale, rotation and reflection.
+- FITS automatic placement supports TAN, TAN-SIP, TPV, SIN, STG, ZEA and ARC in degrees, in ICRS or FK5/J2000. CD, PC/CDELT, legacy CROTA rotation and swapped celestial axes are supported. FITS one-based reference pixels remain distinct from native XISF half-pixel centers. SIP forward polynomials (orders 2–9) operate on pixel offsets before CD; TPV uses all 40 registered terms after CD in projection-plane degrees, including radial terms and the reversed PV2 arguments. Missing TPV linear terms use the registered identity defaults. Legacy TAN/PV headers require coefficients for both axes to distinguish them from unrelated native-pole parameters. Mixed SIP/TPV, malformed coefficients, lookup-table distortion, custom pole orientations and non-J2000 frames are rejected with an explanation. Exact north-pole default orientation is handled separately.
+- Legacy linear `PCL:AstrometricSolution:*` projection/reference/matrix properties precede FITS WCS. Their native half-pixel geometry is retained. Opaque serialized and spline legacy models remain unsupported and are never reduced to their linear approximation. Acquisition RA/Dec alone is insufficient to infer scale, rotation and reflection.
+
+The FITS model is evaluated directly for coordinates and persisted beside the display mesh in the preview cache. Cache hits retain polynomial precision between mesh vertices. Swapped celestial axes are supported for undistorted and SIP solutions; TPV requires the registered RA-first/Dec-second ordering. Independent synthetic reference cases cover SIP order 9, every TPV term, additional projections, axis ordering, CROTA, the RA seam and poles. Regenerate with `tools/Build-AstrometryReferences.py` using Astropy 8.0.2; runtime and normal tests do not require Python. The reference generator explicitly supplies TPV identity coefficients because WCSLIB's omitted-coefficient behavior differs from the registered convention.
+
+The mathematical conventions are documented by the [registered SIP specification](https://fits.gsfc.nasa.gov/registry/sip/SIP_distortion_v1_0.pdf) and [TPV registry](https://fits.gsfc.nasa.gov/registry/tpvwcs/tpv.html). Legacy property semantics are described by the publisher's [PCL WCS metadata implementation](https://gitlab.com/pixinsight/PCL/-/raw/master/src/pcl/WCSKeywords.cpp); SkyBrowser uses its own adapter and does not import PCL code.
+
+### PNG/JPEG export
+
+**Export…** in the header offers sky view or selected-image preview. Sky dimensions
+are 128–8192 pixels per side with a 32-million-pixel limit. The center and horizontal
+field remain fixed; changing aspect ratio changes the vertical view. A separate
+viewport copies the camera, exact observer instant, visible image state and targets.
+Labels, outlines, coordinate grid and center-coordinate caption are optional. No
+application controls, image action buttons or transient hover opacity are exported.
+Closing the temporary renderer detaches all layer subscriptions.
+
+Preview export uses the existing processed pixels at their stored dimensions,
+without re-decoding sources. PNG preserves alpha; JPEG composites against RGB
+(8,14,22), with quality from 1 to 100. New encoder frames omit original metadata.
+Files are staged beside the destination, cancellation and source/sidecar protection
+are checked again, then output is committed atomically. Export does not replace a
+scientific source or distributed XISF sidecar. If an unavailable XISF header prevents
+sidecar validation, choose a new destination filename. These display exports do not
+carry scientific samples or embedded WCS; **Save solved copy** remains the separate
+scientific export workflow.
 - Manual placement takes center RA/Dec in **decimal degrees**, angular width, rotation and optional horizontal mirroring. Zero rotation means north up, east left; positive rotation is counterclockwise on the sky. Placement is an adjustable tangent-plane approximation, not a plate solve.
 
 The display maps the original stored rows to their astrometric coordinates. XISF display-only rotation/reflection metadata is deliberately bypassed so it cannot rotate the texture away from its solution.

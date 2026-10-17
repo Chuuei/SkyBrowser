@@ -16,6 +16,7 @@ using SkyBrowser.Core.Library;
 using SkyBrowser.Desktop;
 using SkyBrowser.Desktop.Controls;
 using SkyBrowser.Desktop.Models;
+using SkyBrowser.Desktop.Services;
 using XISFLib;
 
 namespace SkyBrowser.ManualScreenshots;
@@ -294,6 +295,15 @@ internal static class Program
         await Ready();
         sky.UpdateHover(null);
         Capture(skyWindow, "sky-image-actions.png", output);
+        var exportSettings = new ExportWindow(1600, 1000, preview.Width, preview.Height) { Owner = window };
+        exportSettings.Show();
+        await Ready();
+        Capture(exportSettings, "image-export.png", output);
+        exportSettings.Close();
+        string exportedPath = Path.Combine(output, "sky-export.png");
+        ImageExport.Save(sky.CaptureExport(new() { Width = 1280, Height = 800, Coordinates = true, Grid = true }),
+            exportedPath, [demoSource], overwrite: true);
+        Screenshots.Add("sky-export.png", Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(exportedPath))));
         skyWindow.Close();
     }
 

@@ -42,6 +42,9 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Core/Astrometry/` | ASTAP process, temporary scientific solver inputs and validated TAN results |
 | `src/SkyBrowser.Desktop/LibraryWindow.xaml` | Staged folder management and confirmed recursive scene loading |
 | `src/SkyBrowser.Core/Imaging/ScientificImageInspection.cs` | On-demand full-resolution display, original samples, histogram/statistics and pixel-center coordinates |
+| `src/SkyBrowser.Core/Astronomy/FitsSkySolution.cs` | Exact forward FITS models, SIP/TPV distortion and persisted cache coefficients |
+| `src/SkyBrowser.Desktop/Services/ImageExport.cs` | Metadata-free PNG/JPEG encoding, alpha flattening and atomic export |
+| `src/SkyBrowser.Desktop/ExportWindow.xaml` | Sky/preview export settings and validation |
 | `src/SkyBrowser.Desktop/ImageInspectionWindow.xaml` | Independent fit/100% inspection, panning, sample readouts and channel histogram |
 | `src/SkyBrowser.Core/Configuration/ApplicationOptions.cs` | Validated defaults, atomic settings persistence and recovery |
 | `src/SkyBrowser.Desktop/MainWindow.xaml.cs` | Import/display operations, collection, navigation and dialog coordination |
@@ -114,10 +117,19 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   third axes; unsupported cubes/complex samples are rejected. Recognized 2 x 2
   Bayer mosaics are automatically debayered for previews before stretch/resizing;
   unsupported CFA remains gray. ASTAP is an optional external blind solver.
-- Native XISF Revision 1 solutions take precedence. FITS automatic placement
-  supports RA/Dec TAN, degrees, ICRS or FK5/J2000 and CD or PC/CDELT matrices.
-  Unsupported projections, SIP/TPV or frames require warnings/manual placement,
-  rather than a silently inaccurate approximation.
+- Native XISF Revision 1 solutions take precedence, followed by legacy linear
+  `PCL:AstrometricSolution:*` metadata and FITS WCS. Legacy opaque/spline models
+  are rejected with a warning rather than approximated as linear. FITS supports
+  TAN/SIP/TPV and SIN/STG/ZEA/ARC in degrees, ICRS or FK5/J2000, CD, PC/CDELT,
+  CROTA and swapped RA/Dec axes. SIP applies before CD to pixel offsets; TPV
+  applies after CD in degrees, with reversed monomial arguments for PV2. Retain
+  order/index/finite checks, mixed-model/lookup rejection and exact-pole defaults.
+  `tools/Build-AstrometryReferences.py` generates synthetic Astropy 8.0.2/WCSLIB
+  reference coordinates; normal tests need only its checked-in JSON. Undecoded
+  projections or frames require warnings/manual placement.
+- Cached FITS placements retain exact coefficients alongside the 33 x 33 display
+  mesh. Do not reconstruct a nonlinear scientific readout from mesh interpolation.
+  Never retain an entire scientific image through an astrometry closure.
 - FITS reference pixels, the library's zero-based pixel API and native XISF
   half-pixel centers have different conventions. Keep their tests and conversions.
   Use spherical/vector geometry around the RA seam and poles.
@@ -240,6 +252,15 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
 
 ## UI behavior to preserve
 
+- **Export…** in the header saves sky views or existing selected previews as PNG
+  or JPEG. Sky capture uses an independent viewport at the chosen resolution,
+  preserving camera, observer instant, layers/opacity and target state without
+  touching the live view or showing action buttons/hover emphasis. Labels,
+  outlines, grid and center-coordinate caption are independent choices. Retain
+  PNG alpha; flatten JPEG onto the dark sky color. Encoder output carries no
+  source metadata. Refuse source/sidecar destinations, stage output and recheck
+  cancellation/protection before replacing a destination. Detached export viewports
+  must unsubscribe from all layers, including when rendering fails.
 - Keep control styling in the shared `Styles/Controls.xaml` dictionary so sliders,
   scrollbars, dropdowns, text fields, checks, expanders and progress indicators
   match in the main window and dialogs. Preserve WPF template parts/commands and

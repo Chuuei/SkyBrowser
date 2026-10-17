@@ -1,0 +1,44 @@
+<Window x:Class="SkyBrowser.Desktop.ExportWindow"
+  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  Title="SkyBrowser · Export image" Width="560" Height="640" MinWidth="500" MinHeight="540"
+  Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+  <Grid Margin="24">
+    <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <TextBlock Text="Export image" FontSize="23" FontWeight="SemiBold" Margin="0,0,0,16" />
+        <TextBlock Text="Export" Margin="0,0,0,5" />
+        <ComboBox x:Name="TargetChoice" SelectedIndex="0" SelectionChanged="SettingsChanged" AutomationProperties.Name="Export target">
+          <ComboBoxItem Content="Sky view" /><ComboBoxItem x:Name="PreviewChoice" Content="Selected image preview" />
+        </ComboBox>
+        <TextBlock x:Name="PreviewDimensions" TextWrapping="Wrap" Foreground="#8D9AAD" Margin="0,7,0,12" />
+        <Grid x:Name="DimensionsPanel" Margin="0,0,0,12">
+          <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="12" /><ColumnDefinition /></Grid.ColumnDefinitions>
+          <StackPanel><TextBlock Text="Width (pixels)" Margin="0,0,0,5" /><TextBox x:Name="WidthInput" TextChanged="SettingsChanged" /></StackPanel>
+          <StackPanel Grid.Column="2"><TextBlock Text="Height (pixels)" Margin="0,0,0,5" /><TextBox x:Name="HeightInput" TextChanged="SettingsChanged" /></StackPanel>
+        </Grid>
+        <WrapPanel x:Name="SkyOptions" Margin="0,0,0,14">
+          <CheckBox x:Name="LabelsChoice" Content="Labels" IsChecked="True" Margin="0,0,16,8" />
+          <CheckBox x:Name="OutlinesChoice" Content="Image outlines" IsChecked="True" Margin="0,0,16,8" />
+          <CheckBox x:Name="GridChoice" Content="Coordinate grid" Margin="0,0,16,8" />
+          <CheckBox x:Name="CoordinatesChoice" Content="Center coordinates" IsChecked="True" Margin="0,0,0,8" />
+        </WrapPanel>
+        <TextBlock Text="Format" Margin="0,0,0,5" />
+        <ComboBox x:Name="FormatChoice" SelectedIndex="0" SelectionChanged="SettingsChanged" AutomationProperties.Name="Export format">
+          <ComboBoxItem Content="PNG · lossless, supports transparency" /><ComboBoxItem Content="JPEG · smaller file, dark background" />
+        </ComboBox>
+        <StackPanel x:Name="QualityPanel" Margin="0,10,0,0">
+          <TextBlock Text="JPEG quality (1–100)" Margin="0,0,0,5" /><TextBox x:Name="QualityInput" Text="92" TextChanged="SettingsChanged" />
+        </StackPanel>
+        <TextBlock Text="Exports use display pixels. Originals stay unchanged. Sky exports keep the center and horizontal field; a different aspect ratio changes the vertical view."
+          Foreground="#8D9AAD" TextWrapping="Wrap" FontSize="12" Margin="0,14,0,0" />
+        <TextBlock x:Name="ValidationMessage" Foreground="#E9BA7B" TextWrapping="Wrap" Margin="0,8,0,0" />
+      </StackPanel>
+    </ScrollViewer>
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button Content="Cancel" IsCancel="True" Margin="0,0,8,0" />
+      <Button x:Name="ExportButton" Content="Choose file &amp; export…" IsDefault="True" Click="ExportClicked" />
+    </StackPanel>
+  </Grid>
+</Window>

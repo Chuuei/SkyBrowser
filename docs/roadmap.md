@@ -31,12 +31,24 @@ demand, with fit/100% zoom, wheel zoom, drag panning and per-channel statistics.
 Measurements use unstretched original samples (FITS physical values); Bayer
 readouts retain the original mosaic. Source files and atlas previews stay unchanged.
 
-## Next priorities
+## Released in 0.5.0
 
 4. **Astrometry compatibility:** FITS SIP/TPV distortion and more existing solutions,
    including legacy PixInsight metadata, with physically accurate evaluation.
 5. **Export and sharing:** PNG/JPEG sky-view exports with optional labels, outlines
    and coordinates; selected-image preview export without changing sources.
+
+FITS placement now evaluates SIP (orders 2–9), TPV (all 40 coefficients), TAN,
+SIN, STG, ZEA and ARC, with swapped axes and CROTA support. Legacy linear
+PixInsight metadata is recognized; opaque legacy spline formats still require a
+new plate solution. Exact FITS models survive preview-cache reloads.
+
+**Export…** saves an independent sky rendering with resolution and overlay choices,
+or the selected image's existing display preview. PNG retains preview alpha;
+JPEG composites onto a dark background. Sources and XISF sidecars are protected.
+
+## Next priorities
+
 6. **Comparison tools:** aligned blinking, swipe divider and linked side-by-side
    views for filters, processing versions and observing dates.
 7. **Collection organization:** thumbnails, sorting, structured metadata filters,
