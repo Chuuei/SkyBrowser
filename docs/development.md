@@ -4,6 +4,10 @@ Use Windows, PowerShell 7 and the .NET 10 SDK. The application uses WPF and C# 1
 `global.json` permits newer SDKs; application targets remain .NET 10. The current
 local verification environment is Windows x64. CI also validates on Windows x64.
 
+Read [architecture and state ownership](architecture.md) before extending a desktop
+workflow or adding scene rules. It maps the feature files and their lifetime,
+threading and dependency boundaries.
+
 ## Clone
 
 The source dependency is pinned as `dependencies/XISFLib.Net`. Git's normal

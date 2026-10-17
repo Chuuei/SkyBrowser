@@ -47,8 +47,13 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Desktop/ExportWindow.xaml` | Sky/preview export settings and validation |
 | `src/SkyBrowser.Desktop/ImageInspectionWindow.xaml` | Independent fit/100% inspection, panning, sample readouts and channel histogram |
 | `src/SkyBrowser.Core/Configuration/ApplicationOptions.cs` | Validated defaults, atomic settings persistence and recovery |
-| `src/SkyBrowser.Desktop/MainWindow.xaml.cs` | Import/display operations, collection, navigation and dialog coordination |
+| `src/SkyBrowser.Desktop/MainWindow.xaml.cs` | Application composition, shared operation lifetime, options and window coordination |
+| `src/SkyBrowser.Desktop/MainWindow.Loading.cs` | Startup/import/folder workflows and guarded processing progress |
+| `src/SkyBrowser.Desktop/MainWindow.Inspector.cs` | Selected-image inspection, display changes and manual placement |
+| `src/SkyBrowser.Desktop/MainWindow.Navigation.cs` | Target search, observer orientation, timeline and camera commands |
+| `src/SkyBrowser.Desktop/MainWindow.Export.cs` | Display exports, ASTAP solving and solved-copy workflows |
 | `src/SkyBrowser.Desktop/Controls/SkyViewport.cs` | WPF textured sky, overlays, batching, overlap rendering and hit testing |
+| `src/SkyBrowser.Desktop/Controls/SkyViewport.Drawing.cs` | Sky/foreground drawing, projected annotations and bounded text layouts |
 | `src/SkyBrowser.Desktop/Controls/ObserverMap.cs` | Offline location picker |
 | `src/SkyBrowser.Desktop/Controls/SceneTimeline.xaml` | Scene time slider, day steps and live-clock controls |
 | `src/SkyBrowser.Desktop/Styles/Controls.xaml` | Shared dark control palette/templates, merged by App.xaml |
@@ -61,11 +66,14 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Core/Astronomy/SkyGeometry.cs` | Great-circle geometry and bookmark/measurement records |
 | `src/SkyBrowser.Core/Astronomy/TargetDistances.cs` | Offline sourced distance estimates, alias lookup and target-pair measurements |
 | `src/SkyBrowser.Core/Astronomy/DistanceSpaceCamera.cs` | Linear light-year positions, perspective projection and independent 3D camera |
+| `src/SkyBrowser.Core/Astronomy/DistanceSpaceScene.cs` | Transient primary/comparison selection, cached pair measurement and navigation rules without WPF |
 | `src/SkyBrowser.Desktop/DistanceSpaceWindow.xaml` | Search, scale presets, sourced two-target measurements and navigation for the 3D distance map |
-| `src/SkyBrowser.Desktop/Controls/DistanceSpaceView.cs` | Depth-sorted point cloud, equatorial rings, object picking and mouse/keyboard navigation |
+| `src/SkyBrowser.Desktop/Controls/DistanceSpaceView.cs` | WPF input/picking and adaptation of the Core distance scene to existing control events |
+| `src/SkyBrowser.Desktop/Controls/DistanceSpaceView.Drawing.cs` | Depth-sorted point cloud, equatorial rings, labels and pair overlays |
 | `tools/Build-TargetDistances.py` | Rebuilds the attributed NASA/CDS distance snapshot from cached sources |
 | `tools/TargetDistanceSources.py` | Source identity, position, method, units and provenance validation |
 | `src/SkyBrowser.Desktop/SkyToolsWindow.xaml` | Survey, planning and bookmark/measurement controls |
+| `src/SkyBrowser.Desktop/SkyToolsWindow.*.cs` | Feature-specific Surveys, Visibility, Bookmarks and Distances handlers; the shell owns shared lifetime |
 | `src/SkyBrowser.Desktop/Controls/VisibilityChart.cs` | Offline altitude chart, darkness/window shading and readouts |
 | `src/SkyBrowser.Desktop/Services/` | Window appearance and observer preferences |
 | `tests/SkyBrowser.Tests/` | xUnit scientific, cache, settings and real WPF integration tests |
@@ -81,6 +89,10 @@ using their astrometry over an offline star, constellation and deep-sky map.
 
 Start with `README.md` for detailed behavior and supported formats. For changes to
 a particular feature, read its existing tests as well as its implementation.
+See `docs/architecture.md` for state ownership and feature boundaries. Partial
+window files share one WPF window and its operation/lifetime guards; moving a
+handler to another partial must not duplicate those state owners. Keep distance
+scene rules in Core rather than reintroducing them into rendering or input code.
 
 ## Build, run and verify
 

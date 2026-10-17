@@ -162,7 +162,7 @@ changing the primary target or camera. A checkbox provides the same selection mo
 without a modifier. Shift-drag continues to pan; only a completed click picks an
 endpoint. Selecting B before A establishes A; selecting A as B clears B rather
 than producing a self-measurement. Empty Shift-clicks retain the existing pair.
-`SelectTarget` centralizes these rules, while `ComparisonChanged` keeps the
+`DistanceSpaceScene.SelectTarget` centralizes these rules in Core, while `ComparisonChanged` keeps the
 measurement presentation independent of navigation selection. New primary targets,
 catalogue changes and Reset to Sun clear the pair. Escape/Clear measurement remove
 only B. Search filtering and camera movement retain the pair.
@@ -175,6 +175,13 @@ even if the endpoints leave the visible volume. Frame pair uses their Cartesian
 midpoint and separation to fit both in perspective. Distance errors are not
 propagated. Tests cover M81/M82's known separation, stable navigation when adding B,
 search selection, framing, invalid/self selections and clearing.
+
+The scene owns the camera, primary/comparison targets and immutable pair result.
+It recalculates the result when the pair changes. The WPF control forwards its
+existing selection/comparison/view events and maps mouse/keyboard input to scene
+operations. Rendering lives in `DistanceSpaceView.Drawing.cs`; it reads scene state
+without owning selection transitions. See [architecture](architecture.md) for
+the desktop workflow and rendering boundaries.
 
 ## Run
 

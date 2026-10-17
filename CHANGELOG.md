@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.8.0 - 2026-10-17
+
+- Refactor desktop workflows into feature-specific files, separate sky drawing from control input, and move 3D selection/measurement/navigation rules into a WPF-independent scene model with direct state-transition tests. Preserve existing UI behaviour and scientific/image-processing contracts.
+
 ## 0.7.0 - 2026-10-17
 
 - Add a compact self-contained Windows release ZIP with three files: the executable, PDF manual and a companion archive preserving all licences, notices and catalogue data. Validate both package formats during CI and generate checksums for both release downloads.
