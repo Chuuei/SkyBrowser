@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using SkyBrowser.Core.Astronomy;
 using SkyBrowser.Desktop.Controls;
 using SkyBrowser.Desktop.Models;
 
@@ -17,6 +18,8 @@ public partial class ComparisonWindow : Window
 {
     private readonly DispatcherTimer _timer = new();
     private DispatcherOperation? _swipeCapture;
+    private readonly SkyImageLayer[] _images;
+    private bool _changingPair;
     private bool _ready, _syncing, _showB, _closed;
     public SkyViewport LeftView => ViewA;
     public SkyViewport RightView => ViewB;
@@ -24,16 +27,20 @@ public partial class ComparisonWindow : Window
 
     public ComparisonWindow(IEnumerable<SkyImageLayer> layers)
     {
-        var placed = layers.Where(layer => layer.Placement is not null).ToArray();
-        if (placed.Length < 2)
+        var placed = layers.Distinct().ToArray();
+        if (placed.Length < 2 || placed.Any(layer => layer.Placement is null))
         {
             throw new ArgumentException("Choose at least two images with sky placements.", nameof(layers));
         }
+        if (!ImageComparisonGeometry.CanCompare(placed.Select(layer => layer.Placement!).ToArray()))
+        {
+            throw new ArgumentException("Choose images whose sky areas overlap.", nameof(layers));
+        }
+        _images = placed;
         InitializeComponent();
         ImageA.ItemsSource = placed;
-        ImageB.ItemsSource = placed;
         ImageA.SelectedIndex = 0;
-        ImageB.SelectedIndex = 1;
+        UpdateImageBChoices();
         foreach (var view in new[] { ViewA, ViewB })
         {
             view.ShowGrid = false;
@@ -50,8 +57,8 @@ public partial class ComparisonWindow : Window
         LoadPair();
         Loaded += (_, _) =>
         {
-            ViewA.Fit(ViewA.Layers[0]);
             UpdateMode();
+            FramePair();
         };
         Activated += (_, _) => UpdateTimer();
         Deactivated += (_, _) => _timer.Stop();
@@ -95,6 +102,28 @@ public partial class ComparisonWindow : Window
         }
         _showB = false;
         UpdateMode();
+        if (IsLoaded) { FramePair(); }
+    }
+
+    private void UpdateImageBChoices()
+    {
+        var previous = ImageB.SelectedItem as SkyImageLayer;
+        var choices = _images.Where(image => !ReferenceEquals(image, ImageA.SelectedItem)).ToArray();
+        _changingPair = true;
+        try
+        {
+            ImageB.ItemsSource = choices;
+            ImageB.SelectedItem = previous is not null && choices.Contains(previous) ? previous : choices[0];
+        }
+        finally { _changingPair = false; }
+    }
+
+    private void FramePair()
+    {
+        Views.UpdateLayout();
+        var frame = ImageComparisonGeometry.FramePair(ViewA.Layers[0].Placement!, ViewB.Layers[0].Placement!,
+            Math.Max(1, ViewA.ActualWidth) / Math.Max(1, ViewA.ActualHeight));
+        ViewA.CenterOn(frame.Center, frame.FieldOfView);
     }
 
     private void SynchronizeViews(object? sender, EventArgs e)
@@ -119,8 +148,9 @@ public partial class ComparisonWindow : Window
 
     private void ImagesChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_ready)
+        if (_ready && !_changingPair)
         {
+            if (ReferenceEquals(sender, ImageA)) { UpdateImageBChoices(); }
             LoadPair();
         }
     }
@@ -130,6 +160,7 @@ public partial class ComparisonWindow : Window
         if (_ready)
         {
             UpdateMode();
+            FramePair();
         }
     }
 
@@ -302,6 +333,7 @@ public partial class ComparisonWindow : Window
 
     private void FitA(object sender, RoutedEventArgs e) => ViewA.Fit(ViewA.Layers[0]);
     private void FitB(object sender, RoutedEventArgs e) => ViewB.Fit(ViewB.Layers[0]);
+    private void FitBoth(object sender, RoutedEventArgs e) => FramePair();
     private void ComparisonKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Space && Mode == ComparisonMode.Blink && Keyboard.FocusedElement is SkyViewport)

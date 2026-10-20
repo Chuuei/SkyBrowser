@@ -58,7 +58,7 @@ public partial class MainWindow
             _skyToolsWindow.Activate();
             return _skyToolsWindow;
         }
-        var window = new SkyToolsWindow(Sky, _library, SurveyService) { Owner = this };
+        var window = new SkyToolsWindow(Sky, SurveyService) { Owner = this };
         _skyToolsWindow = window;
         window.Closed += (_, _) => _skyToolsWindow = null;
         window.Show();

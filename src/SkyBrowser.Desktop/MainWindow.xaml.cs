@@ -116,6 +116,7 @@ public partial class MainWindow : Window
         RefreshTargetResults();
         Sky.TargetsChanged += (_, _) => UpdateTargetSummary();
         Sky.ViewChanged += (_, _) => UpdateViewReadout();
+        Sky.ImageSelectionCleared += (_, _) => LayerList.UnselectAll();
         Sky.LayerSelected += (_, layer) =>
         {
             if (!_collectionView.Contains(layer))
@@ -141,9 +142,6 @@ public partial class MainWindow : Window
             try
             {
                 await Task.Run(_cache.ApplySizeLimit);
-                long bookmarkRevision = Sky.BookmarkRevision;
-                var bookmarks = await Task.Run(_library.GetBookmarks);
-                if (!_closing && Sky.BookmarkRevision == bookmarkRevision) { Sky.SetBookmarks(bookmarks); }
             }
             catch (Exception exception)
             {
@@ -162,6 +160,8 @@ public partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
+            foreach (var layer in _comparisonSelection) { layer.PropertyChanged -= ComparisonPlacementChanged; }
+            _comparisonSelection.Clear();
             _libraryWindow?.Close();
             if (_ownsCache)
             {
@@ -239,6 +239,11 @@ public partial class MainWindow : Window
         {
             CollectionSearch.Focus();
             CollectionSearch.SelectAll();
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape && LayerList.IsKeyboardFocusWithin)
+        {
+            Sky.ClearImageSelection();
             e.Handled = true;
         }
     }

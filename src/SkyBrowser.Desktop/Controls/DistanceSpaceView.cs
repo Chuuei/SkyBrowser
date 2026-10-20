@@ -14,6 +14,8 @@ public sealed partial class DistanceSpaceView : FrameworkElement
     private bool _guides = true, _labels = true;
 
     public DistanceSpaceCamera Camera => _scene.Camera;
+    public SkyVector ReferenceOrigin => _scene.ReferenceOrigin;
+    public string ReferenceOriginName => _scene.ReferenceOriginName;
     public event EventHandler? SelectionChanged;
     public event EventHandler? ComparisonChanged;
     public event EventHandler? ViewChanged;

@@ -65,7 +65,7 @@ dotnet publish src/SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 --arti
 
 ## Source format and screenshots
 
-Refresh the survey, planning and annotation illustrations independently:
+Refresh the survey, planning and measurement illustrations independently:
 
 ```powershell
 dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release -- --sky-tools-only
@@ -73,7 +73,7 @@ dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj
 
 This mode needs no private sample images. It requests one public M31 DSS2 cutout
 from CDS (or reuses its local survey cache), retains provider credits, and uses a
-separate demonstration library under `artifacts/`. All planning locations are 0/0
+separate demonstration cache under `artifacts/`. All planning locations are 0/0
 and planning dates are fixed to 1 January 2000. The target-distance illustration
 uses the bundled, public M81/M82 distance estimates and shows their source snapshot
 date. The same mode captures the offline 3D map as `distance-space.png`, using only

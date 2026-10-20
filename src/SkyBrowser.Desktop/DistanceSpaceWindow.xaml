@@ -81,7 +81,7 @@
       </WrapPanel>
       <TextBlock Text="Drag: orbit · Right-drag / Shift-drag: pan · Wheel / + −: zoom · WASD: move · Q/E: down/up · Arrows: orbit · F: focus · Home: reset"
         Foreground="#A2B6CA" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,5" />
-      <TextBlock Text="J2000 equatorial reference plane through the Solar System. Symbols represent object centres, not their size. Published distances are approximate; errors and cosmological effects are not modelled. Labels are reduced to avoid overlap."
+      <TextBlock x:Name="ReferencePlaneDescription"
         Foreground="#8D9AAD" FontSize="10" TextWrapping="Wrap" />
       <TextBlock x:Name="SpaceStatus" Foreground="#8BE2C3" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0" />
     </StackPanel>

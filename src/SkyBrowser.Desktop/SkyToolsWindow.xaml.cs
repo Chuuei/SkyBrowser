@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using SkyBrowser.Core.Astronomy;
-using SkyBrowser.Core.Library;
 using SkyBrowser.Desktop.Controls;
 
 namespace SkyBrowser.Desktop;
@@ -10,16 +9,14 @@ namespace SkyBrowser.Desktop;
 public partial class SkyToolsWindow : Window
 {
     private readonly SkyViewport _sky;
-    private readonly ImageLibrary _library;
     private readonly SurveyImageService _surveys;
     private readonly CancellationTokenSource _lifetime = new();
     private Task? _initialization;
     private bool _ready, _closed;
 
-    public SkyToolsWindow(SkyViewport sky, ImageLibrary library, SurveyImageService surveys)
+    public SkyToolsWindow(SkyViewport sky, SurveyImageService surveys)
     {
         _sky = sky;
-        _library = library;
         _surveys = surveys;
         InitializeComponent();
         InitializeTargetDistances();
@@ -30,11 +27,9 @@ public partial class SkyToolsWindow : Window
         CatalogOverlayChoice.IsChecked = sky.ShowCatalogTargets;
         ScaleBarChoice.IsChecked = sky.ShowScaleBar;
         NorthEastChoice.IsChecked = sky.ShowNorthEast;
-        BookmarkOverlayChoice.IsChecked = sky.ShowBookmarks;
         PlanDate.SelectedDate = (sky.Camera.Observer?.TimeUtc ?? DateTimeOffset.UtcNow).UtcDateTime.Date;
         UsePlanningCenterClicked(this, new());
         UseObserverClicked(this, new());
-        NewBookmarkClicked(this, new());
         _sky.MeasurementChanged += MeasurementChanged;
         MeasurementDistanceA.Text = sky.Measurement?.StartDistanceLightYears?.ToString("R", CultureInfo.InvariantCulture) ?? "";
         MeasurementDistanceB.Text = sky.Measurement?.EndDistanceLightYears?.ToString("R", CultureInfo.InvariantCulture) ?? "";
@@ -61,13 +56,6 @@ public partial class SkyToolsWindow : Window
     {
         try
         {
-            var bookmarks = await Task.Run(_library.GetBookmarks, _lifetime.Token);
-            if (_closed)
-            {
-                return;
-            }
-            BookmarkList.ItemsSource = bookmarks;
-            _sky.SetBookmarks(bookmarks);
             await RefreshSurveyCacheAsync();
         }
         catch (Exception exception)
@@ -93,7 +81,6 @@ public partial class SkyToolsWindow : Window
         _sky.ShowCatalogTargets = CatalogOverlayChoice.IsChecked == true;
         _sky.ShowScaleBar = ScaleBarChoice.IsChecked == true;
         _sky.ShowNorthEast = NorthEastChoice.IsChecked == true;
-        _sky.ShowBookmarks = BookmarkOverlayChoice.IsChecked == true;
     }
 
 

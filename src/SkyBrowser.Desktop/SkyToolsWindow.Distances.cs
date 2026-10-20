@@ -52,7 +52,14 @@ public partial class SkyToolsWindow
         UpdateSelectedDistanceTargets();
     }
 
-    private void DistanceTargetChanged(object sender, SelectionChangedEventArgs e) => UpdateSelectedDistanceTargets();
+    private void DistanceTargetChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_ready && !_updatingDistanceTargets && e.AddedItems.Count > 0)
+        {
+            _sky.ClearImageSelection();
+        }
+        UpdateSelectedDistanceTargets();
+    }
 
     private void UpdateSelectedDistanceTargets()
     {
@@ -119,6 +126,7 @@ public partial class SkyToolsWindow
     private void FrameDistancePairClicked(object sender, RoutedEventArgs e)
     {
         if (DistanceTargetsA.SelectedItem is not TargetDistanceEstimate a || DistanceTargetsB.SelectedItem is not TargetDistanceEstimate b) { return; }
+        _sky.ClearImageSelection();
         double padding = Math.Max(2, 2 * _sky.ActualWidth / Math.Max(1, _sky.ActualHeight));
         _sky.CenterOn(SkyGeometry.Interpolate(a.Target.Position, b.Target.Position, 0.5),
             Math.Clamp(a.Target.Position.DistanceTo(b.Target.Position) * padding, 1.5, 120));

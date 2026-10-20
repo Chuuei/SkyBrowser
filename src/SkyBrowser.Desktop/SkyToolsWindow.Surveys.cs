@@ -91,6 +91,7 @@ public partial class SkyToolsWindow
     {
         if (CachedSurveyList.SelectedItem is SurveyRequest request && await LoadSurveyAsync(request, true))
         {
+            _sky.ClearImageSelection();
             _sky.CenterOn(request.Center, Math.Min(120, request.FieldOfView));
         }
     }

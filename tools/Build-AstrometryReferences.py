@@ -22,7 +22,7 @@ cases = []
 
 
 def add(name, values):
-    wcs = WCS(Header(values), relax=True)
+    wcs = WCS(Header(values), naxis=2, relax=True)
     pixels = [[0, 0], [127, 95], [13.125, 77.25], [63.5, 47.5]]
     world = wcs.all_pix2world(pixels, 0, ra_dec_order=True)
     cases.append(dict(name=name, header=values,
@@ -76,6 +76,32 @@ for dec in [89.999, -89.999, 90., -90.]:
 values = header("TAN")
 values.update(CRVAL2=90., LONPOLE=0.)
 add("Explicit north-pole default", values)
+
+# LATPOLE is a selection preference, not an extra rotation constraint, for
+# zenithal projections. Exercise both hemispheres and the exact north pole.
+for projection in ["TAN", "SIN", "STG", "ZEA", "ARC", "TAN-SIP", "TPV"]:
+    for dec, preference in [(78., 0.), (-34., 90.), (90., -90.)]:
+        values = header(projection)
+        values.update(CRVAL2=dec, LATPOLE=preference)
+        if projection == "TAN-SIP":
+            values.update(A_ORDER=2, B_ORDER=2, A_2_0=2e-4, B_0_2=-3e-4)
+        if projection == "TPV":
+            values.update(PV1_1=1., PV2_1=1.)
+        add(f"{projection} LATPOLE {preference} at declination {dec}", values)
+
+# A synthetic RGB camera header with the same conventions as Draco exports:
+# off-center reference pixels, explicit zero forward terms and inverse SIP.
+# No user image metadata is included in these public reference fixtures.
+values = header("TAN-SIP")
+values.update(NAXIS=3, NAXIS3=3, WCSAXES=2, CRPIX1=53.25, CRPIX2=43.75,
+              LATPOLE=0., LONPOLE=180., EQUINOX=2000., CUNIT1="deg", CUNIT2="deg",
+              A_ORDER=2, B_ORDER=2, AP_ORDER=2, BP_ORDER=2)
+for prefix, scale in [("A", 2e-5), ("B", -3e-5), ("AP", -2e-5), ("BP", 3e-5)]:
+    for i in range(3):
+        for j in range(3-i):
+            values[f"{prefix}_{i}_{j}"] = scale / (j+1) if i+j == 2 else 0.
+values.update(AP_0_0=1e-4, AP_1_0=-2e-6, BP_0_0=-3e-4, BP_0_1=4e-6)
+add("Camera RGB SIP with zero LATPOLE", values)
 
 target = Path(__file__).resolve().parents[1] / "tests/SkyBrowser.Tests/Data/astrometry-reference.json"
 target.parent.mkdir(parents=True, exist_ok=True)

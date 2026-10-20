@@ -38,13 +38,19 @@ public sealed partial class DesktopTests
         });
         using var client = new HttpClient(handler);
         var service = new SurveyImageService(Path.Combine(directory, "sky-tools-surveys"), client);
-        var window = new SkyToolsWindow(sky, owner.Library, service) { Owner = owner, ShowInTaskbar = false };
-        string? bookmarkId = null;
+        var imageList = (ListBox)owner.FindName("LayerList");
+        var image = SolidLayer("Measurement selection context", 2, 90, 100, 110);
+        sky.Layers.Add(image);
+        imageList.SelectedItem = image;
+        var window = new SkyToolsWindow(sky, service) { Owner = owner, ShowInTaskbar = false };
         try
         {
             window.Show();
             await window.InitializeAsync();
             Assert.Equal(0, handler.Calls); // Opening a tool never downloads imagery.
+            Assert.Same(image, imageList.SelectedItem); // Opening tools keeps image editing available.
+            Assert.Equal(new[] { "Survey background", "Target visibility", "Measurements" },
+                ((TabControl)window.FindName("ToolsTabs")).Items.Cast<TabItem>().Select(tab => tab.Header.ToString()).ToArray());
             ((TabControl)window.FindName("ToolsTabs")).SelectedIndex = 1;
             ((TextBox)window.FindName("PlanRa")).Text = "83.822";
             ((TextBox)window.FindName("PlanDec")).Text = "-5.391";
@@ -59,21 +65,18 @@ public sealed partial class DesktopTests
             Assert.Equal(oldOptions, owner.Options);
             Capture(window, "sky-tools-visibility.png");
             ((TabControl)window.FindName("ToolsTabs")).SelectedIndex = 2;
-            ((TextBox)window.FindName("BookmarkName")).Text = "Sky tools test field";
-            ((TextBox)window.FindName("BookmarkNotes")).Text = "Independent local note";
-            ((TextBox)window.FindName("BookmarkRa")).Text = "359.95";
-            ((TextBox)window.FindName("BookmarkDec")).Text = "70";
-            ((TextBox)window.FindName("BookmarkField")).Text = "4";
-            Assert.True(await window.SaveBookmarkAsync());
-            var bookmark = sky.Bookmarks.Single(b => b.Name == "Sky tools test field");
-            bookmarkId = bookmark.Id;
-            Assert.Equal("Independent local note", owner.Library.GetBookmarks().Single(b => b.Id == bookmarkId).Notes);
             foreach (string control in new[] { "ScaleBarChoice", "NorthEastChoice", "CatalogOverlayChoice" })
             {
                 var choice = (CheckBox)window.FindName(control);
                 choice.IsChecked = true;
                 choice.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
             }
+            sky.BeginMeasurement();
+            Assert.Empty(imageList.SelectedItems);
+            Assert.Null(sky.SelectedLayer);
+            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)owner.FindName("InspectorBorder")).Visibility);
+            imageList.SelectedItem = image;
+            Assert.False(sky.IsMeasuring); // Returning to image editing cancels unfinished sky-point picking.
             sky.BeginMeasurement();
             sky.PickMeasurementPoint(new(359, 0));
             Assert.True(sky.IsMeasuring);
@@ -83,7 +86,9 @@ public sealed partial class DesktopTests
             Assert.Contains("2°", ((TextBlock)window.FindName("MeasurementSummary")).Text);
             var distanceA = (TextBox)window.FindName("MeasurementDistanceA");
             var distanceB = (TextBox)window.FindName("MeasurementDistanceB");
+            imageList.SelectedItem = image;
             distanceA.Text = "1000";
+            Assert.Empty(imageList.SelectedItems);
             Assert.Null(sky.Measurement.SeparationLightYears);
             distanceB.Text = "1000";
             Assert.InRange(sky.Measurement.SeparationLightYears!.Value, 34.90, 34.91);
@@ -99,15 +104,15 @@ public sealed partial class DesktopTests
             distanceB.Text = "1000";
             sky.CenterOn(new(0, 0), 6);
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-            Capture(window, "sky-tools-bookmarks.png");
+            Capture(window, "sky-tools-measurements.png");
             Capture(owner, "sky-tools-guides.png");
             VerifyKnownTargetDistances(owner, window, service);
             VerifyDistanceSpace(window);
+            sky.Layers.Remove(image); // Keep the selection fixture out of the survey pixel comparisons.
             sky.ClearMeasurement();
             Assert.Empty(distanceA.Text);
             Assert.Empty(distanceB.Text);
             sky.ShowCatalogTargets = false;
-            sky.ShowBookmarks = false;
             sky.ShowGrid = sky.ShowLabels = sky.ShowFootprints = false;
             sky.ShowNorthEast = sky.ShowScaleBar = false;
             Assert.True(await window.LoadSurveyAsync(request, false));
@@ -152,15 +157,9 @@ public sealed partial class DesktopTests
         finally
         {
             window.Close();
-            if (bookmarkId is not null)
-            {
-                owner.Library.DeleteBookmark(bookmarkId);
-            }
-            sky.SetBookmarks(owner.Library.GetBookmarks());
             sky.SetSurveyBackground(null);
             sky.ClearMeasurement();
             sky.ShowCatalogTargets = sky.ShowScaleBar = sky.ShowNorthEast = false;
-            sky.ShowBookmarks = true;
             sky.SurveyOpacity = 0.75;
             sky.ShowGrid = grid;
             sky.ShowLabels = labels;
@@ -197,6 +196,25 @@ public sealed partial class DesktopTests
             Click((Button)window.FindName("FocusObjectButton"));
             Assert.Equal(DistanceSpaceCamera.Position(TargetDistances.Find("M81")!), window.View.Camera.Center);
             Capture(window, "distance-space-m81.png");
+            Assert.Equal(window.View.Camera.Center, window.View.ReferenceOrigin);
+            Assert.Contains(TargetDistances.Find("M81")!.Target.Name, ((TextBlock)window.FindName("ReferencePlaneDescription")).Text);
+            byte[] ReadPlaneAxisPatch()
+            {
+                window.UpdateLayout();
+                var axisPoint = window.View.ReferenceOrigin + new SkyVector(window.View.Camera.Distance * 0.15, 0, 0);
+                var projected = window.View.Camera.Project(axisPoint, window.View.ActualWidth, window.View.ActualHeight)!.Value;
+                var screen = window.View.TranslatePoint(new(projected.X, projected.Y), window);
+                var rendered = new RenderTargetBitmap((int)window.ActualWidth, (int)window.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+                rendered.Render(window);
+                byte[] patch = new byte[9 * 9 * 4];
+                rendered.CopyPixels(new Int32Rect((int)screen.X - 4, (int)screen.Y - 4, 9, 9), patch, 9 * 4, 0);
+                return patch;
+            }
+            var withPlane = ReadPlaneAxisPatch();
+            window.View.ShowGuides = false;
+            var withoutPlane = ReadPlaneAxisPatch();
+            window.View.ShowGuides = true;
+            Assert.False(withPlane.SequenceEqual(withoutPlane), "The reference-plane axis must render near the focused object.");
             var projection = window.View.Camera.Project(window.View.Camera.Center, window.View.ActualWidth, window.View.ActualHeight)!.Value;
             Assert.Same(TargetDistances.Find("M81"), window.View.HitTarget(new(projection.X, projection.Y)));
             Assert.Contains("messier-81", ((Button)window.FindName("ObjectSourceButton")).ToolTip.ToString());
@@ -267,6 +285,7 @@ public sealed partial class DesktopTests
             list.SelectedItem = TargetDistances.Find("M31");
             var andromeda = DistanceSpaceCamera.Position(TargetDistances.Find("M31")!);
             Assert.Equal(andromeda, window.View.Camera.Center);
+            Assert.Equal(andromeda, window.View.ReferenceOrigin);
             window.View.Camera.Orbit(35, 10);
             window.View.Camera.Zoom(2);
             Assert.Equal(andromeda, window.View.Camera.Center);
@@ -276,6 +295,15 @@ public sealed partial class DesktopTests
             Assert.Equal(andromeda, window.View.Camera.Center);
             Assert.Equal(andromedaZoom, window.View.Camera.Distance);
             Capture(window, "distance-space-andromeda.png");
+            window.View.Camera.Frame(andromeda, double.MaxValue);
+            window.View.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.View), 0, Key.OemMinus) { RoutedEvent = Keyboard.KeyDownEvent });
+            Assert.Equal(DistanceSpaceCamera.MaximumDistance, window.View.Camera.Distance);
+            Assert.Contains("Maximum zoom-out scale reached", ((TextBlock)window.FindName("SpaceStatus")).Text);
+            window.View.RaiseEvent(new MouseWheelEventArgs(Mouse.PrimaryDevice, 0, -120) { RoutedEvent = Mouse.MouseWheelEvent });
+            Assert.InRange(window.View.Camera.ViewHeight, 13_800_000_000d - 0.001, 13_800_000_000d);
+            window.View.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.View), 0, Key.OemPlus) { RoutedEvent = Keyboard.KeyDownEvent });
+            Assert.True(window.View.Camera.Distance < DistanceSpaceCamera.MaximumDistance);
+            Assert.DoesNotContain("Maximum zoom-out scale reached", ((TextBlock)window.FindName("SpaceStatus")).Text);
             window.View.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window.View), 0, Key.Home) { RoutedEvent = Keyboard.KeyDownEvent });
             Assert.Null(window.View.Selected);
             ((TextBox)window.FindName("ObjectSearch")).Clear();
@@ -302,11 +330,16 @@ public sealed partial class DesktopTests
         var b = (ListBox)window.FindName("DistanceTargetsB");
         try
         {
-            ((TabControl)window.FindName("ToolsTabs")).SelectedIndex = 3;
+            ((TabControl)window.FindName("ToolsTabs")).SelectedIndex = 2;
             ((TextBox)window.FindName("DistanceSearchA")).Text = "M 81";
             ((TextBox)window.FindName("DistanceSearchB")).Text = "NGC 3034";
+            var imageList = (ListBox)owner.FindName("LayerList");
+            imageList.SelectAll();
             a.SelectedItem = TargetDistances.Find("M81");
+            Assert.Empty(imageList.SelectedItems); // Even the first catalogue pick changes the editing context.
+            imageList.SelectAll();
             b.SelectedItem = TargetDistances.Find("M82");
+            Assert.Empty(imageList.SelectedItems);
             Assert.Equal(DeepSkyCatalog.Find("M81")!.Position, sky.Measurement!.Start);
             Assert.Equal(DeepSkyCatalog.Find("M82")!.Position, sky.Measurement.End);
             Assert.Contains("≈420,000 light-years", ((TextBlock)window.FindName("TargetDistanceResult")).Text);
@@ -317,10 +350,12 @@ public sealed partial class DesktopTests
             Assert.Contains("messier-81", ((Button)window.FindName("DistanceSourceButtonA")).ToolTip.ToString());
             Assert.Equal(center, sky.Camera.Center); // Selecting targets does not navigate until requested.
             Assert.Equal(options, owner.Options);
+            imageList.SelectAll();
             Click((Button)window.FindName("DistanceFrameButton"));
+            Assert.Empty(imageList.SelectedItems);
             Assert.InRange(sky.Camera.Center.DistanceTo(SkyGeometry.Interpolate(sky.Measurement.Start, sky.Measurement.End, 0.5)), 0, 1e-9);
             Capture(window, "sky-tools-target-distances.png");
-            var reopened = new SkyToolsWindow(sky, owner.Library, service) { Owner = owner };
+            var reopened = new SkyToolsWindow(sky, service) { Owner = owner };
             try
             {
                 Assert.Same(TargetDistances.Find("M81"), ((ListBox)reopened.FindName("DistanceTargetsA")).SelectedItem);

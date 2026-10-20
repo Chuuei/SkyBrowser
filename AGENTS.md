@@ -45,7 +45,7 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Core/Astronomy/FitsSkySolution.cs` | Exact forward FITS models, SIP/TPV distortion and persisted cache coefficients |
 | `src/SkyBrowser.Desktop/Services/ImageExport.cs` | Metadata-free PNG/JPEG encoding, alpha flattening and atomic export |
 | `src/SkyBrowser.Desktop/ExportWindow.xaml` | Sky/preview export settings and validation |
-| `src/SkyBrowser.Desktop/ImageInspectionWindow.xaml` | Independent fit/100% inspection, panning, sample readouts and channel histogram |
+| `src/SkyBrowser.Desktop/ImageInspectionWindow.xaml` | Independent full-width fit/100% inspection, panning and sample/coordinate readouts below the image |
 | `src/SkyBrowser.Core/Configuration/ApplicationOptions.cs` | Validated defaults, atomic settings persistence and recovery |
 | `src/SkyBrowser.Desktop/MainWindow.xaml.cs` | Application composition, shared operation lifetime, options and window coordination |
 | `src/SkyBrowser.Desktop/MainWindow.Loading.cs` | Startup/import/folder workflows and guarded processing progress |
@@ -67,13 +67,14 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Core/Astronomy/TargetDistances.cs` | Offline sourced distance estimates, alias lookup and target-pair measurements |
 | `src/SkyBrowser.Core/Astronomy/DistanceSpaceCamera.cs` | Linear light-year positions, perspective projection and independent 3D camera |
 | `src/SkyBrowser.Core/Astronomy/DistanceSpaceScene.cs` | Transient primary/comparison selection, cached pair measurement and navigation rules without WPF |
+| `src/SkyBrowser.Core/Astronomy/ImageComparisonGeometry.cs` | Spherical overlap eligibility and shared-field comparison framing |
 | `src/SkyBrowser.Desktop/DistanceSpaceWindow.xaml` | Search, scale presets, sourced two-target measurements and navigation for the 3D distance map |
 | `src/SkyBrowser.Desktop/Controls/DistanceSpaceView.cs` | WPF input/picking and adaptation of the Core distance scene to existing control events |
 | `src/SkyBrowser.Desktop/Controls/DistanceSpaceView.Drawing.cs` | Depth-sorted point cloud, equatorial rings, labels and pair overlays |
 | `tools/Build-TargetDistances.py` | Rebuilds the attributed NASA/CDS distance snapshot from cached sources |
 | `tools/TargetDistanceSources.py` | Source identity, position, method, units and provenance validation |
-| `src/SkyBrowser.Desktop/SkyToolsWindow.xaml` | Survey, planning and bookmark/measurement controls |
-| `src/SkyBrowser.Desktop/SkyToolsWindow.*.cs` | Feature-specific Surveys, Visibility, Bookmarks and Distances handlers; the shell owns shared lifetime |
+| `src/SkyBrowser.Desktop/SkyToolsWindow.xaml` | Survey, planning and measurement controls |
+| `src/SkyBrowser.Desktop/SkyToolsWindow.*.cs` | Feature-specific Surveys, Visibility, Measurements and Distances handlers; the shell owns shared lifetime |
 | `src/SkyBrowser.Desktop/Controls/VisibilityChart.cs` | Offline altitude chart, darkness/window shading and readouts |
 | `src/SkyBrowser.Desktop/Services/` | Window appearance and observer preferences |
 | `tests/SkyBrowser.Tests/` | xUnit scientific, cache, settings and real WPF integration tests |
@@ -150,6 +151,8 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   CROTA and swapped RA/Dec axes. SIP applies before CD to pixel offsets; TPV
   applies after CD in degrees, with reversed monomial arguments for PV2. Retain
   order/index/finite checks, mixed-model/lookup rejection and exact-pole defaults.
+  For these zenithal projections, CRVAL/LONPOLE uniquely fix the rotation;
+  any finite LATPOLE preference in [-90, 90], including Draco's zero, is equivalent.
   `tools/Build-AstrometryReferences.py` generates synthetic Astropy 8.0.2/WCSLIB
   reference coordinates; normal tests need only its checked-in JSON. Undecoded
   projections or frames require warnings/manual placement.
@@ -296,9 +299,17 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   polar/circumpolar cases, refined crossings and documented two-minute detection
   limits. Temporary planning input cannot change startup options. Avoid DefineStar's
   shared mutable slots; concurrent reports must be independent. Closing cancels jobs.
-- Bookmarks/notes are durable library records independent of image paths and previews.
-  Load them off the UI thread and guard late startup reads with bookmark revisions.
+- Sky tools has Survey background, Target visibility and Measurements tabs.
+  Measurements combines sky-point/manual distances and catalogue target pairs in
+  one scrollable page with bounded, virtualized target lists. Bookmarks are removed
+  from the desktop UI and atlas overlays;
+  legacy bookmark storage remains for compatibility, without loading it at startup.
   Measurements use great-circle distances and remain transient.
+  The Objects in 3D camera caps its vertical focus span at 13.8 billion light-years;
+  zoom, presets and framing share this bound. Show feedback at the zoom-out limit.
+  Its reference plane, scale rings, guide drops and north/south colours use the
+  primary focused object's position as origin, retaining J2000 orientation.
+  Pair framing and panning retain that reference; Reset to Sun restores the Sun.
   Optional positive object distances from the observer, in light-years, add a scaled
   half-angle cosine-rule 3D separation; retain small-angle accuracy, validation and
   export labels. Starting/clearing a measurement clears its distance inputs.
@@ -334,7 +345,14 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   display changes retain per-image finish settings, continue after individual
   failures and retain completed previews/committed annotations on cancellation.
   Create progress reporters on the UI thread before passing them to workers.
-- Compare requires at least two placed selections. It uses independent full-opacity
+- Compare requires at least two placed selections whose sky footprints all overlap
+  one another. Enforce this in the main command and comparison constructor.
+  Keep Compare disabled unless the current selection is eligible, refresh it when
+  selected placements change, and explain the disabled state in its tooltip.
+  Start in Swipe divider mode, frame both images through shared sky on opening/pair/mode
+  changes, and offer Fit both. B excludes the current A to prevent self-comparison.
+  Geometry belongs in Core and must handle rotated fields, insets, RA seams and poles.
+  It uses independent full-opacity
   preview/placement snapshots and two synchronized sky projections. Swipe clips a
   full-size, frozen 2D renderings of the views rather than the live 3D meshes;
   changing the clip on a live mesh can leave black columns during small divider
@@ -375,6 +393,13 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   changes, regenerate it with `pwsh -STA -File tools/Build-ApplicationIcon.ps1`.
   The committed icon needs no generation step during normal builds or publishing.
 - The collection and selected-image panels have a user-adjustable divider.
+  Each image's visibility toggle uses an eye/crossed-out-eye icon, with a tooltip
+  and accessible action/state labels; retain keyboard toggle support.
+  Image editing selection clears on catalogue/manual sky navigation, survey-region
+  navigation and measurement actions, collapsing the inspector without hiding images.
+  Empty-sky clicks and Escape in the atlas/image list also deselect. Panning, zooming
+  and merely opening tools retain selection. Selecting an image cancels unfinished
+  sky-point picking; completed measurements can remain as guides.
   Image details must use retained metadata/previews rather than decode again.
   The circled info icon uses one geometry coordinate space for circle, stem and
   dot; font glyph substitution previously caused misalignment.
@@ -384,6 +409,10 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   reads source-bound ASTAP placement without writing library records. Closing
   cancels and releases data; late progress/results cannot update a closed window.
   Preserve true source dimensions and 100% mapping to device pixels across DPI.
+  The image uses the full available width, with sample/coordinate readouts below;
+  do not add a histogram/statistics sidebar.
+  Show display RGB as #RRGGBB from the full-resolution processed BGRA pixels,
+  separately labelled from the original scientific samples.
   Readouts use stored pixel centers (`(x+.5)/width`, `(y+.5)/height`), original XISF
   values or FITS physical values with BLANK as NaN. Bayer statistics/readouts use
   the mosaic; alpha stays separate. UInt64 readouts must not round through double.

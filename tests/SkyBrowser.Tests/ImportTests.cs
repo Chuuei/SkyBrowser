@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text.Json;
 using SkyBrowser.Core.Imaging;
 using XISFLib;
 
@@ -6,6 +7,22 @@ namespace SkyBrowser.Tests;
 
 internal static class TestImages
 {
+    public static XisfImageData CameraSip()
+    {
+        using var references = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Data", "astrometry-reference.json")));
+        var reference = references.RootElement.GetProperty("cases").EnumerateArray()
+            .Single(item => item.GetProperty("name").GetString() == "Camera RGB SIP with zero LATPOLE");
+        var header = reference.GetProperty("header");
+        int width = header.GetProperty("NAXIS1").GetInt32(), height = header.GetProperty("NAXIS2").GetInt32();
+        var image = XisfImageData.FromSamples(Enumerable.Repeat(0.8f, width * height * 3).ToArray(), [width, height], 3);
+        image.ColorSpace = "RGB";
+        foreach (var card in header.EnumerateObject())
+        {
+            image.FitsKeywords.Add(new(card.Name, card.Value.ToString(), null));
+        }
+        return image;
+    }
+
     public static XisfImageData Create(bool linear = false)
     {
         const int width = 64, height = 48;

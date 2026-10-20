@@ -135,15 +135,29 @@ public sealed partial class DesktopTests
         }
         var a = TexturedLayer("Comparison A", 255, 0);
         var b = TexturedLayer("Comparison B", 0, 255);
+        var alternateA = TexturedLayer("Comparison A alternate", 255, 0);
         a.IsVisible = false;
         a.Opacity = 0.2;
         b.SetManual(new(359.95, 70, 4, 37, true));
         var ownerCenter = owner.SkyView.Camera.Center;
-        var comparison = new ComparisonWindow([a, b]) { Owner = owner, ShowInTaskbar = false };
+        var comparison = new ComparisonWindow([a, b, alternateA]) { Owner = owner, ShowInTaskbar = false };
         try
         {
             comparison.Show();
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            Assert.Equal(ComparisonMode.Swipe, comparison.Mode);
+            Assert.Equal(Visibility.Visible, ((FrameworkElement)comparison.FindName("SwipeFrames")).Visibility);
+            var choicesA = (ComboBox)comparison.FindName("ImageA");
+            var choicesB = (ComboBox)comparison.FindName("ImageB");
+            Assert.DoesNotContain(choicesA.SelectedItem, choicesB.Items.Cast<object>());
+            comparison.LeftView.CenterOn(new(180, 0), 3);
+            choicesA.SelectedItem = b;
+            Assert.NotSame(choicesA.SelectedItem, choicesB.SelectedItem);
+            Assert.True(comparison.LeftView.Camera.Center.DistanceTo(a.Placement!.Center) < 1e-8);
+            choicesA.SelectedItem = a;
+            choicesB.SelectedItem = b;
+            ((ComboBox)comparison.FindName("ModeChoice")).SelectedIndex = (int)ComparisonMode.SideBySide;
+            comparison.UpdateLayout();
             var left = comparison.LeftView;
             var right = comparison.RightView;
             Assert.NotSame(a, Assert.Single(left.Layers));
@@ -227,6 +241,44 @@ public sealed partial class DesktopTests
         Assert.Null(((Image)comparison.FindName("SwipeFrameA")).Source);
         Assert.Null(((Image)comparison.FindName("SwipeFrameB")).Source);
         Assert.Throws<ArgumentException>(() => new ComparisonWindow([a]));
+        var distant = TexturedLayer("Unrelated field", 100, 100);
+        distant.SetManual(new(180, 0, 4, 0));
+        Assert.Throws<ArgumentException>(() => new ComparisonWindow([a, distant]));
+        Assert.Throws<ArgumentException>(() => new ComparisonWindow([a, b, distant]));
+        owner.SkyView.Layers.Add(a);
+        owner.SkyView.Layers.Add(distant);
+        var list = (ListBox)owner.FindName("LayerList");
+        list.UnselectAll();
+        var compareButton = (Button)owner.FindName("CompareButton");
+        Assert.False(compareButton.IsEnabled);
+        list.SelectedItems.Add(a);
+        Assert.False(compareButton.IsEnabled);
+        list.SelectedItems.Add(distant);
+        Assert.False(compareButton.IsEnabled);
+        Assert.Contains("overlap", compareButton.ToolTip.ToString());
+        compareButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.Empty(owner.OwnedWindows.OfType<ComparisonWindow>());
+        Assert.Contains("overlap", owner.Status);
+        distant.SetManual(new(359.95, 70, 4, 0));
+        Assert.True(compareButton.IsEnabled); // Placement changes update eligibility without reselecting.
+        var unplaced = new SkyImageLayer(a.Image with { SourcePath = "Unplaced comparison", Placement = null });
+        owner.SkyView.Layers.Add(unplaced);
+        list.SelectedItems.Add(unplaced);
+        Assert.False(compareButton.IsEnabled);
+        Assert.Contains("Place or solve", compareButton.ToolTip.ToString());
+        unplaced.SetManual(new(359.95, 70, 4, 0));
+        Assert.True(compareButton.IsEnabled);
+        unplaced.SetManual(null);
+        Assert.False(compareButton.IsEnabled);
+        list.SelectedItems.Remove(unplaced);
+        Assert.True(compareButton.IsEnabled);
+        compareButton.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        Assert.Single(owner.OwnedWindows.OfType<ComparisonWindow>()).Close();
+        owner.SkyView.ClearImageSelection();
+        Assert.False(compareButton.IsEnabled);
+        owner.SkyView.Layers.Remove(unplaced);
+        owner.SkyView.Layers.Remove(a);
+        owner.SkyView.Layers.Remove(distant);
     }
 
     private static async Task VerifySlowSwipe(ComparisonWindow comparison)
@@ -307,7 +359,7 @@ public sealed partial class DesktopTests
 
         var choice = (ComboBox)comparison.FindName("ImageB");
         var beforeSelection = imageB.Source;
-        choice.SelectedIndex = 0;
+        choice.SelectedIndex = 1;
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
         Assert.NotSame(beforeSelection, imageB.Source);
         var frameA = (BitmapSource)imageA.Source;
@@ -316,12 +368,12 @@ public sealed partial class DesktopTests
         byte[] b = new byte[a.Length];
         frameA.CopyPixels(a, frameA.PixelWidth * 4, 0);
         frameB.CopyPixels(b, frameB.PixelWidth * 4, 0);
-        Assert.Equal(a, b); // Same image and sky camera must rasterize identically.
+        Assert.Equal(a, b); // Identical processing versions and sky cameras must rasterize identically.
         for (int i = 3; i < a.Length; i += 4)
         {
             Assert.Equal((byte)255, a[i]); // Live 3D content behind the frames cannot show through.
         }
-        choice.SelectedIndex = 1;
+        choice.SelectedIndex = 0;
         comparison.Width = originalWidth;
         divider.Value = 0.5;
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);

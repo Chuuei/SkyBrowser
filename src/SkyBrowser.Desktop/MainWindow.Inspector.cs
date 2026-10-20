@@ -13,7 +13,15 @@ namespace SkyBrowser.Desktop;
 
 public partial class MainWindow
 {
-    private void LayerSelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateInspector();
+    private void LayerSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateComparisonSelection();
+        if (Selected is not null && Sky.IsMeasuring)
+        {
+            Sky.ClearMeasurement();
+        }
+        UpdateInspector();
+    }
 
     private void ImageInfoClicked(object sender, RoutedEventArgs e)
     {

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 0.9.0 - 2026-10-20
+
+- Enable Compare only for a valid overlapping selection, updating immediately after selection or placement changes and explaining disabled states in its tooltip.
+- Open image comparisons in Swipe divider mode, require overlapping sky coverage, frame both images through their shared field, and add Fit both while preventing self-comparison.
+- Clear image editing selection and collapse its controls when navigating to sky targets or working with measurements; support deselection with empty-sky clicks or Escape while retaining image visibility.
+- Replace image-list visibility checkboxes with eye and crossed-out-eye buttons, with action-specific tooltips and accessible labels.
+- Centre the 3D reference plane, scale rings and guide lines on the focused object, with matching north/south colours and an updated origin caption.
+- Cap the Objects in 3D zoom-out scale at a 13.8-billion-light-year vertical focus span across wheel/keyboard zoom, presets and framing, with feedback at the limit.
+- Combine sky-point measurements and catalogue target distances in one Measurements tab, retaining synchronized distances, source details and 3D exploration.
+- Remove bookmarks from Sky tools and atlas overlays, retaining a dedicated Measurements tab and existing library data.
+- Show displayed RGB as #RRGGBB alongside separately labelled original scientific samples in full-resolution inspection.
+- Give full-resolution inspection the full image width by removing its histogram and statistics sidebar; retain sample and coordinate readouts below the image.
+- Accept valid zenithal LATPOLE preferences, including zero in Draco TAN-SIP FITS exports, so their embedded plate solutions place images automatically in the sky view while retaining SIP distortion.
+
 ## 0.8.0 - 2026-10-17
 
 - Refactor desktop workflows into feature-specific files, separate sky drawing from control input, and move 3D selection/measurement/navigation rules into a WPF-independent scene model with direct state-transition tests. Preserve existing UI behaviour and scientific/image-processing contracts.

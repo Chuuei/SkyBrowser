@@ -103,4 +103,27 @@ public sealed class DistanceSpaceSceneTests
         Assert.Equal(center, scene.Camera.Center);
         Assert.Equal(distance, scene.Camera.Distance);
     }
+
+    [Fact]
+    public void ReferencePlaneFollowsThePrimaryWhilePanningAndPairFramingKeepItsOrigin()
+    {
+        var scene = new DistanceSpaceScene();
+        Assert.Equal(default, scene.ReferenceOrigin);
+        Assert.Equal("Solar System", scene.ReferenceOriginName);
+        scene.Selected = M81;
+        var origin = DistanceSpaceCamera.Position(M81);
+        Assert.Equal(origin, scene.ReferenceOrigin);
+        Assert.Equal(M81.Target.Name, scene.ReferenceOriginName);
+        scene.Camera.Move(100, 200, 300);
+        scene.Camera.Zoom(2);
+        Assert.Equal(origin, scene.ReferenceOrigin);
+        scene.SelectTarget(M82, second: true);
+        scene.FramePair();
+        Assert.Equal(origin, scene.ReferenceOrigin);
+        scene.Selected = M31;
+        Assert.Equal(DistanceSpaceCamera.Position(M31), scene.ReferenceOrigin);
+        scene.ResetToSun();
+        Assert.Equal(default, scene.ReferenceOrigin);
+        Assert.Equal("Solar System", scene.ReferenceOriginName);
+    }
 }

@@ -41,7 +41,6 @@ public partial class ImageInspectionWindow : Window
             _cancellation.Cancel();
             _inspection = null;
             FullImage.Source = null;
-            Histogram.Bins = null;
             // Dispose only after native readers/filters have returned and callbacks have unwound.
             if (_loading is null || _loadFinished)
             {
@@ -89,9 +88,6 @@ public partial class ImageInspectionWindow : Window
             _inspection = result.Inspection;
             FullImage.Source = result.Bitmap;
             ZoomControls.IsEnabled = true;
-            ChannelChoice.ItemsSource = _inspection.Statistics.Select(s => s.Channel).ToArray();
-            ChannelChoice.IsEnabled = true;
-            ChannelChoice.SelectedIndex = 0;
             SampleDescription.Text = _inspection.SampleDescription;
             StatusText.Text = $"{_selected.Width:N0} × {_selected.Height:N0} · {_inspection.Image.DisplayDescription}";
             CloseButton.Content = "Close";
@@ -117,20 +113,6 @@ public partial class ImageInspectionWindow : Window
                 _cancellation.Dispose();
             }
         }
-    }
-
-    private void ChannelChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_inspection is null || ChannelChoice.SelectedIndex < 0)
-        {
-            return;
-        }
-        var stats = _inspection.Statistics[ChannelChoice.SelectedIndex];
-        Histogram.Bins = stats.Histogram;
-        HistogramRange.Text = stats.FiniteCount > 0
-            ? $"{stats.Minimum:G8} → {stats.Maximum:G8} · 256 equal-width bins · linear count axis"
-            : "No finite samples";
-        StatisticsText.Text = $"Finite samples   {stats.FiniteCount:N0}\nNaN / infinity   {stats.NonFiniteCount:N0}\n\nMinimum   {stats.Minimum:G10}\nMaximum   {stats.Maximum:G10}\nMean   {stats.Mean:G10}\nσ   {stats.StandardDeviation:G10}";
     }
 
     private void UpdateZoom(Point? anchor = null)
@@ -200,6 +182,9 @@ public partial class ImageInspectionWindow : Window
             return;
         }
         string samples = string.Join("   ", _inspection.Statistics.Select((s, c) => $"{s.Channel}: {_inspection.ReadSample(x, y, c)}"));
+        var display = _inspection.Image.Preview;
+        int offset = checked((y * display.Width + x) * 4);
+        string color = $"Display RGB: #{display.Bgra[offset + 2]:X2}{display.Bgra[offset + 1]:X2}{display.Bgra[offset]:X2}";
         string sky;
         try
         {
@@ -212,7 +197,7 @@ public partial class ImageInspectionWindow : Window
         {
             sky = "Sky coordinates unavailable at this pixel.";
         }
-        PixelReadout.Text = $"X {x:N0}   Y {y:N0} (zero-based stored rows)   FITS pixel center ({x + 1}, {y + 1})\n{samples}\n{sky}";
+        PixelReadout.Text = $"X {x:N0}   Y {y:N0} (zero-based stored rows)   FITS pixel center ({x + 1}, {y + 1})\n{color}\nOriginal samples · {samples}\n{sky}";
     }
 
     private void ReadAt(Point point)
@@ -234,7 +219,7 @@ public partial class ImageInspectionWindow : Window
     {
         if (!_held && _dragStart is null)
         {
-            PixelReadout.Text = "Move over the image for source pixel, sample and sky coordinates.";
+            PixelReadout.Text = "Move over the image for pixel coordinates, display RGB, original samples and sky coordinates.";
         }
     }
     private void ImageMouseDown(object sender, MouseButtonEventArgs e)

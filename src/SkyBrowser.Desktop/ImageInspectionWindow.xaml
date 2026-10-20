@@ -2,7 +2,6 @@
   x:Class="SkyBrowser.Desktop.ImageInspectionWindow"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-  xmlns:controls="clr-namespace:SkyBrowser.Desktop.Controls"
   Title="SkyBrowser · Full-resolution inspection"
   Width="1180" Height="820" MinWidth="800" MinHeight="600"
   Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterOwner"
@@ -24,37 +23,18 @@
       <TextBlock x:Name="ZoomText" VerticalAlignment="Center" Margin="0,0,18,0" />
       <TextBlock Text="Scroll to zoom · Drag to pan · Click to hold a readout" Foreground="#8D9AAD" VerticalAlignment="Center" />
     </WrapPanel>
-    <Grid Grid.Row="2">
-      <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*" />
-        <ColumnDefinition Width="16" />
-        <ColumnDefinition Width="280" />
-      </Grid.ColumnDefinitions>
-      <Border BorderBrush="#293548" BorderThickness="1" Background="#05080D">
-        <ScrollViewer x:Name="ImageScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
-          CanContentScroll="False" PreviewMouseWheel="ImageMouseWheel" SizeChanged="ViewportSizeChanged"
-          PreviewMouseLeftButtonDown="ImageMouseDown" PreviewMouseLeftButtonUp="ImageMouseUp"
-          PreviewMouseMove="ImageMouseMove" LostMouseCapture="ImageLostCapture" Focusable="True">
-          <Image x:Name="FullImage" Stretch="Fill" HorizontalAlignment="Left" VerticalAlignment="Top"
-            RenderOptions.BitmapScalingMode="NearestNeighbor" MouseMove="ReadoutMouseMove" MouseLeave="ReadoutMouseLeave" />
-        </ScrollViewer>
-      </Border>
-      <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel>
-          <TextBlock Text="Original sample histogram" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,10" />
-          <ComboBox x:Name="ChannelChoice" SelectionChanged="ChannelChanged" IsEnabled="False" Margin="0,0,0,12"
-            AutomationProperties.Name="Histogram channel" />
-          <controls:ScientificHistogram x:Name="Histogram" Height="150" />
-          <TextBlock x:Name="HistogramRange" Foreground="#8D9AAD" TextWrapping="Wrap" FontSize="11" Margin="0,6,0,12" />
-          <TextBox x:Name="StatisticsText" IsReadOnly="True" TextWrapping="Wrap" Background="Transparent" BorderThickness="0" Padding="0" FontSize="12" />
-          <TextBlock Text="All source pixels, before stretch, cleanup or debayering. Alpha is a separate channel. NaN and infinity are excluded from statistics and bins. Statistics use double precision; σ is the population standard deviation."
-            Foreground="#8D9AAD" TextWrapping="Wrap" FontSize="11" Margin="0,14,0,0" />
-        </StackPanel>
+    <Border Grid.Row="2" BorderBrush="#293548" BorderThickness="1" Background="#05080D">
+      <ScrollViewer x:Name="ImageScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+        CanContentScroll="False" PreviewMouseWheel="ImageMouseWheel" SizeChanged="ViewportSizeChanged"
+        PreviewMouseLeftButtonDown="ImageMouseDown" PreviewMouseLeftButtonUp="ImageMouseUp"
+        PreviewMouseMove="ImageMouseMove" LostMouseCapture="ImageLostCapture" Focusable="True">
+        <Image x:Name="FullImage" Stretch="Fill" HorizontalAlignment="Left" VerticalAlignment="Top"
+          RenderOptions.BitmapScalingMode="NearestNeighbor" MouseMove="ReadoutMouseMove" MouseLeave="ReadoutMouseLeave" />
       </ScrollViewer>
-    </Grid>
+    </Border>
     <StackPanel Grid.Row="3" Margin="0,12,0,0">
-      <TextBox x:Name="PixelReadout" Text="Move over the image for source pixel, sample and sky coordinates."
-        IsReadOnly="True" TextWrapping="Wrap" MinHeight="62" FontSize="12" />
+      <TextBox x:Name="PixelReadout" Text="Move over the image for pixel coordinates, display RGB, original samples and sky coordinates."
+        IsReadOnly="True" TextWrapping="Wrap" MinHeight="78" FontSize="12" />
       <TextBlock x:Name="SampleDescription" TextWrapping="Wrap" Foreground="#8D9AAD" FontSize="11" Margin="0,6,0,0" />
     </StackPanel>
     <Grid Grid.Row="4" Margin="0,12,0,0">

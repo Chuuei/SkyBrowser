@@ -347,12 +347,10 @@ internal static class Program
 
     private static async Task CaptureSkyTools(MainWindow window, string root, string output)
     {
-        var library = new ImageLibrary(Path.Combine(root, "artifacts", "manual-sky-tools", "library.sqlite3"));
-        foreach (var bookmark in library.GetBookmarks()) { library.DeleteBookmark(bookmark.Id); }
         var service = new SurveyImageService(Path.Combine(root, "artifacts", "manual-sky-surveys"));
         window.SkyView.SetObserver(null);
         window.SkyView.CenterOn(new(10.6847, 41.269), 4);
-        var tools = new SkyToolsWindow(window.SkyView, library, service) { Owner = window, ShowInTaskbar = false };
+        var tools = new SkyToolsWindow(window.SkyView, service) { Owner = window, ShowInTaskbar = false };
         tools.Show();
         try
         {
@@ -375,9 +373,6 @@ internal static class Program
             Capture(tools, "sky-tools-visibility.png", output);
             tools.Height = 850;
             ((TabControl)tools.FindName("ToolsTabs")).SelectedIndex = 2;
-            ((TextBox)tools.FindName("BookmarkName")).Text = "M31 demonstration";
-            ((TextBox)tools.FindName("BookmarkNotes")).Text = "Demonstration bookmark. Compare nearby fields at the same angular scale.";
-            if (!await tools.SaveBookmarkAsync()) { throw new InvalidOperationException("Demonstration bookmark failed."); }
             foreach (string name in new[] { "ScaleBarChoice", "NorthEastChoice" })
             {
                 var choice = (CheckBox)tools.FindName(name);
@@ -388,15 +383,16 @@ internal static class Program
             window.SkyView.PickMeasurementPoint(new(10.1847, 41.269));
             window.SkyView.PickMeasurementPoint(new(11.1847, 41.269));
             await Ready();
-            Capture(tools, "sky-tools-bookmarks.png", output);
+            Capture(tools, "sky-tools-measurements.png", output);
             Capture(window, "sky-tools-guides.png", output);
-            ((TabControl)tools.FindName("ToolsTabs")).SelectedIndex = 3;
             tools.Width = 800;
             tools.Height = 660;
             ((TextBox)tools.FindName("DistanceSearchA")).Text = "M 81";
             ((TextBox)tools.FindName("DistanceSearchB")).Text = "M 82";
             ((ListBox)tools.FindName("DistanceTargetsA")).SelectedItem = TargetDistances.Find("M81");
             ((ListBox)tools.FindName("DistanceTargetsB")).SelectedItem = TargetDistances.Find("M82");
+            await Ready();
+            ((ScrollViewer)tools.FindName("MeasurementsScroll")).ScrollToBottom();
             await Ready();
             Capture(tools, "sky-tools-distances.png", output);
             var space = new DistanceSpaceWindow { Owner = tools, ShowInTaskbar = false };
@@ -425,6 +421,7 @@ internal static class Program
     {
         var comparison = new ComparisonWindow([wide, detail]) { Owner = window, ShowInTaskbar = false };
         comparison.Show();
+        ((ComboBox)comparison.FindName("ModeChoice")).SelectedIndex = (int)ComparisonMode.SideBySide;
         await Ready();
         Capture(comparison, "comparison-linked.png", output);
         ((ComboBox)comparison.FindName("ModeChoice")).SelectedIndex = (int)ComparisonMode.Swipe;

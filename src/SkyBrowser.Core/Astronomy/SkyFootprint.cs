@@ -83,6 +83,32 @@ public sealed class SkyFootprint
         return false;
     }
 
+    public SkyCoordinate? OverlapCenter(SkyFootprint other)
+    {
+        if (Contains(other._center)) { return SkyCoordinate.FromVector(other._center); }
+        if (other.Contains(_center)) { return SkyCoordinate.FromVector(_center); }
+        var points = _boundary.Where(other.Contains).Concat(other._boundary.Where(Contains)).ToList();
+        for (int i = 0; i < _boundary.Length; i++)
+        {
+            for (int j = 0; j < other._boundary.Length; j++)
+            {
+                var intersection = SkyVector.Cross(_normals[i], other._normals[j]);
+                if (intersection.Length < Tolerance) { continue; }
+                intersection = intersection.Normalized;
+                foreach (var direction in new[] { intersection, intersection * -1 })
+                {
+                    if (OnArc(direction, i, strict: true) && other.OnArc(direction, j, strict: true))
+                    {
+                        points.Add(direction);
+                    }
+                }
+            }
+        }
+        if (points.Count == 0) { return null; }
+        var center = points.Aggregate(default(SkyVector), (sum, point) => sum + point).Normalized;
+        return Contains(center) && other.Contains(center) ? SkyCoordinate.FromVector(center) : null;
+    }
+
     private bool Contains(SkyVector direction)
     {
         if (SkyVector.Dot(_center, direction) < _cosRadius - Tolerance)

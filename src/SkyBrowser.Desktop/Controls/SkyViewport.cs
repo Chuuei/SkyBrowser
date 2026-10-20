@@ -61,16 +61,14 @@ public sealed partial class SkyViewport : Grid
     public SurveyFrame? SurveyBackground => _surveyFrames.FirstOrDefault();
     public IReadOnlyList<SurveyFrame> SurveyBackgrounds => Array.AsReadOnly(_surveyFrames);
     public long SurveyRevision { get; private set; }
-    public IReadOnlyList<SkyBookmark> Bookmarks { get; private set; } = [];
-    public long BookmarkRevision { get; private set; }
     public SkyMeasurement? Measurement { get; private set; }
     public bool IsMeasuring { get; private set; }
     public event EventHandler? MeasurementChanged;
+    public event EventHandler? ImageSelectionCleared;
 
     public bool ShowCatalogTargets { get; set { field = value; Refresh(); } }
     public bool ShowScaleBar { get; set { field = value; Refresh(); } }
     public bool ShowNorthEast { get; set { field = value; Refresh(); } }
-    public bool ShowBookmarks { get; set { field = value; Refresh(); } } = true;
     public double SurveyOpacity
     {
         get;
@@ -112,15 +110,9 @@ public sealed partial class SkyViewport : Grid
         RebuildImages();
     }
 
-    public void SetBookmarks(IEnumerable<SkyBookmark> bookmarks)
-    {
-        Bookmarks = bookmarks.ToArray();
-        BookmarkRevision++;
-        _annotations.InvalidateVisual();
-    }
-
     public void BeginMeasurement()
     {
+        ClearImageSelection();
         _measurementStart = null;
         Measurement = null;
         IsMeasuring = true;
@@ -170,6 +162,7 @@ public sealed partial class SkyViewport : Grid
         };
         _ = updated.SeparationLightYears;
         if (updated == Measurement) { return; }
+        ClearImageSelection();
         Measurement = updated;
         _annotations.InvalidateVisual();
         MeasurementChanged?.Invoke(this, EventArgs.Empty);
@@ -180,6 +173,7 @@ public sealed partial class SkyViewport : Grid
     public void MeasureTargets(string first, string second)
     {
         var measurement = TargetDistances.Measure(first, second);
+        ClearImageSelection();
         _measurementStart = null;
         IsMeasuring = false;
         Cursor = Cursors.Hand;
@@ -206,6 +200,12 @@ public sealed partial class SkyViewport : Grid
     }
 
     public SkyImageLayer? HoveredLayer { get; private set; }
+
+    public void ClearImageSelection()
+    {
+        SelectedLayer = null;
+        ImageSelectionCleared?.Invoke(this, EventArgs.Empty);
+    }
 
     public ObserverSettings? Observer { get; private set; }
 
@@ -860,8 +860,6 @@ public sealed partial class SkyViewport : Grid
             copy.ShowCatalogTargets = ShowCatalogTargets;
             copy.ShowScaleBar = ShowScaleBar;
             copy.ShowNorthEast = ShowNorthEast;
-            copy.ShowBookmarks = ShowBookmarks;
-            copy.SetBookmarks(Bookmarks);
             copy.Measurement = Measurement;
             copy.RestoreTargets(AddedTargets.Select(t => t.Id));
             using (copy.DeferLayerUpdates())
@@ -985,6 +983,10 @@ public sealed partial class SkyViewport : Grid
             {
                 LayerSelected?.Invoke(this, layer);
             }
+            else
+            {
+                ClearImageSelection();
+            }
         }
 
         UpdateHover(e.GetPosition(this));
@@ -1041,6 +1043,9 @@ public sealed partial class SkyViewport : Grid
                 break;
             case Key.Home:
                 ResetView();
+                break;
+            case Key.Escape:
+                ClearImageSelection();
                 break;
             case Key.F when SelectedLayer is { } layer:
                 Fit(layer);

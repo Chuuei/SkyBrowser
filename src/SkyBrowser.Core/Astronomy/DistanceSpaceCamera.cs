@@ -11,13 +11,16 @@ public sealed class DistanceSpaceCamera
     public double Pitch { get; private set; } = 32;
     public const double FieldOfView = 55;
     public const double MinimumDistance = 10;
-    public const double MaximumDistance = 1e12;
+    public const double MaximumViewHeight = 13_800_000_000;
+    private static readonly double ProjectionHeightFactor = 2 * Math.Tan(FieldOfView * SkyCoordinate.Radians / 2);
+    // Limit the visible focus span consistently across zoom, presets and framing.
+    public static readonly double MaximumDistance = MaximumViewHeight / ProjectionHeightFactor;
 
     public SkyVector Back => new SkyCoordinate(Yaw, Pitch).Vector;
     public SkyVector Right => SkyVector.Cross(new(0, 1, 0), Back).Normalized;
     public SkyVector Up => SkyVector.Cross(Back, Right).Normalized;
     public SkyVector Eye => Center + Back * Distance;
-    public double ViewHeight => 2 * Distance * Math.Tan(FieldOfView * SkyCoordinate.Radians / 2);
+    public double ViewHeight => Math.Min(MaximumViewHeight, Distance * ProjectionHeightFactor);
 
     public static SkyVector Position(TargetDistanceEstimate estimate) => estimate.Target.Position.Vector * estimate.LightYears;
 

@@ -47,7 +47,7 @@ public sealed class DistanceSpaceTests
 
     [Theory]
     [InlineData(1e3)]
-    [InlineData(1e9)]
+    [InlineData(1e8)]
     public void ProjectionIsScaleInvariantAcrossGalacticAndExtragalacticDistances(double scale)
     {
         var camera = new DistanceSpaceCamera();
@@ -83,5 +83,29 @@ public sealed class DistanceSpaceTests
         camera.Zoom(double.NaN);
         Assert.Equal(original, camera.Distance);
         Assert.Throws<ArgumentOutOfRangeException>(() => camera.Frame(default, double.NaN));
+    }
+
+    [Fact]
+    public void ZoomFramingAndHomeCannotExceedTheMaximumFocusSpan()
+    {
+        var camera = new DistanceSpaceCamera();
+        camera.Zoom(-1e20);
+        Assert.Equal(DistanceSpaceCamera.MaximumDistance, camera.Distance);
+        Assert.InRange(camera.ViewHeight, 13_800_000_000d - 0.001, 13_800_000_000d);
+        for (int i = 0; i < 10; i++)
+        {
+            camera.Zoom(-100);
+            Assert.Equal(DistanceSpaceCamera.MaximumDistance, camera.Distance);
+        }
+        var center = new SkyVector(100, -200, 300);
+        camera.Frame(center, double.MaxValue);
+        Assert.Equal(center, camera.Center);
+        Assert.Equal(DistanceSpaceCamera.MaximumDistance, camera.Distance);
+        camera.Home(double.MaxValue);
+        Assert.Equal(default, camera.Center);
+        Assert.Equal(DistanceSpaceCamera.MaximumDistance, camera.Distance);
+        camera.Zoom(1);
+        Assert.True(camera.ViewHeight < DistanceSpaceCamera.MaximumViewHeight);
+        Assert.True(camera.Distance < DistanceSpaceCamera.MaximumDistance);
     }
 }

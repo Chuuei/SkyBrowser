@@ -62,15 +62,15 @@ limitations. Check the provider's terms before sharing downloaded photographs.
 Features include a persistent folder library, recursive image loading, ASTAP
 blind solving, overlap blending, collection metadata search, an offline deep-sky
 finder, automatic saved-folder startup, preview caching, and optional observer location/time controls.
-Ctrl/Shift-select collection entries and choose **Compare…** for aligned blinking,
-a swipe divider or linked side-by-side views. **Sort & filter** provides metadata,
+Ctrl/Shift-select images with overlapping sky areas and choose **Compare…** for a
+swipe divider by default, aligned blinking or linked side-by-side views. **Sort & filter** provides metadata,
 tag, group and favorite filters; **Organize…** applies persistent annotations and
 batch visibility, opacity or display changes. Collection thumbnails reuse loaded previews.
 **Sky tools…** provides optional DSS/HiPS survey backgrounds with offline caching,
-target/Sun/Moon visibility planning, saved sky bookmarks and notes, great-circle
+target/Sun/Moon visibility planning, great-circle
 measurements with optional light-year separation from known object distances,
 angular scale bars and celestial direction guides.
-**Sky tools → Target distances** measures between two selected objects using an
+**Sky tools → Measurements → Choose catalogue targets** measures between two selected objects using an
 offline list of 3,283 sourced distance estimates across Messier, Caldwell, NGC and
 IC, including all 109 Caldwell objects. Search by designation or common name;
 coverage counts, source links and reported error details are provided. Missing
@@ -87,7 +87,7 @@ the second target.
 Enable **Options → Sky → Show cached DSS2 images by default** to restore saved survey regions without downloading.
 Survey downloads occur only when requested; their attribution remains visible in sky exports.
 Choose **Inspect full resolution…** under Selected image or in Image details for
-100% inspection, original sample and sky-coordinate readouts, histograms and statistics.
+100% inspection with original sample and sky-coordinate readouts below the image.
 Use **Export…** in the top bar to save a PNG/JPEG sky view with overlay choices,
 or the selected image's display preview. Placement supports SIP/TPV distortion and
 legacy linear PixInsight metadata; unsupported legacy spline formats show a warning.

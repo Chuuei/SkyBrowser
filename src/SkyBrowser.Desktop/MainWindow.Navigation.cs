@@ -54,6 +54,7 @@ public partial class MainWindow
             }
 
             var coordinate = new SkyCoordinate(SkyCoordinate.Normalize(ra), dec);
+            Sky.ClearImageSelection();
             // Compare with the target coordinates as displayed to four decimal places.
             if (TargetChoice.SelectedItem is DeepSkyTarget target &&
                 coordinate.DistanceTo(new(
@@ -86,6 +87,7 @@ public partial class MainWindow
             return;
         }
 
+        Sky.ClearImageSelection();
         Sky.AddTarget(target);
         Sky.CenterOn(target.Position, target.SuggestedFieldOfView);
         GoRa.Text = target.Position.RightAscension.ToString("0.####", CultureInfo.InvariantCulture);

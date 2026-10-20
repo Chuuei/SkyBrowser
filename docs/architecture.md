@@ -30,7 +30,7 @@ while preserving one window and one owner for cancellation and busy state.
 | `MainWindow.SkyTools.cs` | Survey service/restore lifetime and Sky tools window ownership |
 
 `SkyToolsWindow.xaml.cs` owns initialization and the window lifetime. Its Surveys,
-Visibility, Bookmarks and Distances partial files own their respective handlers.
+Visibility, Measurements and Distances partial files own their respective handlers.
 Survey and visibility operations have separate cancellation identities, both linked
 to the window lifetime. Closing the window cancels them and detaches atlas events.
 
@@ -40,6 +40,10 @@ dispatcher; expensive services run off it. Late callbacks must still check closi
 operation identity and the relevant item/revision before changing the scene.
 
 ## Rendering and distance-map state
+
+`ImageComparisonGeometry` in Core owns comparison eligibility from spherical
+footprint overlap and aspect-aware framing of both image meshes through shared sky.
+The desktop command and comparison window enforce the same eligibility rule.
 
 `SkyViewport` owns textured meshes, layer subscriptions, camera interaction and
 transient atlas annotations. `SkyViewport.Drawing.cs` owns its nested background/
@@ -64,7 +68,7 @@ without creating a window.
 
 The durable library, preview cache, survey cache and application options have
 different lifetimes. Keep those stores separate. Cache loss must not remove library
-organization/bookmarks or hide an otherwise readable image. Source signatures bind
+organization or other durable library records, or hide an otherwise readable image. Source signatures bind
 cached previews and saved astrometry to their original scientific files.
 
 Numerical/format contracts and source attribution are detailed in the

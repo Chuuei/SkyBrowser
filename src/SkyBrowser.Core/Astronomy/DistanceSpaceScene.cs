@@ -6,6 +6,8 @@ public sealed class DistanceSpaceScene
     private TargetDistanceEstimate? _selected;
 
     public DistanceSpaceCamera Camera { get; } = new();
+    public SkyVector ReferenceOrigin => Selected is { } selected ? DistanceSpaceCamera.Position(selected) : default;
+    public string ReferenceOriginName => Selected?.Target.Name ?? "Solar System";
     public TargetDistanceEstimate? ComparisonTarget { get; private set; }
     public SkyMeasurement? PairMeasurement { get; private set; }
     public event EventHandler? SelectionChanged;

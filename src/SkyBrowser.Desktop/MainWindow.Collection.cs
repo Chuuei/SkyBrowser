@@ -1,6 +1,8 @@
 using System.Collections;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using SkyBrowser.Core.Astronomy;
 using SkyBrowser.Core.Imaging;
 using SkyBrowser.Core.Library;
 using SkyBrowser.Desktop.Models;
@@ -10,6 +12,39 @@ namespace SkyBrowser.Desktop;
 public partial class MainWindow
 {
     private readonly CollectionFilter _collectionFilter = new();
+    private readonly HashSet<SkyImageLayer> _comparisonSelection = [];
+
+    private void UpdateComparisonSelection()
+    {
+        foreach (var layer in _comparisonSelection) { layer.PropertyChanged -= ComparisonPlacementChanged; }
+        _comparisonSelection.Clear();
+        foreach (var layer in LayerList.SelectedItems.Cast<SkyImageLayer>())
+        {
+            _comparisonSelection.Add(layer);
+            layer.PropertyChanged += ComparisonPlacementChanged;
+        }
+        UpdateComparisonButton();
+    }
+
+    private void ComparisonPlacementChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(SkyImageLayer.Placement) or null or "") { UpdateComparisonButton(); }
+    }
+
+    private void UpdateComparisonButton()
+    {
+        var reason = ComparisonBlockReason(LayerList.SelectedItems.Cast<SkyImageLayer>().ToArray());
+        CompareButton.IsEnabled = reason is null;
+        CompareButton.ToolTip = reason ?? "Compare selected images in Swipe divider mode.";
+    }
+
+    private static string? ComparisonBlockReason(SkyImageLayer[] selected)
+    {
+        if (selected.Length < 2) { return "Select at least two images using Ctrl or Shift to compare."; }
+        if (selected.Any(layer => layer.Placement is null)) { return "Place or solve all selected images before comparing."; }
+        return ImageComparisonGeometry.CanCompare(selected.Select(layer => layer.Placement!).ToArray()) ? null :
+            "These images cover different sky regions. Select images whose sky areas overlap, then choose Compare.";
+    }
 
     private void CollectionFiltersChanged(object sender, RoutedEventArgs e)
     {
@@ -62,9 +97,9 @@ public partial class MainWindow
     private void CompareClicked(object sender, RoutedEventArgs e)
     {
         var selected = LayerList.SelectedItems.Cast<SkyImageLayer>().ToArray();
-        if (selected.Count(layer => layer.Placement is not null) < 2 || selected.Any(layer => layer.Placement is null))
+        if (ComparisonBlockReason(selected) is { } reason)
         {
-            SetStatus("Select at least two placed images using Ctrl or Shift, then choose Compare. Place or solve any unplaced selection first.");
+            SetStatus(reason);
             return;
         }
         new ComparisonWindow(selected) { Owner = this }.Show();

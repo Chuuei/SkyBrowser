@@ -95,6 +95,56 @@ public sealed class DistortedAstrometryTests
     }
 
     [Fact]
+    public void CameraRgbFitsWithZeroPolePreferenceImportsAndCachesItsSipSolution()
+    {
+        string directory = TestImages.NewDirectory();
+        try
+        {
+            string file = Path.Combine(directory, "camera.fits");
+            var source = TestImages.CameraSip();
+            FitsWriter.Write(file, FitsConverter.FromXisf([source], ConversionLossPolicy.Allow));
+            byte[] original = File.ReadAllBytes(file);
+            var expected = ImagePlacement.TryFromMetadata(source, null, out _)!;
+            using var cache = new ProcessedImageCache(Path.Combine(directory, "cache"));
+            var cold = Assert.Single(new CachedSkyImageLoader(cache).Load(file, DisplayMode.Linear, SkyFinishSettings.Default));
+            var warm = Assert.Single(new CachedSkyImageLoader(cache, (_, _, _, _, _, _) => throw new InvalidOperationException("Unexpected source decode"))
+                .Load(file, DisplayMode.Linear, SkyFinishSettings.Default));
+            Assert.True(warm.IsFromCache);
+            foreach (var loaded in new[] { cold, warm })
+            {
+                Assert.NotNull(loaded.Placement);
+                Assert.Null(loaded.PlacementWarning);
+                Assert.Contains("TAN-SIP", loaded.Placement.Description);
+                Assert.Equal(128, loaded.Width);
+                Assert.Equal(96, loaded.Height);
+                foreach (var (u, v) in new[] { (0d, 0d), (1d, 1d), (0.5, 0.5), (0.237, 0.817) })
+                {
+                    Assert.True(expected.At(u, v).DistanceTo(loaded.Placement.At(u, v)) < 1e-12);
+                }
+            }
+            Assert.Equal(original, File.ReadAllBytes(file));
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Theory]
+    [InlineData("NaN")]
+    [InlineData("Infinity")]
+    [InlineData("invalid")]
+    [InlineData("-90.1")]
+    [InlineData("90.1")]
+    public void InvalidPolePreferenceStillRequiresANewSolution(string value)
+    {
+        var source = SipImage();
+        source.FitsKeywords.Add(new("LATPOLE", value, null));
+        Assert.Null(ImagePlacement.TryFromMetadata(source, null, out var warning));
+        Assert.Contains("invalid or unsupported", warning);
+    }
+
+    [Fact]
     public void LegacyLinearPropertiesRespectNativePixelCentersAndPrecedence()
     {
         var source = TestImages.Create();

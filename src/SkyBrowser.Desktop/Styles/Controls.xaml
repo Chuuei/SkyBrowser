@@ -355,6 +355,54 @@
       </Setter.Value>
     </Setter>
   </Style>
+  <Style x:Key="ImageVisibilityToggle" TargetType="ToggleButton">
+    <Setter Property="Width" Value="26" />
+    <Setter Property="Height" Value="26" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource ControlFocusVisual}" />
+    <Setter Property="ToolTip" Value="Show image on sky" />
+    <Setter Property="AutomationProperties.Name" Value="{Binding Name, StringFormat=Show {0} on sky}" />
+    <Setter Property="AutomationProperties.HelpText" Value="Image hidden from sky" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ToggleButton">
+          <Border x:Name="EyeChrome" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="4">
+            <Viewbox Width="20" Height="20">
+              <Canvas Width="24" Height="24">
+                <Path x:Name="Eye" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.7" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
+                  Data="M3,3 L21,21 M9.5,5.3 C10.3,5.1 11.1,5 12,5 C17,5 20.5,9 22,12 C21.4,13.2 20.6,14.3 19.6,15.3 M6.3,6.3 C4.4,7.7 2.9,9.8 2,12 C3.5,15 7,19 12,19 C14.2,19 16.1,18.3 17.7,17.3 M9.9,9.9 A3,3 0 0 0 14.1,14.1" />
+              </Canvas>
+            </Viewbox>
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Eye" Property="Data" Value="M2,12 C3.5,9 7,5 12,5 C17,5 20.5,9 22,12 C20.5,15 17,19 12,19 C7,19 3.5,15 2,12 Z M15,12 A3,3 0 1 1 9,12 A3,3 0 1 1 15,12" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="EyeChrome" Property="Background" Value="{StaticResource ControlHoverBrush}" />
+              <Setter TargetName="EyeChrome" Property="BorderBrush" Value="{StaticResource AccentBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+              <Setter TargetName="EyeChrome" Property="Background" Value="{StaticResource SelectionBrush}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="EyeChrome" Property="Opacity" Value="0.4" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+    <Style.Triggers>
+      <Trigger Property="IsChecked" Value="True">
+        <Setter Property="Foreground" Value="{StaticResource AccentBrush}" />
+        <Setter Property="ToolTip" Value="Hide image from sky" />
+        <Setter Property="AutomationProperties.Name" Value="{Binding Name, StringFormat=Hide {0} from sky}" />
+        <Setter Property="AutomationProperties.HelpText" Value="Image visible on sky" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
   <Style TargetType="CheckBox">
     <Setter Property="Foreground" Value="#B6C4D5" />
     <Setter Property="VerticalContentAlignment" Value="Center" />

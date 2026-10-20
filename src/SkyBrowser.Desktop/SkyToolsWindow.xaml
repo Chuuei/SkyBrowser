@@ -67,36 +67,11 @@
           </StackPanel>
         </ScrollViewer>
       </TabItem>
-      <TabItem Header="Bookmarks &amp; measurements">
-        <Grid Margin="14">
-          <Grid.ColumnDefinitions><ColumnDefinition Width="240" /><ColumnDefinition Width="16" /><ColumnDefinition /></Grid.ColumnDefinitions>
-          <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-          <DockPanel>
-            <TextBlock Text="Saved sky bookmarks" FontWeight="SemiBold" DockPanel.Dock="Top" Margin="0,0,0,10" />
-            <ListBox x:Name="BookmarkList" SelectionChanged="BookmarkSelected" AutomationProperties.Name="Saved sky bookmarks" />
-          </DockPanel>
-          <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
-            <StackPanel Margin="0,0,10,0">
-              <TextBlock Text="Name" FontSize="11" /><TextBox x:Name="BookmarkName" MaxLength="160" Margin="0,5,0,10" />
-              <WrapPanel>
-                <StackPanel Width="125"><TextBlock Text="RA (J2000 degrees)" FontSize="10" /><TextBox x:Name="BookmarkRa" Margin="0,5,0,0" /></StackPanel>
-                <StackPanel Width="125" Margin="10,0,0,0"><TextBlock Text="Dec (degrees)" FontSize="10" /><TextBox x:Name="BookmarkDec" Margin="0,5,0,0" /></StackPanel>
-                <StackPanel Width="100" Margin="10,0,0,0"><TextBlock Text="Field (degrees)" FontSize="10" /><TextBox x:Name="BookmarkField" Margin="0,5,0,0" /></StackPanel>
-              </WrapPanel>
-              <TextBlock Text="Notes" FontSize="11" Margin="0,12,0,5" />
-              <TextBox x:Name="BookmarkNotes" AcceptsReturn="True" TextWrapping="Wrap" Height="160" MaxLength="8192" VerticalScrollBarVisibility="Auto" />
-              <WrapPanel Margin="0,12,0,0" x:Name="BookmarkActions">
-                <Button Content="New at atlas center" Click="NewBookmarkClicked" />
-                <Button Content="Save bookmark" Click="SaveBookmarkClicked" Margin="6,0,0,0" />
-                <Button Content="Go to bookmark" Click="GoBookmarkClicked" Margin="6,0,0,0" />
-                <Button Content="Delete selected" Click="DeleteBookmarkClicked" Margin="0,6,0,0" />
-              </WrapPanel>
-              <TextBlock Text="Bookmarks and notes are saved locally in your library. Their coordinates and field of view remain available after preview-cache clearing or folder removal." Foreground="#8D9AAD" TextWrapping="Wrap" Margin="0,12,0,0" />
-            </StackPanel>
-          </ScrollViewer>
-          <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,18,0,0">
+      <TabItem Header="Measurements">
+        <ScrollViewer x:Name="MeasurementsScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+          <StackPanel Margin="14">
+            <TextBlock Text="Measure on the sky" FontSize="20" Margin="0,0,0,16" />
             <WrapPanel>
-              <CheckBox x:Name="BookmarkOverlayChoice" Content="Show bookmarks" IsChecked="True" Click="OverlayChoicesChanged" />
               <CheckBox x:Name="ScaleBarChoice" Content="Angular scale bar" Click="OverlayChoicesChanged" />
               <CheckBox x:Name="NorthEastChoice" Content="Celestial north / east" Click="OverlayChoicesChanged" ToolTip="J2000 sky directions, separate from the observer's horizon compass" />
             </WrapPanel>
@@ -113,44 +88,42 @@
               <TextBlock Text="B" VerticalAlignment="Center" Margin="16,0,6,0" />
               <TextBox x:Name="MeasurementDistanceB" Width="125" TextChanged="MeasurementDistancesChanged" AutomationProperties.Name="Distance to object B in light-years" ToolTip="Optional distance from us to the second measured object, in light-years" />
             </WrapPanel>
-            <TextBlock x:Name="PhysicalDistanceSummary" Text="Supply both known object distances, or select a pair in Target distances for an offline published estimate." TextWrapping="Wrap" Foreground="#8D9AAD" />
+            <TextBlock x:Name="PhysicalDistanceSummary" Text="Supply both known object distances, or choose catalogue targets below for an offline published estimate." TextWrapping="Wrap" Foreground="#8D9AAD" />
+            <Border BorderBrush="#293548" BorderThickness="0,1,0,0" Margin="0,24,0,0" />
+            <StackPanel x:Name="KnownTargetsPanel" Margin="0,18,0,0">
+              <StackPanel Margin="0,0,0,14">
+                <TextBlock x:Name="KnownTargetsHeading" Text="Choose catalogue targets" FontSize="20" Margin="0,0,0,8" />
+                <TextBlock x:Name="DistanceCoverage" TextWrapping="Wrap" Foreground="#8D9AAD" />
+              </StackPanel>
+              <Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="18" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <TextBlock Text="Target A" FontWeight="SemiBold" />
+                <TextBlock Grid.Column="2" Text="Target B" FontWeight="SemiBold" />
+                <TextBox x:Name="DistanceSearchA" Grid.Row="1" Margin="0,7,0,8" TextChanged="DistanceSearchChanged" AutomationProperties.Name="Search distance target A" ToolTip="Search a designation or common name, for example M 81, NGC 3031 or Bode" />
+                <TextBox x:Name="DistanceSearchB" Grid.Row="1" Grid.Column="2" Margin="0,7,0,8" TextChanged="DistanceSearchChanged" AutomationProperties.Name="Search distance target B" ToolTip="Search a designation or common name, for example M82 or Cigar" />
+                <ListBox x:Name="DistanceTargetsA" Grid.Row="2" MinHeight="44" MaxHeight="140" SelectionChanged="DistanceTargetChanged" AutomationProperties.Name="Distance target A" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
+                <ListBox x:Name="DistanceTargetsB" Grid.Row="2" Grid.Column="2" MinHeight="44" MaxHeight="140" SelectionChanged="DistanceTargetChanged" AutomationProperties.Name="Distance target B" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
+                <TextBlock x:Name="DistanceSourceA" Grid.Row="3" Margin="0,10,0,6" TextWrapping="Wrap" Foreground="#A2B6CA" />
+                <TextBlock x:Name="DistanceSourceB" Grid.Row="3" Grid.Column="2" Margin="0,10,0,6" TextWrapping="Wrap" Foreground="#A2B6CA" />
+                <Button x:Name="DistanceSourceButtonA" Grid.Row="4" Content="Open source for A" Click="OpenDistanceSourceClicked" HorizontalAlignment="Left" IsEnabled="False" />
+                <Button x:Name="DistanceSourceButtonB" Grid.Row="4" Grid.Column="2" Content="Open source for B" Click="OpenDistanceSourceClicked" HorizontalAlignment="Left" IsEnabled="False" />
+              </Grid>
+              <StackPanel Margin="0,12,0,0">
+                <TextBlock x:Name="TargetDistanceResult" Text="Select target A and target B to measure their separation." FontSize="17" Foreground="#8BE2C3" TextWrapping="Wrap" />
+                <TextBlock x:Name="TargetDistanceAngle" TextWrapping="Wrap" Foreground="#A2B6CA" Margin="0,7,0,0" />
+                <TextBlock Text="Published estimates; close-pair separations can be uncertain. Reported object errors appear in source details; separation uncertainty and cosmology are not modelled. For other objects, use the sky-point controls and manual distances above."
+                  TextWrapping="Wrap" Foreground="#8D9AAD" Margin="0,6,0,8" />
+                <WrapPanel>
+                  <Button x:Name="DistanceFrameButton" Content="Frame selected pair" Click="FrameDistancePairClicked" />
+                  <Button x:Name="DistanceMarkedButton" Content="Use two marked targets" Click="UseMarkedDistanceTargetsClicked" Margin="8,0,0,0" />
+                  <Button x:Name="DistanceClearButton" Content="Clear target pair" Click="ClearDistancePairClicked" Margin="8,0,0,0" />
+                  <Button x:Name="DistanceSpaceButton" Content="Explore objects in 3D…" Click="OpenDistanceSpaceClicked" Margin="8,0,0,0" />
+                </WrapPanel>
+              </StackPanel>
+            </StackPanel>
           </StackPanel>
-        </Grid>
-      </TabItem>
-      <TabItem Header="Target distances">
-        <Grid Margin="14">
-          <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-          <StackPanel Margin="0,0,0,14">
-            <TextBlock Text="Measure between known targets" FontSize="20" Margin="0,0,0,8" />
-            <TextBlock x:Name="DistanceCoverage" TextWrapping="Wrap" Foreground="#8D9AAD" />
-          </StackPanel>
-          <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="18" /><ColumnDefinition /></Grid.ColumnDefinitions>
-            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-            <TextBlock Text="Target A" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="2" Text="Target B" FontWeight="SemiBold" />
-            <TextBox x:Name="DistanceSearchA" Grid.Row="1" Margin="0,7,0,8" TextChanged="DistanceSearchChanged" AutomationProperties.Name="Search distance target A" ToolTip="Search a designation or common name, for example M 81, NGC 3031 or Bode" />
-            <TextBox x:Name="DistanceSearchB" Grid.Row="1" Grid.Column="2" Margin="0,7,0,8" TextChanged="DistanceSearchChanged" AutomationProperties.Name="Search distance target B" ToolTip="Search a designation or common name, for example M82 or Cigar" />
-            <ListBox x:Name="DistanceTargetsA" Grid.Row="2" MinHeight="44" SelectionChanged="DistanceTargetChanged" AutomationProperties.Name="Distance target A" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
-            <ListBox x:Name="DistanceTargetsB" Grid.Row="2" Grid.Column="2" MinHeight="44" SelectionChanged="DistanceTargetChanged" AutomationProperties.Name="Distance target B" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling" />
-            <TextBlock x:Name="DistanceSourceA" Grid.Row="3" Margin="0,10,0,6" TextWrapping="Wrap" Foreground="#A2B6CA" />
-            <TextBlock x:Name="DistanceSourceB" Grid.Row="3" Grid.Column="2" Margin="0,10,0,6" TextWrapping="Wrap" Foreground="#A2B6CA" />
-            <Button x:Name="DistanceSourceButtonA" Grid.Row="4" Content="Open source for A" Click="OpenDistanceSourceClicked" HorizontalAlignment="Left" IsEnabled="False" />
-            <Button x:Name="DistanceSourceButtonB" Grid.Row="4" Grid.Column="2" Content="Open source for B" Click="OpenDistanceSourceClicked" HorizontalAlignment="Left" IsEnabled="False" />
-          </Grid>
-          <StackPanel Grid.Row="2" Margin="0,12,0,0">
-            <TextBlock x:Name="TargetDistanceResult" Text="Select target A and target B to measure their separation." FontSize="17" Foreground="#8BE2C3" TextWrapping="Wrap" />
-            <TextBlock x:Name="TargetDistanceAngle" TextWrapping="Wrap" Foreground="#A2B6CA" Margin="0,7,0,0" />
-            <TextBlock Text="Published estimates; close-pair separations can be uncertain. Reported object errors appear in source details; separation uncertainty and cosmology are not modelled. Other objects: manual distances in Bookmarks &amp; measurements."
-              TextWrapping="Wrap" Foreground="#8D9AAD" Margin="0,6,0,8" />
-            <WrapPanel>
-              <Button x:Name="DistanceFrameButton" Content="Frame selected pair" Click="FrameDistancePairClicked" />
-              <Button x:Name="DistanceMarkedButton" Content="Use two marked targets" Click="UseMarkedDistanceTargetsClicked" Margin="8,0,0,0" />
-              <Button x:Name="DistanceClearButton" Content="Clear target pair" Click="ClearDistancePairClicked" Margin="8,0,0,0" />
-              <Button x:Name="DistanceSpaceButton" Content="Explore objects in 3D…" Click="OpenDistanceSpaceClicked" Margin="8,0,0,0" />
-            </WrapPanel>
-          </StackPanel>
-        </Grid>
+        </ScrollViewer>
       </TabItem>
     </TabControl>
     <TextBlock x:Name="SkyToolsStatus" Grid.Row="1" Text="Ready" Foreground="#8BE2C3" TextWrapping="Wrap" Margin="0,12,0,0" />

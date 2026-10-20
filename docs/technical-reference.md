@@ -9,7 +9,15 @@ Start with the illustrated [user manual](SkyBrowser-User-Manual.pdf) for a begin
 ## Comparison and collection organization
 
 Ctrl/Shift-select loaded images and choose **Compare…**. Every selected image must
-have a placement. The comparison window snapshots the current preview and manual
+have a placement and overlap every other selected image's spherical sky footprint.
+Unrelated fields are rejected with an explanation.
+The Compare button is enabled only for an eligible selection and updates when a
+selected placement changes; its disabled tooltip explains what is missing.
+Comparison starts in Swipe divider mode, with distinct A/B choices. Opening, changing the pair or switching modes frames
+both sampled image meshes around shared sky, accounting for the viewport aspect ratio.
+**Fit both** restores this framing. `ImageComparisonGeometry` owns eligibility and
+framing in Core, using `SkyFootprint` rather than a fixed angular-distance threshold.
+The comparison window snapshots the current preview and manual
 placement into independent layers at full opacity. Two `SkyViewport` instances share
 sky center and horizontal field of view, including seam/pole navigation. Side-by-side
 panes have equal dimensions; blink and swipe use overlapping, identically sized
@@ -26,6 +34,13 @@ sorting affects only its `ListCollectionView`, preserving scene draw order. Stru
 filters read retained FITS/XISF fields for object, filter, telescope, camera or ISO
 observation date; they combine with exact case-insensitive tag/group matching,
 favorites and the existing normalized metadata search. Unknown fields do not match.
+
+Image selection identifies the active editing context. Choosing a catalogue target,
+using manual coordinate navigation, showing a saved survey region or measuring clears
+all image selections and collapses the inspector without changing layer visibility or
+opacity. Empty-sky clicks and Escape in the sky/image list also deselect. Panning,
+zooming and opening tools retain selection. Selecting an image again restores its
+controls and cancels unfinished sky-point picking; completed measurements remain.
 
 `ImageLibrary` adds an independent `organization` table keyed by canonical source path
 and image index. Favorites, normalized comma-separated tags and one group survive
@@ -60,8 +75,9 @@ offsets alone do not provide a reliable draw order. Survey regions stay excluded
 from collection selection/hit actions. Pixel regressions cover overlapping rotated
 wide fields, panning/zooming, source-over opacity, foreground photos and exports.
 Credits remain visible in atlas/exports independently of Labels. The returned FITS
-WCS determines orientation; WCSLIB's solved zenithal LATPOLE=reference declination
-is equivalent to its omitted/default pole-selection preference for these projections.
+WCS determines orientation; zenithal LATPOLE is a pole-selection preference, so any
+valid latitude, including Draco's zero and WCSLIB's solved reference declination,
+is equivalent to omitting it for these projections.
 
 Visibility planning retains J2000 target coordinates, rotates them with ObserverFrame,
 and obtains topocentric J2000 Sun/Moon positions and lunar illumination from pinned
@@ -73,10 +89,9 @@ ignoring separation below the geometric lunar horizon. No refraction, elevation,
 terrain or weather model is applied. Polar day/night and circumpolar/no-rise targets
 remain explicit. Planning location/time never overwrite startup observer options.
 
-Bookmarks and notes live in a path-independent `bookmarks` table in the durable
-library, keyed by GUID, and load at startup without source decoding. They retain
-J2000 position and field of view. Async callbacks are guarded by lifetime/revision;
-closing cancels work and detaches handlers. Measurements are transient, use robust
+Sky tools provides survey backgrounds, visibility planning and a combined
+Measurements tab for sky-point/manual distances and catalogue target pairs. Legacy bookmark records remain in the library for compatibility;
+the desktop no longer loads, edits or displays them. Measurements are transient, use robust
 vector/great-circle geometry and support seams/poles/antipodes. Optional positive,
 finite distances from the observer to A/B in light-years give their Euclidean 3D
 separation: `sqrt((dA-dB)^2 + 4*dA*dB*sin(theta/2)^2)`. The implementation scales
@@ -118,7 +133,7 @@ VOTable query status and the row cap are checked before publishing a snapshot;
 `python -m unittest discover -s tools/tests -p test_target_distance_sources.py`
 checks ingestion without network access.
 
-Sky tools' Target distances tab independently filters/selects A and B. Both selected
+The Measurements tab's catalogue section independently filters/selects A and B. Both selected
 objects supply their J2000 catalogue centres and distances to the existing sky
 measurement. Frame selected pair is explicit; Use two marked targets requires
 exactly two marked objects with bundled estimates. Catalogue provenance remains in
@@ -132,13 +147,16 @@ new/cleared measurements clear selectors. Arbitrary sky clicks never guess ident
 
 ### Three-dimensional distance map
 
-Target distances opens a separate modeless `DistanceSpaceWindow`; a single child is
+Measurements opens a separate modeless `DistanceSpaceWindow`; a single child is
 reused while open and closes with Sky tools. It has no persistent settings, observer
 changes or network requests except explicit source links. The independent camera
 starts centred on the Solar System. Each object centre is its J2000 direction vector
 multiplied by its published distance in light-years. Axes follow `SkyCoordinate`:
-Y north, X at RA 0, negative Z at RA 90. The reference plane is equatorial, not the
-Galactic plane. All distances are linear; no logarithmic compression or marker-size
+Y north, X at RA 0, negative Z at RA 90. The reference plane retains J2000 equatorial
+orientation and passes through the primary focused object, or the Solar System
+when no object is selected. Rings, axes, guide drops and north/south colours share
+this origin; panning and pair framing retain the primary reference. All distances
+are linear; no logarithmic compression or marker-size
 claims are made. The Euclidean snapshot inherits source uncertainty and does not
 model cosmology, travel times, object motion or physical extents.
 
@@ -146,7 +164,10 @@ model cosmology, travel times, object motion or physical extents.
 camera-relative translation. Zoom changes eye-to-pivot distance; panning and WASD/QE
 translate both. Relative near/far clipping at 0.00001/8 times camera distance keeps
 the point cloud usable across scales; zooming out reveals more distant objects.
-Pitch is bounded away from poles; zoom is bounded to 10 through 1e12 light-years.
+Pitch is bounded away from poles; the minimum eye-to-pivot distance is 10 light-years.
+The maximum vertical focus span is 13.8 billion light-years, with the corresponding
+eye-to-pivot limit derived from the field of view. Wheel/keyboard zoom, presets and
+framing share this navigation cap, and the status reports when it is reached.
 Home and Reset to Sun clear the selection and restore the initial Solar System view.
 Selecting a point or search result immediately frames its position as the navigation
 pivot. Recenter on target restores that pivot after panning. Presets change only the
@@ -251,15 +272,14 @@ the pixel center through the current file solution, source-validated saved ASTAP
 mesh or active manual placement; manual and cached-mesh coordinates retain those
 placements' accuracy limits. A missing solution leaves scientific readouts available.
 
-Readouts and statistics use original XISF samples or FITS physical values after
-BSCALE/BZERO, with BLANK represented as NaN. They precede stretching, cosmetics and
-debayering; alpha is a separate channel and Bayer values remain mosaic samples.
-UInt64 readouts retain all integer bits. Each channel's 256-bin histogram spans its
-finite minimum/maximum with a linear count axis. All source samples contribute;
-non-finite values are counted separately. Statistics show minimum, maximum, mean
-and population standard deviation using double precision (large integers can round).
-Constant channels occupy the first bin; all-invalid channels have empty bins and
-undefined statistics. No scientific samples or full-resolution bitmaps are persisted.
+The image fills the available width, with sample and coordinate readouts below it.
+The inspection window has no histogram or statistics sidebar. Display RGB is shown
+as #RRGGBB from the full-resolution processed image, including its selected stretch,
+cleanup and debayering. A separately labelled original-sample readout uses original
+XISF samples or FITS physical values after BSCALE/BZERO, with BLANK represented as
+NaN, before stretching, cosmetics and debayering. Alpha is a separate channel and
+Bayer values remain mosaic samples. UInt64 readouts retain all integer bits.
+No scientific samples or full-resolution bitmaps are persisted.
 Source/sidecar signatures are checked before and after loading; unavailable,
 changed-dimension or concurrently modified sources produce an error in this window.
 
@@ -355,7 +375,7 @@ Export revalidates the saved source signature, recovers the centered TAN matrix 
 
 The FITS model is evaluated directly for coordinates and persisted beside the display mesh in the preview cache. Cache hits retain polynomial precision between mesh vertices. Swapped celestial axes are supported for undistorted and SIP solutions; TPV requires the registered RA-first/Dec-second ordering. Independent synthetic reference cases cover SIP order 9, every TPV term, additional projections, axis ordering, CROTA, the RA seam and poles. Regenerate with `tools/Build-AstrometryReferences.py` using Astropy 8.0.2; runtime and normal tests do not require Python. The reference generator explicitly supplies TPV identity coefficients because WCSLIB's omitted-coefficient behavior differs from the registered convention.
 
-The mathematical conventions are documented by the [registered SIP specification](https://fits.gsfc.nasa.gov/registry/sip/SIP_distortion_v1_0.pdf) and [TPV registry](https://fits.gsfc.nasa.gov/registry/tpvwcs/tpv.html). Legacy property semantics are described by the publisher's [PCL WCS metadata implementation](https://gitlab.com/pixinsight/PCL/-/raw/master/src/pcl/WCSKeywords.cpp); SkyBrowser uses its own adapter and does not import PCL code.
+The mathematical conventions are documented by the [registered SIP specification](https://fits.gsfc.nasa.gov/registry/sip/SIP_distortion_v1_0.pdf), [TPV registry](https://fits.gsfc.nasa.gov/registry/tpvwcs/tpv.html) and [FITS pole-selection rules](https://fits.gsfc.nasa.gov/standard30/htmlfiles/fits_standard3000091.html). Legacy property semantics are described by the publisher's [PCL WCS metadata implementation](https://gitlab.com/pixinsight/PCL/-/raw/master/src/pcl/WCSKeywords.cpp); SkyBrowser uses its own adapter and does not import PCL code.
 
 ### PNG/JPEG export
 

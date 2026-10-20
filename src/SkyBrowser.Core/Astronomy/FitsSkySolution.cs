@@ -183,13 +183,13 @@ internal sealed class FitsSkySolution
             double referenceDec = Number(swapped ? "CRVAL1" : "CRVAL2");
             double pole = Number("LONPOLE", referenceDec == 90 ? 0 : 180);
             double latitudePole = Number("LATPOLE", 90);
-            // Zenithal CRVAL identifies the native pole. WCSLIB writes its solved
-            // latitude (CRVAL declination); an omitted/default LATPOLE=90 is only
-            // the pole-selection preference. Both describe the same rotation.
+            // For these zenithal projections, CRVAL and LONPOLE uniquely fix the
+            // rotation. LATPOLE is only a preference when two pole solutions exist;
+            // any valid latitude (including the Draco writer's zero) is equivalent.
             if (frame is not ("" or "ICRS" or "FK5") || Number("EQUINOX", 2000) != 2000 ||
                 Get("CUNIT1") is not ("" or "DEG") || Get("CUNIT2") is not ("" or "DEG") ||
                 (pole != 180 && !(pole == 0 && referenceDec == 90)) ||
-                (latitudePole != 90 && Math.Abs(latitudePole - referenceDec) > 1e-10))
+                Math.Abs(latitudePole) > 90)
             {
                 throw new NotSupportedException("unsupported coordinate frame, units or pole orientation");
             }

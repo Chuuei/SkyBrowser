@@ -73,7 +73,7 @@
           Orientation="Horizontal"
           VerticalAlignment="Center">
           <Button x:Name="SkyToolsButton" Content="Sky tools…" Click="SkyToolsClicked" Margin="0,0,8,0"
-            ToolTip="Survey background, visibility planning, bookmarks and angular measurements" />
+            ToolTip="Survey background, visibility planning and angular measurements" />
           <Button x:Name="ExportButton" Content="Export…" Click="ExportClicked" Margin="0,0,8,0"
             ToolTip="Save a PNG or JPEG sky view or selected-image preview" />
           <Button
@@ -237,7 +237,8 @@
               </ScrollViewer>
             </Expander>
             <WrapPanel x:Name="CollectionActions" Margin="0,0,0,5">
-              <Button Content="Compare…" Click="CompareClicked" Padding="8,5" ToolTip="Ctrl/Shift-select two or more placed images to compare" />
+              <Button x:Name="CompareButton" Content="Compare…" Click="CompareClicked" Padding="8,5" IsEnabled="False"
+                ToolTip="Select at least two images using Ctrl or Shift to compare." ToolTipService.ShowOnDisabled="True" />
               <Button Content="Organize…" Click="OrganizeClicked" Padding="8,5" Margin="6,0,0,0" ToolTip="Tags, favorites, groups and batch visibility/display for selected images" />
               <Button Content="Select all" Click="SelectMatchingClicked" Padding="7,5" Margin="6,0,0,0" ToolTip="Select all matching collection entries" />
             </WrapPanel>
@@ -249,16 +250,17 @@
                 <DataTemplate>
                   <Grid>
                     <Grid.ColumnDefinitions>
-                      <ColumnDefinition Width="24" />
+                      <ColumnDefinition Width="30" />
                       <ColumnDefinition Width="50" />
                       <ColumnDefinition Width="*" />
                       <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <CheckBox
-                      IsChecked="{Binding IsVisible}"
+                    <ToggleButton
+                      x:Name="ImageVisibilityButton"
+                      Style="{StaticResource ImageVisibilityToggle}"
+                      IsChecked="{Binding IsVisible, Mode=TwoWay}"
                       VerticalAlignment="Top"
-                      Margin="0,4,0,0"
-                      ToolTip="Show image" />
+                      Margin="0,-2,4,0" />
                     <Image Grid.Column="1" Source="{Binding Bitmap}" Width="44" Height="44" Stretch="Uniform" VerticalAlignment="Top" Margin="0,0,6,0" RenderOptions.BitmapScalingMode="LowQuality" />
                     <StackPanel Grid.Column="2">
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />

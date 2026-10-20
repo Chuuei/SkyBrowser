@@ -141,6 +141,11 @@ public partial class DistanceSpaceWindow : Window
 
     private void UpdateStatus()
     {
+        ReferencePlaneDescription.Text = $"J2000 equatorial reference plane through {SpaceView.ReferenceOriginName}. Rings measure light-years from this origin. " +
+            "Symbols represent object centres, not their size. Published distances are approximate; errors and cosmological effects are not modelled. Labels are reduced to avoid overlap.";
+        string zoomHint = SpaceView.Camera.Distance >= DistanceSpaceCamera.MaximumDistance
+            ? "Maximum zoom-out scale reached."
+            : "Zoom out to reveal more distant objects.";
         string center = SpaceView.Camera.Center.Length < 1e-6 ? "Sun / Solar System" :
             SpaceView.Selected is { } selected &&
             (SpaceView.Camera.Center - DistanceSpaceCamera.Position(selected)).Length < Math.Max(1e-6, selected.LightYears * 1e-12)
@@ -148,7 +153,7 @@ public partial class DistanceSpaceWindow : Window
         SpaceStatus.Text = $"{TargetDistances.Coverage(SpaceView.Catalog).Available:N0} offline objects · " +
             $"Navigation centre: {center} · " +
             $"Camera {DistanceSpaceView.FormatScale(SpaceView.Camera.Eye.Length)} ly from Solar System · " +
-            $"Focus span {DistanceSpaceView.FormatScale(SpaceView.Camera.ViewHeight)} ly. Zoom out to reveal more distant objects.";
+            $"Focus span {DistanceSpaceView.FormatScale(SpaceView.Camera.ViewHeight)} ly. {zoomHint}";
     }
 
     private void SourceClicked(object sender, RoutedEventArgs e)

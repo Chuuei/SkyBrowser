@@ -62,6 +62,7 @@ public sealed partial class DesktopTests
                         VerifyBlending(currentWindow);
                         VerifySkyImageActions(currentWindow);
                         await VerifyTargetPicker(currentWindow, directory);
+                        await VerifyCameraSipPlacement(currentWindow, directory);
                         string xisf = Path.Combine(directory, "synthetic.xisf"), fits = Path.Combine(directory, "synthetic.fits");
                         var image = TestImages.Create();
                         XisfWriter.Write(xisf, [image]);
@@ -1056,6 +1057,10 @@ public sealed partial class DesktopTests
 
     private static async Task VerifyTargetPicker(MainWindow window, string directory)
     {
+        var imageList = (ListBox)window.FindName("LayerList");
+        var image = SolidLayer("Image selection context", 2, 80, 100, 120);
+        window.SkyView.Layers.Add(image);
+        image.Opacity = 0.6;
         var finder = (System.Windows.Controls.Expander)window.FindName("TargetFinder");
         finder.IsExpanded = true;
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
@@ -1085,17 +1090,30 @@ public sealed partial class DesktopTests
 
         async Task Choose(string query)
         {
+            imageList.SelectAll();
+            Assert.NotNull(window.SkyView.SelectedLayer);
             search.Text = query;
             var target = (DeepSkyTarget)targets.Items[0];
+            bool alreadyChosen = ReferenceEquals(targets.SelectedItem, target);
             targets.IsDropDownOpen = true;
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             var item = Assert.IsType<System.Windows.Controls.ComboBoxItem>(targets.ItemContainerGenerator.ContainerFromItem(target));
             item.SetCurrentValue(System.Windows.Controls.Primitives.Selector.IsSelectedProperty, true);
             targets.IsDropDownOpen = false;
+            if (alreadyChosen)
+            {
+                // An alias can resolve to the current choice; Go explicitly navigates to it again.
+                ((Button)window.FindName("TargetGoButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+            }
             Assert.Same(target, targets.SelectedItem);
             Assert.True(window.SkyView.Camera.Center.DistanceTo(target.Position) < 1e-10);
             Assert.Equal(target.SuggestedFieldOfView, window.SkyView.Camera.FieldOfView);
             Assert.Contains(window.SkyView.AddedTargets, added => added.Id == target.Id);
+            Assert.Empty(imageList.SelectedItems);
+            Assert.Null(window.SkyView.SelectedLayer);
+            Assert.Equal(Visibility.Collapsed, ((FrameworkElement)window.FindName("InspectorBorder")).Visibility);
+            Assert.True(image.IsVisible);
+            Assert.Equal(0.6, image.Opacity);
             Assert.Equal(
                 target.Position.RightAscension.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture),
                 ((System.Windows.Controls.TextBox)window.FindName("GoRa")).Text
@@ -1120,7 +1138,9 @@ public sealed partial class DesktopTests
         var dec = (System.Windows.Controls.TextBox)window.FindName("GoDec");
 
         void Go() => go.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        imageList.SelectedItem = image;
         Go();
+        Assert.Empty(imageList.SelectedItems);
         Assert.True(window.SkyView.Camera.Center.DistanceTo(DeepSkyCatalog.Find("C65")!.Position) < 1e-10);
         Assert.Equal(DeepSkyCatalog.Find("C65")!.SuggestedFieldOfView, window.SkyView.Camera.FieldOfView);
         Capture(window, "target-picker-selected.png");
@@ -1128,12 +1148,16 @@ public sealed partial class DesktopTests
         double fieldOfView = window.SkyView.Camera.FieldOfView;
         ra.Text = "383.5";
         dec.Text = "-12.25";
+        imageList.SelectedItem = image;
         Go();
+        Assert.Empty(imageList.SelectedItems);
         Assert.Equal(new SkyCoordinate(23.5, -12.25), window.SkyView.Camera.Center);
         Assert.Equal(fieldOfView, window.SkyView.Camera.FieldOfView);
         Assert.Equal(count, window.SkyView.AddedTargets.Count);
         dec.Text = "91";
+        imageList.SelectedItem = image;
         Go();
+        Assert.Same(image, imageList.SelectedItem); // Invalid navigation leaves the current context alone.
         Assert.Contains("Declination must be", window.Status);
         Assert.Equal(new SkyCoordinate(23.5, -12.25), window.SkyView.Camera.Center);
         ra.Text = targetRa;
@@ -1156,6 +1180,15 @@ public sealed partial class DesktopTests
         window.SkyView.ClearAddedTargets();
         targets.SelectedIndex = -1;
         finder.IsExpanded = false;
+        imageList.SelectedItem = image;
+        Assert.Equal(Visibility.Visible, ((FrameworkElement)window.FindName("InspectorBorder")).Visibility);
+        imageList.Focus();
+        imageList.RaiseEvent(new System.Windows.Input.KeyEventArgs(
+            System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(imageList), 0, System.Windows.Input.Key.Escape)
+        { RoutedEvent = System.Windows.Input.Keyboard.PreviewKeyDownEvent });
+        Assert.Empty(imageList.SelectedItems);
+        Assert.Null(window.SkyView.SelectedLayer);
+        window.SkyView.Layers.Remove(image);
     }
 
     private static void CaptureElement(FrameworkElement element, string name)
@@ -1410,16 +1443,17 @@ public sealed partial class DesktopTests
             Assert.Contains("FITS pixel center (1, 1)", readout);
             Assert.Contains("J2000", readout);
             Assert.Contains("0.800000011920929", readout);
-            var channels = (ComboBox)inspection.FindName("ChannelChoice");
-            channels.SelectedIndex = 2;
-            var histogram = (SkyBrowser.Desktop.Controls.ScientificHistogram)inspection.FindName("Histogram");
-            Assert.Equal(layer.Image.Width * layer.Image.Height, histogram.Bins!.Sum());
-            Assert.Contains("Finite samples", ((TextBox)inspection.FindName("StatisticsText")).Text);
+            Assert.Contains("Original samples · R:", readout);
+            byte[] displayPixel = new byte[4];
+            bitmap.CopyPixels(new Int32Rect(0, 0, 1, 1), displayPixel, 4, 0);
+            Assert.Contains($"Display RGB: #{displayPixel[2]:X2}{displayPixel[1]:X2}{displayPixel[0]:X2}", readout);
             Capture(inspection, "full-resolution-inspection.png");
             inspection.Width = inspection.MinWidth;
             inspection.Height = inspection.MinHeight;
             inspection.UpdateLayout();
-            Assert.True(((ScrollViewer)inspection.FindName("ImageScroll")).ViewportHeight > 100);
+            var scroll = (ScrollViewer)inspection.FindName("ImageScroll");
+            Assert.True(scroll.ViewportHeight > 100);
+            Assert.True(scroll.ActualWidth > inspection.ActualWidth - 80);
             ((Button)inspection.FindName("FitImageButton")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
             Assert.Contains("fit", ((TextBlock)inspection.FindName("ZoomText")).Text);
         }

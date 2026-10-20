@@ -342,15 +342,6 @@ public sealed partial class SkyViewport
                     if (++count >= 250) { break; }
                 }
             }
-            if (owner.ShowBookmarks)
-            {
-                foreach (var bookmark in owner.Bookmarks)
-                {
-                    if (Project(bookmark.Position) is not { } point || !Inside(point, 0)) { continue; }
-                    dc.DrawEllipse(null, SelectedPen, point, 6, 6);
-                    if (owner.ShowLabels) { Text(dc, bookmark.Name, point + new Vector(10, 4), "#D8C398", 11); }
-                }
-            }
             if (owner.Measurement is { } measurement)
             {
                 Point? previous = null;
