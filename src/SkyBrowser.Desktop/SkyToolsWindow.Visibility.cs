@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Windows;
+using System.Windows.Controls;
 using SkyBrowser.Core.Astronomy;
 
 namespace SkyBrowser.Desktop;
@@ -9,6 +10,28 @@ public partial class SkyToolsWindow
 {
     private CancellationTokenSource? _planningOperation;
     public VisibilityReport? VisibilityReport => AltitudeChart.Report;
+
+    private void VisibilityInputChanged(object sender, TextChangedEventArgs e)
+    {
+        // DatePicker also contains a TextBox and may format it when focus moves.
+        // Only our actual numeric/time inputs invalidate a running calculation.
+        if (e.OriginalSource is TextBox box && new[] { PlanRa, PlanDec, PlanLatitude, PlanLongitude, PlanTime,
+                PlanMinAltitude, PlanMaxSun, PlanMinMoon }.Contains(box))
+        {
+            InvalidateVisibility();
+        }
+    }
+    private void VisibilityDateChanged(object sender, SelectionChangedEventArgs e) => InvalidateVisibility();
+    private void VisibilityCriteriaChanged(object sender, RoutedEventArgs e) => InvalidateVisibility();
+
+    private void InvalidateVisibility()
+    {
+        if (!_ready || _closed)
+        { return; }
+        _planningOperation?.Cancel();
+        AltitudeChart.Report = null;
+        VisibilitySummary.Text = "Planning settings changed. Calculate visibility to update the chart and times.";
+    }
 
     private void UsePlanningCenterClicked(object sender, RoutedEventArgs e)
     {
@@ -54,6 +77,7 @@ public partial class SkyToolsWindow
             var criteria = new VisibilityCriteria(Number(PlanMinAltitude), Number(PlanMaxSun), Number(PlanMinMoon), PlanIgnoreLowMoon.IsChecked == true);
             SkyToolsStatus.Text = "Calculating target, Sun and Moon visibility…";
             var report = await Task.Run(() => TargetVisibility.Calculate(target, location, start, criteria, operation.Token), operation.Token);
+            operation.Token.ThrowIfCancellationRequested();
             if (_closed || !ReferenceEquals(_planningOperation, operation))
             {
                 return null;
@@ -67,7 +91,7 @@ public partial class SkyToolsWindow
         {
             if (!_closed && ReferenceEquals(_planningOperation, operation))
             {
-                SkyToolsStatus.Text = "Visibility calculation cancelled; previous chart retained";
+                SkyToolsStatus.Text = "Visibility calculation cancelled";
             }
         }
         catch (Exception exception)

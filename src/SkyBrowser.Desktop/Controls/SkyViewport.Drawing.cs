@@ -326,10 +326,37 @@ public sealed partial class SkyViewport
             dc.DrawLine(FootprintPen, center + new Vector(0, -8), center + new Vector(0, -3));
             dc.DrawLine(FootprintPen, center + new Vector(0, 3), center + new Vector(0, 8));
             dc.Pop();
+            if (owner.ShowMoon) { DrawMoon(dc); }
         }
 
         private void DrawSkyTools(DrawingContext dc)
         {
+            if (owner.FramingPlan is { } plan)
+            {
+                foreach (var panel in plan.Panels)
+                {
+                    var pen = panel.Number == owner.SelectedFramingPanel ? SelectedPen : FootprintPen;
+                    for (int edge = 0; edge < 4; edge++)
+                    {
+                        Point? previous = null;
+                        for (int step = 0; step <= 16; step++)
+                        {
+                            double t = step / 16d;
+                            var coordinate = edge switch
+                            {
+                                0 => panel.At(t, 0), 1 => panel.At(1, t),
+                                2 => panel.At(1 - t, 1), _ => panel.At(0, 1 - t)
+                            };
+                            DrawSegment(dc, ref previous, Project(coordinate), pen);
+                        }
+                    }
+                    if (Project(panel.Center) is { } center && Inside(center))
+                    {
+                        dc.DrawEllipse(Brushes.Black, pen, center, 12, 12);
+                        Text(dc, panel.Number.ToString(System.Globalization.CultureInfo.InvariantCulture), center + new Vector(-6, -8), "#8BE2C3", 12);
+                    }
+                }
+            }
             if (owner.ShowCatalogTargets)
             {
                 int count = 0;
@@ -440,6 +467,28 @@ public sealed partial class SkyViewport
             if (owner.ShowLabels)
             {
                 Text(dc, target.Name, center + new Vector(12, -10), "#A5E8D1", 11);
+            }
+        }
+
+        private void DrawMoon(DrawingContext dc)
+        {
+            var moon = owner.CurrentMoon;
+            if (Project(moon.Position) is not { } center || !Inside(center, MoonGlyph.Diameter)) { return; }
+            double angle = 0;
+            if (ProjectVector(moon.Position.Vector + moon.Position.North * .001) is { } north)
+            {
+                var direction = north - center;
+                angle = Math.Atan2(direction.X, -direction.Y) / SkyCoordinate.Radians;
+            }
+            double radius = MoonGlyph.Diameter / 2;
+            dc.DrawEllipse(new SolidColorBrush(Color.FromArgb(24, 174, 193, 222)), null, center, radius + 3, radius + 3);
+            dc.PushTransform(new RotateTransform(angle, center.X, center.Y));
+            dc.DrawImage(owner.MoonImage, new Rect(center.X - radius, center.Y - radius, MoonGlyph.Diameter, MoonGlyph.Diameter));
+            dc.Pop();
+            if (owner.ShowLabels)
+            {
+                Text(dc, string.Create(CultureInfo.InvariantCulture, $"Moon · {moon.PhaseName} · {moon.IlluminatedFraction:P0}"),
+                    center + new Vector(radius + 8, -8), "#D8E4F0", 12);
             }
         }
 

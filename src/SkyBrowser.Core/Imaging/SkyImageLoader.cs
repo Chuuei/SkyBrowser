@@ -26,6 +26,35 @@ public sealed record LoadedSkyImage(
     string Metadata
 )
 {
+    private sealed record FileAstrometry(ImagePlacement? Placement, string? Warning);
+    private FileAstrometry? _fileAstrometry;
+
+    /// <summary>Whether the current placement comes from a locally saved ASTAP solve.</summary>
+    public bool HasAstapSolution => _fileAstrometry is not null;
+
+    /// <summary>The source file's own placement, before a local ASTAP override.</summary>
+    public ImagePlacement? FilePlacement => _fileAstrometry is { } file ? file.Placement : Placement;
+
+    /// <summary>The source file's placement warning, before a local ASTAP override.</summary>
+    public string? FilePlacementWarning => _fileAstrometry is { } file ? file.Warning : PlacementWarning;
+
+    /// <summary>Applies a local solve while retaining the file's astrometry for later restoration.</summary>
+    public LoadedSkyImage WithAstapSolution(ImagePlacement placement, string? warning = null)
+    {
+        ArgumentNullException.ThrowIfNull(placement);
+        return this with
+        {
+            _fileAstrometry = _fileAstrometry ?? new(Placement, PlacementWarning),
+            Placement = placement,
+            PlacementWarning = warning
+        };
+    }
+
+    /// <summary>Restores retained source astrometry without decoding or changing preview pixels.</summary>
+    public LoadedSkyImage WithoutAstapSolution() => _fileAstrometry is { } file
+        ? this with { Placement = file.Placement, PlacementWarning = file.Warning, _fileAstrometry = null }
+        : this;
+
     public SkyFinishSettings FinishSettings { get; init; } = SkyFinishSettings.Default;
 
     public int SourceImageCount { get; init; } = 1;

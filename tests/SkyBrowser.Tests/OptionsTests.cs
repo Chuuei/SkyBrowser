@@ -20,6 +20,7 @@ public sealed class OptionsTests
             Assert.True(store.NeedsFirstRunSetup);
             Assert.Equal(10, store.Read().CacheSizeGb);
             Assert.False(store.Read().ShowCachedSurveyImages);
+            Assert.False(store.Read().ShowMoon);
             Assert.True(store.NeedsFirstRunSetup); // Reading defaults does not complete setup.
             Assert.Equal(10L * 1024 * 1024 * 1024, ProcessedImageCache.DefaultLimitBytes);
             var options = new ApplicationOptions
@@ -36,6 +37,7 @@ public sealed class OptionsTests
                 Observer = new(new(52.52, 13.405), false, new(2026, 10, 15, 18, 0, 0, TimeSpan.Zero)),
                 ShowGrid = false,
                 ShowLabels = false,
+                ShowMoon = true,
                 ShowConstellations = false,
                 ShowOutlines = false,
                 BlendOverlaps = false,

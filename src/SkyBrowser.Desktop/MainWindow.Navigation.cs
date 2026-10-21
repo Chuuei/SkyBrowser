@@ -13,6 +13,7 @@ public partial class MainWindow
         GridToggle.IsChecked = _options.ShowGrid;
         ConstellationToggle.IsChecked = _options.ShowConstellations;
         LabelToggle.IsChecked = _options.ShowLabels;
+        MoonToggle.IsChecked = _options.ShowMoon;
         FootprintToggle.IsChecked = _options.ShowOutlines;
         BlendToggle.IsChecked = _options.BlendOverlaps;
         SkyOptionsChanged(this, new());
@@ -191,11 +192,29 @@ public partial class MainWindow
         Sky.ShowGrid = GridToggle.IsChecked == true;
         Sky.ShowConstellations = ConstellationToggle.IsChecked == true;
         Sky.ShowLabels = LabelToggle.IsChecked == true;
+        Sky.ShowMoon = MoonToggle.IsChecked == true;
+        GoMoonButton.Visibility = Sky.ShowMoon ? Visibility.Visible : Visibility.Collapsed;
+        UpdateSceneClock();
         Sky.ShowFootprints = FootprintToggle.IsChecked == true;
         Sky.BlendOverlaps = BlendToggle.IsChecked == true;
     }
 
     private void ZoomInClicked(object sender, RoutedEventArgs e) => Sky.Zoom(0.8);
+
+    private void GoMoonClicked(object sender, RoutedEventArgs e)
+    {
+        Sky.ClearImageSelection();
+        Sky.CenterOn(Sky.CurrentMoon.Position, Math.Min(12, Sky.Camera.FieldOfView));
+    }
+
+    private void UpdateSceneClock()
+    {
+        if (Sky.Observer is { UseSystemTime: true } || (Sky.Observer is null && Sky.ShowMoon))
+        {
+            _observerClock.Start();
+        }
+        else { _observerClock.Stop(); }
+    }
 
     private void ZoomOutClicked(object sender, RoutedEventArgs e) => Sky.Zoom(1.25);
 
@@ -205,14 +224,7 @@ public partial class MainWindow
     {
         Sky.SetObserver(observer, resetView);
         Timeline.Reset(observer, Sky.Camera.Observer?.TimeUtc);
-        if (observer is { UseSystemTime: true })
-        {
-            _observerClock.Start();
-        }
-        else
-        {
-            _observerClock.Stop();
-        }
+        UpdateSceneClock();
     }
 
     private void SceneTimeSelected(object? sender, DateTimeOffset instant)

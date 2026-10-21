@@ -49,7 +49,7 @@ public sealed partial class DesktopTests
             await window.InitializeAsync();
             Assert.Equal(0, handler.Calls); // Opening a tool never downloads imagery.
             Assert.Same(image, imageList.SelectedItem); // Opening tools keeps image editing available.
-            Assert.Equal(new[] { "Survey background", "Target visibility", "Measurements" },
+            Assert.Equal(new[] { "Survey background", "Target visibility", "Measurements", "Framing & mosaics" },
                 ((TabControl)window.FindName("ToolsTabs")).Items.Cast<TabItem>().Select(tab => tab.Header.ToString()).ToArray());
             ((TabControl)window.FindName("ToolsTabs")).SelectedIndex = 1;
             ((TextBox)window.FindName("PlanRa")).Text = "83.822";
@@ -64,6 +64,7 @@ public sealed partial class DesktopTests
             Assert.NotEmpty(report.Darkness);
             Assert.Equal(oldOptions, owner.Options);
             Capture(window, "sky-tools-visibility.png");
+            await VerifyFraming(owner, window, directory);
             ((TabControl)window.FindName("ToolsTabs")).SelectedIndex = 2;
             foreach (string control in new[] { "ScaleBarChoice", "NorthEastChoice", "CatalogOverlayChoice" })
             {

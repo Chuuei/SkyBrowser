@@ -42,55 +42,8 @@ public sealed partial class AstapPlateSolver(ImageLibrary library)
             progress?.Report(new("Preparing linear scientific image for ASTAP"));
             var snapshot = await Task.Run(() => SourceSnapshot.Capture(image.SourcePath, token), token).ConfigureAwait(false);
             string input = Path.Combine(directory, "input.fits");
-            await Task.Run(() => WriteInput(image, input, token), token).ConfigureAwait(false);
-            string output = Path.Combine(directory, "solution");
-            var start = CreateStartInfo(options, input, output);
-            progress?.Report(new("ASTAP blind solving · searching the whole sky"));
-            using var process = new Process { StartInfo = start };
-            if (!process.Start())
-            {
-                throw new IOException("ASTAP could not be started.");
-            }
-            // Drain both pipes concurrently, retaining a bounded diagnostic tail.
-            var stdout = ReadTailAsync(process.StandardOutput);
-            var stderr = ReadTailAsync(process.StandardError);
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
-            timeout.CancelAfter(TimeSpan.FromSeconds(options.AstapTimeoutSeconds));
-            try
-            {
-                await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                try
-                {
-                    process.Kill(entireProcessTree: true);
-                }
-                catch (InvalidOperationException)
-                {
-                    // The process exited between cancellation and termination.
-                }
-                await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
-                await Task.WhenAll(stdout, stderr).ConfigureAwait(false);
-                token.ThrowIfCancellationRequested();
-                throw new TimeoutException($"ASTAP exceeded the {options.AstapTimeoutSeconds}-second time limit. Adjust it in Options → Plate solving.");
-            }
-
-            string diagnostics = (await stdout.ConfigureAwait(false) + "\n" + await stderr.ConfigureAwait(false)).Trim();
-            token.ThrowIfCancellationRequested();
-            if (process.ExitCode != 0)
-            {
-                string reason = process.ExitCode switch
-                {
-                    1 => "No sky solution found. Try a field-height hint or a deeper star database.",
-                    2 => "Not enough stars detected in this image.",
-                    16 => "ASTAP could not read the temporary image.",
-                    32 => "ASTAP could not find a star database. Install one or configure its folder in Options.",
-                    33 => "ASTAP could not read its star database.",
-                    _ => $"ASTAP exited with code {process.ExitCode}."
-                };
-                throw new InvalidOperationException(reason + (diagnostics.Length == 0 ? "" : "\n" + diagnostics));
-            }
+            var hints = await Task.Run(() => WriteInput(image, input, token), token).ConfigureAwait(false);
+            string output = await FindSolutionAsync(options, input, directory, hints, token, progress).ConfigureAwait(false);
 
             progress?.Report(new("Validating ASTAP sky solution"));
             var result = await Task.Run(() => ReadSolution(output + ".ini", image.Width, image.Height), token).ConfigureAwait(false);
@@ -116,8 +69,22 @@ public sealed partial class AstapPlateSolver(ImageLibrary library)
         }
     }
 
-    public static ProcessStartInfo CreateStartInfo(ApplicationOptions options, string input, string output)
+    /// <summary>Builds a source-preserving ASTAP invocation; nearby searches use a 5° radius and 1,000 stars.</summary>
+    public static ProcessStartInfo CreateStartInfo(ApplicationOptions options, string input, string output,
+        SkyCoordinate? positionHint = null, bool nearbySearch = false, double? fieldHeightHint = null)
     {
+        if (positionHint is { } hint)
+        {
+            SkyGeometry.Validate(hint);
+        }
+        if (nearbySearch && positionHint is null)
+        {
+            throw new ArgumentException("A nearby search requires a position hint.", nameof(positionHint));
+        }
+        if (fieldHeightHint is { } field && (!double.IsFinite(field) || field is <= 0 or > 180))
+        {
+            throw new ArgumentOutOfRangeException(nameof(fieldHeightHint));
+        }
         var start = new ProcessStartInfo(options.AstapExecutablePath)
         {
             UseShellExecute = false,
@@ -126,8 +93,17 @@ public sealed partial class AstapPlateSolver(ImageLibrary library)
             RedirectStandardError = true,
             WorkingDirectory = Path.GetDirectoryName(Path.GetFullPath(input))!
         };
-        foreach (string argument in new[] { "-f", input, "-o", output, "-r", "180", "-ra", "0", "-spd", "90",
-            "-fov", options.AstapFieldHeightDegrees.ToString("G17", CultureInfo.InvariantCulture), "-z", "0", "-sip", "n" })
+        // Explicit user scale takes precedence. Metadata scale is only used in the
+        // nearby attempt; the fallback retains the original full-sky/automatic behavior.
+        double fieldHeight = options.AstapFieldHeightDegrees > 0 ? options.AstapFieldHeightDegrees
+            : nearbySearch ? fieldHeightHint ?? 0 : 0;
+        double raHours = positionHint is { } position ? SkyCoordinate.Normalize(position.RightAscension) / 15 : 0;
+        double southPoleDistance = (positionHint?.Declination ?? 0) + 90;
+        foreach (string argument in new[] { "-f", input, "-o", output, "-r", nearbySearch ? "5" : "180",
+            "-ra", raHours.ToString("G17", CultureInfo.InvariantCulture),
+            "-spd", southPoleDistance.ToString("G17", CultureInfo.InvariantCulture),
+            "-fov", fieldHeight.ToString("G17", CultureInfo.InvariantCulture),
+            "-s", nearbySearch ? "1000" : "500", "-t", "0.007", "-speed", "auto", "-z", "0", "-sip", "n" })
         {
             start.ArgumentList.Add(argument);
         }
@@ -203,7 +179,7 @@ public sealed partial class AstapPlateSolver(ImageLibrary library)
         return new(ImagePlacement.FromSampleGrid("ASTAP · blind solve", grid), string.IsNullOrEmpty(warning) ? null : warning);
     }
 
-    private static void WriteInput(LoadedSkyImage selected, string destination, CancellationToken token)
+    private static SolverInputHints WriteInput(LoadedSkyImage selected, string destination, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         XisfImageData source;
@@ -224,6 +200,7 @@ public sealed partial class AstapPlateSolver(ImageLibrary library)
         {
             throw new IOException("The source dimensions changed. Reload the image before solving.");
         }
+        var hints = new SolverInputHints(ReadPositionHint(source), ReadFieldHeightHint(source));
         var detection = SkyImageDebayer.Detect(source);
         if (detection.Pattern is { } pattern)
         {
@@ -258,10 +235,12 @@ public sealed partial class AstapPlateSolver(ImageLibrary library)
             }
         }
         token.ThrowIfCancellationRequested();
-        // No sky coordinates, orientation, display function or original path are passed to ASTAP.
-        // The full frame and stored rows are retained; conversion is only for solver input.
+        // Only a validated pointing hint is passed separately on the command line.
+        // No source metadata, orientation, display function or original path enters this
+        // temporary FITS. The full frame and stored rows are retained.
         var gray = XisfImageData.FromSamples(samples, [width, height], 1);
         FitsWriter.Write(destination, FitsConverter.FromXisf([gray], ConversionLossPolicy.Allow));
         token.ThrowIfCancellationRequested();
+        return hints;
     }
 }

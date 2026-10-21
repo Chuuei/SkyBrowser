@@ -41,13 +41,14 @@ internal static class Program
         bool inspectionOnly = arguments.FirstOrDefault() == "--inspection-only";
         bool collectionOnly = arguments.FirstOrDefault() == "--collection-only";
         bool skyToolsOnly = arguments.FirstOrDefault() == "--sky-tools-only";
-        if (inspectionOnly || collectionOnly || skyToolsOnly)
+        bool selectedImageOnly = arguments.FirstOrDefault() == "--selected-image-only";
+        if (inspectionOnly || collectionOnly || skyToolsOnly || selectedImageOnly)
         {
             arguments = arguments[1..];
         }
         if (arguments.Length > 1 || (inspectionOnly && arguments.Length != 1))
         {
-            Console.Error.WriteLine("Usage: SkyBrowser.ManualScreenshots [sample-directory] | --inspection-only source-image | --collection-only sample-directory | --sky-tools-only");
+            Console.Error.WriteLine("Usage: SkyBrowser.ManualScreenshots [sample-directory] | --inspection-only source-image | --collection-only sample-directory | --selected-image-only sample-directory | --sky-tools-only");
             return 2;
         }
         string sampleDirectory = Path.GetFullPath(arguments.FirstOrDefault() ??
@@ -146,6 +147,9 @@ internal static class Program
                 window.SkyView.Fit(wide);
                 await Ready();
                 Hover(window.SkyView, null);
+                Capture(window, "selected-image-collapsed.png", output);
+                ((Expander)window.FindName("InspectorExpander")).IsExpanded = true;
+                await Ready();
                 Capture(window, "main-window.png", output);
                 Capture(window, "horsehead-blended.png", output);
 
@@ -162,6 +166,13 @@ internal static class Program
                     throw new InvalidOperationException("The hover illustration must show the inset at full selected opacity.");
                 }
                 Hover(window.SkyView, null);
+
+                if (selectedImageOnly)
+                {
+                    WriteManifest(output, merge: true);
+                    Console.WriteLine("Captured anonymous collapsed and expanded selected-image demonstrations.");
+                    return;
+                }
 
                 await CaptureCollection(window, wide, detail, output);
 
@@ -263,6 +274,7 @@ internal static class Program
                 Capture(loading, "loading-progress.png", output);
                 loading.Finish();
 
+                await CaptureMoon(window, output);
                 WriteManifest(output, merge: false);
                 Console.WriteLine($"Captured {Screenshots.Count} anonymous demonstration screenshots.");
             }
@@ -345,6 +357,25 @@ internal static class Program
         skyWindow.Close();
     }
 
+    private static async Task CaptureMoon(MainWindow window, string output)
+    {
+        window.Width = 1440;
+        window.Height = 920;
+        window.ApplyObserver(new(new(0, 0), false, DemoTime), resetView: false);
+        var toggle = (CheckBox)window.FindName("MoonToggle");
+        toggle.IsChecked = true;
+        toggle.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        window.SkyView.CenterOn(window.SkyView.CurrentMoon.Position, 12);
+        await Ready();
+        string clock = DemoTime.ToString("dd MMM yyyy · HH:mm:ss zzz", CultureInfo.InvariantCulture);
+        ((TextBlock)window.FindName("ViewObserverTime")).Text = clock;
+        ((TextBlock)((SceneTimeline)window.FindName("Timeline")).FindName("TimeReadout")).Text = clock;
+        Capture(window, "moon-overlay.png", output);
+        toggle.IsChecked = false;
+        toggle.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Primitives.ButtonBase.ClickEvent));
+        window.ApplyObserver(null);
+    }
+
     private static async Task CaptureSkyTools(MainWindow window, string root, string output)
     {
         var service = new SurveyImageService(Path.Combine(root, "artifacts", "manual-sky-surveys"));
@@ -372,6 +403,20 @@ internal static class Program
             await Ready();
             Capture(tools, "sky-tools-visibility.png", output);
             tools.Height = 850;
+            ((TabItem)tools.FindName("FramingTab")).IsSelected = true;
+            ((ComboBox)tools.FindName("EquipmentChoice")).SelectedItem = SmartTelescopeProfiles.All.Single(profile => profile.Name == "ZWO Seestar S50");
+            ((TextBox)tools.FindName("FramingRa")).Text = "10.6847";
+            ((TextBox)tools.FindName("FramingDec")).Text = "41.269";
+            ((TextBox)tools.FindName("FramingRotation")).Text = "25";
+            ((TextBox)tools.FindName("MosaicRows")).Text = "2";
+            ((TextBox)tools.FindName("MosaicColumns")).Text = "3";
+            if (tools.ApplyFramingPlan() is null) { throw new InvalidOperationException("Demonstration mosaic failed."); }
+            await Ready();
+            Capture(tools, "sky-tools-framing.png", output);
+            Capture(window, "sky-tools-mosaic.png", output);
+            window.SkyView.FramingPlan = null;
+            ((TextBlock)tools.FindName("SkyToolsStatus")).Text = "Ready";
+            window.SkyView.CenterOn(new(10.6847, 41.269), 4);
             ((TabControl)tools.FindName("ToolsTabs")).SelectedIndex = 2;
             foreach (string name in new[] { "ScaleBarChoice", "NorthEastChoice" })
             {

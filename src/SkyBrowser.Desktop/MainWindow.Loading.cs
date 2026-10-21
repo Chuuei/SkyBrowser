@@ -284,17 +284,16 @@ public partial class MainWindow
                     {
                         foreach (var image in loaded)
                         {
+                            if (image.IsFromCache)
+                            {
+                                reused++;
+                            }
                             var existing = Sky.Layers.FirstOrDefault(layer => layer.Image.ImageIndex == image.ImageIndex &&
                                 string.Equals(layer.Image.SourcePath, image.SourcePath, StringComparison.OrdinalIgnoreCase));
                             if (existing is not null)
                             {
-                                var manual = existing.Manual;
                                 existing.ReplaceDisplay(image, image.RenderMode);
                                 existing.SetOrganization(organizations[image.ImageIndex]);
-                                if (manual is not null)
-                                {
-                                    existing.SetManual(manual);
-                                }
                                 refreshed++;
                                 continue;
                             }
@@ -302,10 +301,6 @@ public partial class MainWindow
                             layer.SetOrganization(organizations[image.ImageIndex]);
                             Sky.Layers.Add(layer);
                             added++;
-                            if (image.IsFromCache)
-                            {
-                                reused++;
-                            }
 
                             if (first is null)
                             {

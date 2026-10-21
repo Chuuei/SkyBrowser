@@ -104,14 +104,34 @@ public sealed class SurveyImageService
     {
         using var connection = Open();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT survey,ra,dec,fov,size,length(data) FROM frames ORDER BY used DESC";
+        // SQLite permits values with the wrong storage type. Numeric getters can
+        // silently turn damaged text into zero, so reject those rows before reading.
+        command.CommandText = """
+            SELECT key,survey,ra,dec,fov,size,length(data) FROM frames
+            WHERE typeof(ra) IN ('integer','real') AND typeof(dec) IN ('integer','real')
+                AND typeof(fov) IN ('integer','real') AND typeof(size)='integer'
+                AND size BETWEEN 128 AND 2048 AND typeof(data)='blob' AND length(data)<=$limit
+            ORDER BY used DESC,key;
+            """;
+        command.Parameters.AddWithValue("$limit", MaximumResponseBytes);
         using var reader = command.ExecuteReader();
         List<CachedSurvey> result = [];
         while (reader.Read())
         {
-            var request = new SurveyRequest(reader.GetString(0), new(reader.GetDouble(1), reader.GetDouble(2)), reader.GetDouble(3), reader.GetInt32(4));
-            request.Validate();
-            result.Add(new(request, reader.GetInt64(5)));
+            try
+            {
+                var request = new SurveyRequest(reader.GetString(1), new(reader.GetDouble(2), reader.GetDouble(3)), reader.GetDouble(4), reader.GetInt32(5));
+                request.Validate();
+                if (request.Key == reader.GetString(0))
+                {
+                    result.Add(new(request, reader.GetInt64(6)));
+                }
+            }
+            catch (ArgumentException)
+            {
+                // Skip invalid metadata just as offline restoration skips damaged FITS
+                // payloads. Other valid regions must remain available without a download.
+            }
         }
         return result.ToArray();
     }

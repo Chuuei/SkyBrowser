@@ -63,6 +63,11 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Core/Library/ImageOrganization.cs` | Durable per-path/image tags, favorites and groups |
 | `src/SkyBrowser.Core/Astronomy/SurveyImages.cs` | Opt-in CDS cutouts, validation and separate offline LRU cache |
 | `src/SkyBrowser.Core/Astronomy/TargetVisibility.cs` | UTC planning, geometric events, Sun/Moon and imaging windows |
+| `src/SkyBrowser.Core/Astronomy/LunarEphemeris.cs` | J2000 Moon position, observer parallax, phase and Sun-directed disk illumination |
+| `src/SkyBrowser.Desktop/Controls/SkyViewport.Moon.cs` | Scene-time lunar state, bounded graphic cache and hover readout |
+| `src/SkyBrowser.Desktop/Controls/MoonGlyph.cs` | Procedural illustrative lunar disk with phase shading and decorative texture |
+| `src/SkyBrowser.Core/Astronomy/CameraFraming.cs` | Equipment fields, sourced smart-telescope presets, spherical mosaic geometry and CSV coordinates |
+| `src/SkyBrowser.Core/Configuration/EquipmentProfileStore.cs` | Bounded, atomic custom equipment persistence and backup recovery |
 | `src/SkyBrowser.Core/Astronomy/SkyGeometry.cs` | Great-circle geometry and bookmark/measurement records |
 | `src/SkyBrowser.Core/Astronomy/TargetDistances.cs` | Offline sourced distance estimates, alias lookup and target-pair measurements |
 | `src/SkyBrowser.Core/Astronomy/DistanceSpaceCamera.cs` | Linear light-year positions, perspective projection and independent 3D camera |
@@ -74,7 +79,7 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `tools/Build-TargetDistances.py` | Rebuilds the attributed NASA/CDS distance snapshot from cached sources |
 | `tools/TargetDistanceSources.py` | Source identity, position, method, units and provenance validation |
 | `src/SkyBrowser.Desktop/SkyToolsWindow.xaml` | Survey, planning and measurement controls |
-| `src/SkyBrowser.Desktop/SkyToolsWindow.*.cs` | Feature-specific Surveys, Visibility, Measurements and Distances handlers; the shell owns shared lifetime |
+| `src/SkyBrowser.Desktop/SkyToolsWindow.*.cs` | Feature-specific Surveys, Visibility, Measurements, Distances and Framing handlers; the shell owns shared lifetime |
 | `src/SkyBrowser.Desktop/Controls/VisibilityChart.cs` | Offline altitude chart, darkness/window shading and readouts |
 | `src/SkyBrowser.Desktop/Services/` | Window appearance and observer preferences |
 | `tests/SkyBrowser.Tests/` | xUnit scientific, cache, settings and real WPF integration tests |
@@ -214,11 +219,23 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   reading/storing raw previews. Never bake a source-specific solution into an old
   preview variant. Solutions bind to source/sidecar signatures and image index,
   remain after cache clearing/moves, and are invalidated by source changes.
+- **Forget ASTAP solution** deletes only the selected path/image-index solution
+  and updates the library's placement flag in one transaction. `LoadedSkyImage`
+  retains file astrometry separately from the ASTAP overlay (`HasAstapSolution`),
+  so forgetting restores file placement/warnings without decoding pixels. Keep
+  manual placement, other images, organization, display preferences and previews.
+  The preview cache stores file astrometry, never an applied ASTAP overlay.
 - ASTAP configuration belongs in Options → Plate solving. Use `ArgumentList`,
   `UseShellExecute=false`, hidden process windows, bounded output, cancellation
-  that kills/waits for the process tree, and a configurable timeout. Full-sky
-  search uses `-r 180 -ra 0 -spd 90 -fov 0` by default; `-sip n` requests supported
-  linear TAN. User scale hints change only FOV, never the full-sky search radius.
+  that kills/waits for the process tree, and a configurable timeout. Valid source
+  pointing metadata starts a nearby search (`-r 5`, 1,000 stars), optionally using
+  field height estimated from stored rows/pixel size/focal length. User FOV wins.
+  Nearby failure/timeout retries full-sky (`-r 180 -ra 0 -spd 90`, 500 stars) without
+  metadata position/scale; retain user FOV or automatic 0. The nearby budget is at
+  most 20 seconds or one quarter of the shared total deadline. Use independent
+  output bases and `-sip n` for supported linear TAN. Parse degree versus hour RA
+  and XISF metre versus FITS millimetre focal lengths explicitly. Keep hint parsing
+  in AstapPlateSolver.Hints.cs and search/process lifetime in its Search partial.
   Export a full-frame, linear Float32 Gray FITS copy into a unique temporary
   directory, retaining stored rows and using decoded/debayered scientific data.
   Never pass source paths or `-update` to ASTAP. Validate INI coordinates/matrix,
@@ -243,11 +260,17 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   measured as 10 x 1024^3 bytes. It must survive program restarts and skip decoding
   and finishing on a valid hit. It retains pixels, metadata, placement grids,
   per-image render preferences and recent folders.
-- Cache keys include rendering settings/pipeline and library identities. Source
+- Cache keys include rendering settings, an explicit preview pipeline revision and
+  dependency informational versions/source revisions. Never use assembly MVIDs or
+  the app/Core build version: unrelated code edits, output paths, publishing and
+  Debug/Release builds must reuse compatible previews. Bump `PreviewPipelineVersion`
+  in `ProcessedImageCache` when application pixels, astrometry, metadata/schema or
+  locally modified reader behavior change incompatibly. Source
   signatures include size/times and sampled hashes at the start, middle and end,
   including distributed XISF sidecars. These are change detectors, not full-file
   integrity hashes. Keep corruption recovery, validation and transactional LRU
-  eviction. A rebuild may legitimately invalidate previous preview variants.
+  eviction. A changed processing contract or dependency may invalidate old variants;
+  ordinary application rebuilds must not.
 - Cache failures fall back to normal processing. Cold jobs are bounded to avoid
   overlapping large source allocations; warm hits must not wait for an unrelated
   cold decode. Keep processing/database/search-index work off the UI thread.
@@ -393,6 +416,10 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   changes, regenerate it with `pwsh -STA -File tools/Build-ApplicationIcon.ps1`.
   The committed icon needs no generation step during normal builds or publishing.
 - The collection and selected-image panels have a user-adjustable divider.
+  The selected-image region starts collapsed, with the image name and a right-hand
+  chevron always visible while selected. Expanding reveals a scrollable body below
+  the fixed header and restores the saved divider proportions. Collapsing hides
+  the divider and returns space to the list; keep this separate from deselection.
   Each image's visibility toggle uses an eye/crossed-out-eye icon, with a tooltip
   and accessible action/state labels; retain keyboard toggle support.
   Image editing selection clears on catalogue/manual sky navigation, survey-region
@@ -422,8 +449,8 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   accents, spacing and punctuation (`IC434` equals `IC 434`). All query terms must
   match. Filtering the list does not hide sky layers.
 - With overlap blending enabled, larger angular footprints are behind smaller
-  ones; insets use 60% of the selected opacity and return to that selected opacity
-  on hover. Hover changes scene opacity only. With blending off, later collection
+  ones; insets use 60% of the selected opacity and become fully opaque
+  on hover without changing the slider. Hover changes scene opacity only. With blending off, later collection
   entries are on top. Handle rotated fields, nested overlaps, poles and the seam.
 - Double-clicking a collection entry frames it. Double-clicking a sky image opens
   internal full-resolution inspection for the foremost hit. The hovered or selected
@@ -528,6 +555,10 @@ licenses and catalogue data.
   coordinate conventions, ownership, validity and asynchronous lifetimes.
 - Use modern C#/.NET features where they improve clarity. Keep Core independent
   of WPF. Preserve existing source-generated JSON and immutable data contracts.
+- `SkyImageLayer.ReplaceDisplay` owns coherent image/bitmap/placement replacement,
+  including manual geometry after source dimension changes. Batch its viewport
+  updates instead of reapplying manual placement in individual callers. Isolate
+  damaged preference/survey rows so other valid cached records remain usable.
 - For semantic renames/moves/signature changes, use the available Rider
   refactoring skill when applicable. Avoid unrelated restructuring or broad
   reformatting, especially in generated data and the external library.
@@ -550,7 +581,7 @@ licenses and catalogue data.
 - README.md is the short user entry point; docs/technical-reference.md retains detailed behavior.
 - Apache-2.0 and NOTICE cover authored code. Preserve separate third-party/data licenses.
 - Build-release tooling verifies notices, package contents and source-compliance assets before publication.
-- Build-Release also creates a compact Windows ZIP with the identical self-contained
+- Build-Release creates only the compact Windows application ZIP with the self-contained
   executable, loose PDF and SkyBrowser-Notices.zip. New-CompactPackage.ps1 must retain
   all supporting files byte-for-byte, reject external runtime dependencies and
   validate both ZIP layers. Do not trim WPF or enable Native AOT as a size shortcut.

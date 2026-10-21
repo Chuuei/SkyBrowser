@@ -44,6 +44,26 @@ internal static class PerformanceReview
         }
 
         var solution = XisfAstrometricSolution.CreateLinear("Gnomonic", [83.822, -5.391], [3200, 2100], new double[,] { { -0.0005, 0 }, { 0, 0.0005 } });
+        var objects = TargetDistances.All.Select(DistanceSpaceCamera.Position).ToArray();
+        var distanceCamera = new DistanceSpaceCamera();
+        Measure("Distance-map projections (100 frames)", () =>
+        {
+            double checksum = 0;
+            distanceCamera.Home();
+            for (int frame = 0; frame < 100; frame++)
+            {
+                distanceCamera.Orbit(0.02, 0.01);
+                foreach (var point in objects)
+                {
+                    if (distanceCamera.Project(point, 1200, 800) is { } projected)
+                    {
+                        checksum += projected.X + projected.Y;
+                    }
+                }
+            }
+            return checksum.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        });
+
         var placement = ImagePlacement.FromNative(solution, 6400, 4200);
         Measure("Capture native sky grid (100 captures)", () =>
         {

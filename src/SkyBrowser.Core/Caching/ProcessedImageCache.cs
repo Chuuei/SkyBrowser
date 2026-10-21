@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -39,6 +40,12 @@ public sealed class ProcessedImageCache : IDisposable
     public const long DefaultLimitBytes = 10L * 1024 * 1024 * 1024;
     private const int MaximumPreviewBytes = 2048 * 2048 * 4;
     private const int MaximumMetadataCharacters = 1048576;
+    // Bump when application decoding, pixels, astrometry or cached metadata change
+    // incompatibly. Unrelated Core/UI edits and Debug/Release builds must reuse previews.
+    private const string PreviewPipelineVersion = "preview-4/debayer/2048/mesh32";
+    private static readonly string PipelineIdentity = PreviewPipelineVersion + "/" +
+        DependencyIdentity(typeof(XISFLib.XisfReader).Assembly) + "/" +
+        DependencyIdentity(typeof(ImageMagick.MagickImage).Assembly);
     private readonly object _initialization = new();
     private readonly string _connectionString;
     private bool _initialized, _disposed;
@@ -73,12 +80,15 @@ public sealed class ProcessedImageCache : IDisposable
 
     internal static string ProfileKey(DisplayMode mode, SkyFinishSettings settings)
     {
-        // Cached pixels depend on both the selected settings and the processing assemblies.
-        // A changed pipeline gets a new key instead of reusing a preview from an older build.
-        string pipeline = $"preview-3/debayer/2048/mesh32/{typeof(SkyImageLoader).Assembly.ManifestModule.ModuleVersionId}/{typeof(XISFLib.XisfReader).Assembly.ManifestModule.ModuleVersionId}/{typeof(ImageMagick.MagickImage).Assembly.ManifestModule.ModuleVersionId}";
+        // ModuleVersionId identifies a compilation, not a processing contract. It also
+        // changes for unrelated features, build paths and publishing configurations.
+        // Keep dependency versions/source revisions, but version our pipeline explicitly.
         string parameters = JsonSerializer.Serialize(new ImageRenderPreference(mode, settings), CacheJsonContext.Default.ImageRenderPreference);
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(pipeline + parameters)));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(PipelineIdentity + parameters)));
     }
+
+    private static string DependencyIdentity(Assembly assembly) => assembly.GetName().Name + "/" +
+        (assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? assembly.GetName().Version?.ToString());
 
     internal IReadOnlyList<LoadedSkyImage>? Read(string sourcePath, string profile, int? onlyImage, CancellationToken token)
     {
@@ -256,15 +266,15 @@ public sealed class ProcessedImageCache : IDisposable
                     image.Preview.Width,
                     image.Preview.Height,
                     image.DisplayDescription,
-                    image.PlacementWarning,
+                    image.FilePlacementWarning,
                     image.Metadata,
                     image.FinishSettings,
-                    image.Placement?.Description,
-                    image.Placement?.CaptureSampleGrid()
+                    image.FilePlacement?.Description,
+                    image.FilePlacement?.CaptureSampleGrid()
                 )
                 {
                     Mode = image.RenderMode,
-                    FitsSolution = image.Placement?.FitsSolution,
+                    FitsSolution = image.FilePlacement?.FitsSolution,
                     Details = image.Details
                 };
                 string json = JsonSerializer.Serialize(metadata, CacheJsonContext.Default.CachedImageMetadata);
@@ -416,14 +426,27 @@ public sealed class ProcessedImageCache : IDisposable
             using var reader = command.ExecuteReader();
             while (reader.Read())
             {
-                var preference = JsonSerializer.Deserialize(reader.GetString(1), CacheJsonContext.Default.ImageRenderPreference);
-                if (preference?.FinishSettings is null || !Enum.IsDefined(preference.Mode))
+                try
                 {
-                    continue;
-                }
+                    var preference = JsonSerializer.Deserialize(reader.GetString(1), CacheJsonContext.Default.ImageRenderPreference);
+                    if (preference?.FinishSettings is null || !Enum.IsDefined(preference.Mode))
+                    {
+                        continue;
+                    }
 
-                preference.FinishSettings.Validate();
-                result[reader.GetInt32(0)] = preference;
+                    preference.FinishSettings.Validate();
+                    int index = reader.GetInt32(0);
+                    if (index >= 0)
+                    {
+                        result[index] = preference;
+                    }
+                }
+                catch (Exception exception) when (exception is JsonException or ArgumentException or OverflowException)
+                {
+                    // Preferences belong to individual images. One damaged row must not
+                    // discard valid choices for the rest of a multi-image document.
+                    LastError = exception.Message;
+                }
             }
         }
         catch (Exception exception) when (IsCacheFailure(exception))

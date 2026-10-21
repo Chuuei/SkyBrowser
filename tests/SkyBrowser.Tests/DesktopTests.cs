@@ -55,6 +55,7 @@ public sealed partial class DesktopTests
                         await VerifySavedFolderStartup(currentWindow, directory);
                         await VerifyLoadProgress(currentWindow, cache, directory);
                         await VerifyObserver(currentWindow, directory);
+                        VerifyMoon(currentWindow);
                         await VerifyCollectionSearch(currentWindow, directory);
                         await VerifyCollectionOrganization(currentWindow, directory);
                         await VerifyComparisons(currentWindow);
@@ -69,6 +70,7 @@ public sealed partial class DesktopTests
                         FitsWriter.Write(fits, FitsConverter.FromXisf([image], ConversionLossPolicy.Allow));
                         await currentWindow.ImportAsync([xisf, fits]);
                         Assert.Equal(2, currentWindow.SkyView.Layers.Count);
+                        VerifyInspectorExpansion(currentWindow);
                         await VerifyImageInfo(currentWindow, currentWindow.SkyView.Layers.Single(layer => layer.Image.SourcePath == fits));
                         await VerifyInspection(currentWindow, currentWindow.SkyView.Layers.Single(layer => layer.Image.SourcePath == fits));
                         await VerifyImageExports(currentWindow, directory);
@@ -217,6 +219,7 @@ public sealed partial class DesktopTests
                         }
 
                         await VerifyLibraryAndSolving(currentWindow, directory);
+                        await VerifyForgettingAstapSolution(currentWindow, directory);
                         currentWindow.Width = 1050;
                         currentWindow.Height = 720;
                         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
@@ -430,6 +433,14 @@ public sealed partial class DesktopTests
                 Assert.Contains("1 folders unavailable", reopened.Status);
                 Assert.DoesNotContain(FindButtons(reopened), button => button.Content is string text && text.Contains("session", StringComparison.OrdinalIgnoreCase));
                 verify(reopened);
+                if (expectedDecoded.Length == 0)
+                {
+                    Assert.Contains($"{imageCount} cached", reopened.Status);
+                    await reopened.RestoreSavedFoldersAsync();
+                    Assert.All(reopened.SkyView.Layers, layer => Assert.True(layer.Image.IsFromCache));
+                    Assert.Contains($"{imageCount} cached", reopened.Status);
+                    Assert.Contains($"{imageCount} refreshed", reopened.Status);
+                }
                 var layers = reopened.SkyView.Layers.ToArray();
                 await reopened.OpenStartupAsync([]);
                 Assert.Equal(layers, reopened.SkyView.Layers);
@@ -1191,6 +1202,40 @@ public sealed partial class DesktopTests
         window.SkyView.Layers.Remove(image);
     }
 
+    private static void VerifyInspectorExpansion(MainWindow window)
+    {
+        var expander = (Expander)window.FindName("InspectorExpander");
+        var list = (ListBox)window.FindName("LayerList");
+        var row = (RowDefinition)window.FindName("InspectorRow");
+        var collection = (RowDefinition)window.FindName("CollectionRow");
+        var divider = (FrameworkElement)window.FindName("CollectionDivider");
+        Assert.False(expander.IsExpanded);
+        list.SelectedItem = window.SkyView.Layers[0];
+        window.UpdateLayout();
+        double collapsedListHeight = list.ActualHeight;
+        Assert.Equal(window.SkyView.Layers[0].Name, ((TextBlock)window.FindName("ImageTitle")).Text);
+        Assert.False(((FrameworkElement)window.FindName("InspectorScroller")).IsVisible);
+        Assert.Equal(Visibility.Collapsed, divider.Visibility);
+        expander.IsExpanded = true;
+        window.UpdateLayout();
+        Assert.True(((FrameworkElement)window.FindName("InspectorScroller")).IsVisible);
+        Assert.True(list.ActualHeight < collapsedListHeight);
+        Assert.Equal(Visibility.Visible, divider.Visibility);
+        collection.Height = new(2, GridUnitType.Star);
+        row.Height = new(3, GridUnitType.Star);
+        expander.IsExpanded = false;
+        list.SelectedItem = window.SkyView.Layers[1];
+        Assert.Equal(window.SkyView.Layers[1].Name, ((TextBlock)window.FindName("ImageTitle")).Text);
+        expander.IsExpanded = true;
+        Assert.Equal(new GridLength(2, GridUnitType.Star), collection.Height);
+        Assert.Equal(new GridLength(3, GridUnitType.Star), row.Height);
+        list.UnselectAll();
+        Assert.Equal(0, row.Height.Value);
+        Assert.Equal(Visibility.Collapsed, divider.Visibility);
+        expander.IsExpanded = false;
+        list.SelectedItem = window.SkyView.Layers[0];
+    }
+
     private static void CaptureElement(FrameworkElement element, string name)
     {
         string? output = Environment.GetEnvironmentVariable("SKYBROWSER_SCREENSHOTS");
@@ -1948,6 +1993,22 @@ public sealed partial class DesktopTests
         Assert.Same(mesh.TriangleIndices, secondMesh.TriangleIndices);
         Assert.Equal(33 * 33, mesh.Positions.Count);
         Assert.Equal(32 * 32 * 6, mesh.TriangleIndices.Count);
+        var manuallyPlaced = SolidLayer("Resized source", 2, 100, 120, 150);
+        var manualPlacement = new ManualPlacement(359.95, 70, 2, 37, true);
+        manuallyPlaced.SetManual(manualPlacement);
+        var replacement = manuallyPlaced.Image with { Width = 128, Height = 64 };
+        var expectedPlacement = ImagePlacement.FromManual(manualPlacement, replacement.Width, replacement.Height);
+        bool observedReplacement = false;
+        manuallyPlaced.PropertyChanged += (_, _) =>
+        {
+            // Every notification must expose a consistent new image, bitmap and geometry.
+            observedReplacement = true;
+            Assert.Same(replacement, manuallyPlaced.Image);
+            Assert.InRange(manuallyPlaced.Placement!.At(0, 0).DistanceTo(expectedPlacement.At(0, 0)), 0, 1e-10);
+        };
+        manuallyPlaced.ReplaceDisplay(replacement, DisplayMode.Linear);
+        Assert.True(observedReplacement);
+        Assert.Equal(manualPlacement, manuallyPlaced.Manual);
         int changes = 0;
 
         void ViewChanged(object? sender, EventArgs e) => changes++;

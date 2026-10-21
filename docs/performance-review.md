@@ -1,5 +1,9 @@
 # Performance review and implemented changes
 
+The [21 October 2026 code review](code-review-2026-10-21.md) records the subsequent
+distance-map projection optimization, recovery/display fixes and 319-test
+verification. The measurements below describe the earlier optimization pass.
+
 Measured in Release on Windows, .NET 10.0.13, with 32 logical processors. The reviewed paths cover scientific loading/finishing, persistent preview reads, sky projection/drawing, astrometry sampling and bulk scene updates. Changes are in SkyBrowser; the XISFLib.Net display renderer, owned-image materialization and adaptive display-function paths were inspected, and no library edits were needed for these gains. Existing changes in that checkout were preserved.
 
 ## Results

@@ -13,6 +13,38 @@ namespace SkyBrowser.Tests;
 public sealed class CacheTests
 {
     [Fact]
+    public void DamagedPreferenceDoesNotHideOtherImagesPreferences()
+    {
+        string directory = TestImages.NewDirectory();
+        try
+        {
+            string file = Path.Combine(directory, "multi.xisf");
+            XisfWriter.Write(file, [TestImages.Create(), TestImages.Create()]);
+            using var cache = new ProcessedImageCache(Path.Combine(directory, "cache"));
+            cache.SavePreference(file, 0, DisplayMode.Linear, SkyFinishSettings.Default);
+            cache.SavePreference(file, 1, DisplayMode.StoredDisplay, SkyFinishSettings.Default);
+            using (var connection = new SqliteConnection($"Data Source={cache.DatabasePath};Pooling=False"))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = "UPDATE preferences SET preference_json='broken' WHERE image_index=0";
+                command.ExecuteNonQuery();
+            }
+
+            var preferences = cache.GetPreferences(file);
+            Assert.Equal(DisplayMode.StoredDisplay, Assert.Single(preferences).Value.Mode);
+            Assert.NotNull(cache.LastError);
+            var images = new CachedSkyImageLoader(cache) { DefaultDisplayMode = DisplayMode.Linear }.LoadForBrowsing(file);
+            Assert.Equal(DisplayMode.Linear, images[0].RenderMode);
+            Assert.Equal(DisplayMode.StoredDisplay, images[1].RenderMode);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
+    [Fact]
     public void LargeMetadataIsBoundedAndRetainedWithCachedPreviews()
     {
         string dir = TestImages.NewDirectory();

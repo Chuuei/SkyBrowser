@@ -69,6 +69,8 @@ public sealed partial class SkyViewport : Grid
     public bool ShowCatalogTargets { get; set { field = value; Refresh(); } }
     public bool ShowScaleBar { get; set { field = value; Refresh(); } }
     public bool ShowNorthEast { get; set { field = value; Refresh(); } }
+    public MosaicPlan? FramingPlan { get; set { field = value; _annotations.InvalidateVisual(); } }
+    public int SelectedFramingPanel { get; set { field = value; _annotations.InvalidateVisual(); } }
     public double SurveyOpacity
     {
         get;
@@ -516,6 +518,7 @@ public sealed partial class SkyViewport : Grid
     /// <summary>Tracks a pointer in viewport coordinates; null restores the normal blended view.</summary>
     public void UpdateHover(Point? position)
     {
+        UpdateMoonTooltip(position);
         _pointer = position;
         var hovered = position is { } point ? ImageAt(point) : null;
         if (HoveredLayer == hovered)
@@ -747,6 +750,15 @@ public sealed partial class SkyViewport : Grid
 
     public void AdvanceObserverTime(DateTimeOffset instant)
     {
+        if (Observer is null)
+        {
+            if (ShowMoon)
+            {
+                _atlasTimeUtc = instant;
+                Refresh();
+            }
+            return;
+        }
         if (Observer is not { UseSystemTime: true } observer ||
             Camera.Observer is not { } previous ||
             _drag is not null)
@@ -860,7 +872,11 @@ public sealed partial class SkyViewport : Grid
             copy.ShowCatalogTargets = ShowCatalogTargets;
             copy.ShowScaleBar = ShowScaleBar;
             copy.ShowNorthEast = ShowNorthEast;
+            copy.ShowMoon = ShowMoon;
+            copy._atlasTimeUtc = _atlasTimeUtc;
             copy.Measurement = Measurement;
+            copy.FramingPlan = FramingPlan;
+            copy.SelectedFramingPanel = SelectedFramingPanel;
             copy.RestoreTargets(AddedTargets.Select(t => t.Id));
             using (copy.DeferLayerUpdates())
             {

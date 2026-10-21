@@ -103,16 +103,24 @@ public sealed class SkyImageLayer : INotifyPropertyChanged
 
     public void ReplaceDisplay(LoadedSkyImage image, DisplayMode mode)
     {
+        // Prepare the entire replacement before publishing any notifications. A source
+        // may have changed dimensions since it was loaded; manual fields keep their
+        // chosen width/rotation but must use the current source aspect ratio.
+        var bitmap = ReferenceEquals(image.Preview, Image.Preview) ? Bitmap : CreateBitmap(image.Preview);
+        var placement = Manual is null ? image.Placement
+            : image.Width == Image.Width && image.Height == Image.Height ? Placement
+            : ImagePlacement.FromManual(Manual, image.Width, image.Height);
+        bool placementChanged = !ReferenceEquals(placement, Placement);
         Image = image;
-        Bitmap = CreateBitmap(image.Preview);
+        Bitmap = bitmap;
+        Placement = placement;
         DisplayMode = mode;
         Changed(nameof(Image));
         Changed(nameof(Name));
         Changed(nameof(SourceLabel));
         Changed(nameof(Bitmap));
-        if (Manual is null)
+        if (placementChanged)
         {
-            Placement = image.Placement;
             Changed(nameof(Placement));
             Changed(nameof(PlacementLabel));
         }

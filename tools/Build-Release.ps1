@@ -14,14 +14,14 @@ try {
     }
     $output = Join-Path ([IO.Path]::GetFullPath($OutputRoot)) $Version
     $null = New-Item -ItemType Directory -Path $output -Force
+    if (Get-ChildItem -LiteralPath $output -Filter '*.zip' -File) {
+        throw 'Release archives already exist; use a new version/output directory so stale assets cannot be published.'
+    }
     $work = Join-Path $output ('work-' + [Guid]::NewGuid().ToString('N'))
     $publish = Join-Path $work 'application'
     & dotnet publish src/SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 --artifacts-path ./artifacts --output $publish --nologo
     if ($LASTEXITCODE -ne 0) { throw 'Application publish failed.' }
     & (Join-Path $PSScriptRoot 'Test-Publish.ps1') -PublishDirectory $publish
-    $binaryZip = Join-Path $output "SkyBrowser-$Version-win-x64.zip"
-    if (Test-Path -LiteralPath $binaryZip) { throw 'A release ZIP already exists; use a new version/output directory.' }
-    [IO.Compression.ZipFile]::CreateFromDirectory($publish, $binaryZip)
     & (Join-Path $PSScriptRoot 'New-CompactPackage.ps1') -PublishDirectory $publish `
         -OutputPath (Join-Path $output "SkyBrowser-$Version-win-x64-compact.zip")
 

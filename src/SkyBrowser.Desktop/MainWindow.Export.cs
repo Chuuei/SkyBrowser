@@ -21,6 +21,75 @@ public partial class MainWindow
         await SolveImageAsync(selected);
     }
 
+    private async void ForgetSolutionClicked(object sender, RoutedEventArgs e)
+    {
+        if (Selected is { } selected)
+        {
+            await ForgetSolutionAsync(selected);
+        }
+    }
+
+    public async Task<bool> ForgetSolutionAsync(SkyImageLayer selected)
+    {
+        if (_operation is not null || _closing || _applyingOptions || !Sky.Layers.Contains(selected) || !selected.Image.HasAstapSolution)
+        {
+            return false;
+        }
+        using var operation = new CancellationTokenSource();
+        _operation = operation;
+        var original = selected.Image;
+        SetBusy(true);
+        try
+        {
+            var restored = await Task.Run(() => _library.ForgetSolution(original, operation.Token), operation.Token);
+            // A committed deletion must also reach the scene if cancellation arrived
+            // just after commit. Never replace a newer image or a removed layer.
+            if (_closing || !Sky.Layers.Contains(selected) || !ReferenceEquals(selected.Image, original))
+            {
+                return true;
+            }
+            using (Sky.DeferLayerUpdates())
+            {
+                selected.ReplaceDisplay(restored, selected.DisplayMode);
+            }
+            _collectionSearch.Index(restored);
+            _collectionView.Refresh();
+            if (ReferenceEquals(_operation, operation))
+            {
+                SetStatus($"Forgot ASTAP solution for {selected.Name} · " + (selected.Manual is not null
+                    ? "manual placement retained" : restored.Placement is not null ? "using the file's placement" : "needs placement"));
+            }
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            if (!_closing && ReferenceEquals(_operation, operation))
+            {
+                SetStatus("Forgetting ASTAP solution cancelled · existing placement retained");
+            }
+        }
+        catch (Exception exception)
+        {
+            if (!_closing && ReferenceEquals(_operation, operation))
+            {
+                SetStatus("Could not forget ASTAP solution: " + exception.Message);
+            }
+        }
+        finally
+        {
+            if (ReferenceEquals(_operation, operation))
+            {
+                _operation = null;
+                if (!_closing)
+                {
+                    SetBusy(false);
+                    UpdateInspector();
+                }
+            }
+        }
+        return false;
+    }
+
     private async void ExportClicked(object sender, RoutedEventArgs e)
     {
         var preview = Selected?.Image.Preview;
@@ -193,9 +262,12 @@ public partial class MainWindow
             operation.Token.ThrowIfCancellationRequested();
             if (_closing || !ReferenceEquals(_operation, operation) || !Sky.Layers.Contains(selected) || !ReferenceEquals(selected.Image, original))
             { return; }
-            var solved = original with { Placement = result.Placement, PlacementWarning = result.Warning };
-            selected.ReplaceDisplay(solved, selected.DisplayMode);
-            selected.SetManual(null);
+            var solved = original.WithAstapSolution(result.Placement, result.Warning);
+            using (Sky.DeferLayerUpdates())
+            {
+                selected.ReplaceDisplay(solved, selected.DisplayMode);
+                selected.SetManual(null);
+            }
             _collectionSearch.Index(solved);
             _collectionView.Refresh();
             loadProgress.FinishItem(1);

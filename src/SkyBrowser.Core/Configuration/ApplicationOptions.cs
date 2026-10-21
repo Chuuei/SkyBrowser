@@ -28,6 +28,7 @@ public sealed record ApplicationOptions
     public bool ShowConstellations { get; init; } = true;
 
     public bool ShowLabels { get; init; } = true;
+    public bool ShowMoon { get; init; }
 
     public bool ShowOutlines { get; init; } = true;
 

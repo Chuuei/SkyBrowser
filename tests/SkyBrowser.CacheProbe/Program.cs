@@ -167,6 +167,7 @@ if (args is ["--measure", var phase, var cacheDirectory, var sourceDirectory, va
     var result = new
     {
         Phase = phase,
+        ProcessingBuildId = typeof(SkyImageLoader).Assembly.ManifestModule.ModuleVersionId,
         Milliseconds = total.ElapsedMilliseconds,
         Files = files,
         Statistics = measuredCache.GetStatistics()
@@ -187,6 +188,7 @@ var loader = new CachedSkyImageLoader(cache, (_, _, _, _, _, _) => throw new Inv
 var images = loader.LoadForBrowsing(args[1]);
 Console.WriteLine(JsonSerializer.Serialize(images.Select(image => new
 {
+    ProcessingBuildId = typeof(SkyImageLoader).Assembly.ManifestModule.ModuleVersionId,
     image.IsFromCache,
     image.ImageIndex,
     image.SourceImageCount,

@@ -6,7 +6,33 @@ A Windows desktop sky atlas for your own FITS and XISF photographs, built with *
 
 Start with the illustrated [user manual](SkyBrowser-User-Manual.pdf) for a beginner's tour and step-by-step instructions. The PDF is also copied beside the executable on every publish. Its editable [Markdown source](user-manual.md) and [rebuild instructions](manual/README.md) are included in the repository.
 
+## Moon position and phase
+
+The optional **Moon** sky-view toggle adds an illustrative 32-DIP disk at the
+Astronomy Engine J2000 position. Subtract the J2000 observer vector when a location
+is active; otherwise use the geocentric position at live UTC. Sun-to-Moon and
+Moon-to-observer directions determine illumination and the bright limb, rotated
+through the current camera's celestial-north direction. Scene-time changes and
+the live clock update it; panning reuses the ephemeris/bitmap for that instant.
+The texture is procedural and decorative, with faint unlit-limb visibility; it
+does not represent angular size, libration or eclipses. Labels/hover give phase,
+illumination, coordinates and time. Options → Sky saves the startup choice; exports
+preserve the enabled Moon at the captured scene instant. **Go to Moon** clears
+image editing selection and centers the view.
+
+## Camera framing and mosaic planning
+
+Sky tools includes equipment profiles, rotatable rectilinear fields and up to
+10 × 10 numbered panels. Core owns tangent-plane spacing, spherical panel centers,
+parallel-transported axes and invariant CSV export. The desktop renders footprints,
+fits panels with the actual atlas aspect/orientation, persists custom profiles
+beside settings, and sends selected panel centers to Target visibility. Editing
+inputs invalidates the old plan/export or visibility report and cancels outdated
+visibility calculations. Closing Sky tools retains the plan for the current run.
+Factory sources and geometric limits are in [equipment presets](smart-telescope-profiles.md).
+
 ## Comparison and collection organization
+
 
 Ctrl/Shift-select loaded images and choose **Compare…**. Every selected image must
 have a placement and overlap every other selected image's spherical sky footprint.
@@ -237,7 +263,7 @@ When there is no saved settings file or recovery backup, a **Welcome to SkyBrows
 2. Plate-solved images appear at their stored coordinates. Double-click a collection entry or choose **Go to image** to frame it. **Double-click a photograph in the sky view** to open internal full-resolution inspection for the foremost image under the pointer. A small corner arrow button on the hovered or selected image opens its original FITS/XISF file in the Windows default application. The button follows projected image corners and stays inside an unobscured image area; zoomed images use a visible viewport edge. It is hidden for tiny or fully obscured fields without room for the control. This action supports keyboard focus/activation and works with outlines or labels hidden. Missing files or absent file associations are reported in the status bar and **Details**. Images without a supported solution remain in the collection with **Needs placement**.
 3. Drag the sky to pan and scroll to zoom. Arrow keys navigate when the sky has focus. **Home** restores the initial view (south when an observer is configured), **F** frames the selection, and **+ / −** change zoom. The object picker and RA/Dec inputs jump to a sky position.
 4. Toggle layers, set opacity, and use the arrows to reorder them. With **Blend overlaps** enabled, larger sky fields form the background and smaller overlapping images appear above them at 60% of their chosen opacity. Hover an inset to temporarily show it at full opacity; move away to restore the blend and your chosen opacity. Turning **Blend overlaps** off uses collection order, with later entries drawn on top. Grid, constellation lines, labels and image outlines can be toggled separately.
-   Drag the horizontal divider between the collection and **Selected image** to give either panel more space. You can also focus the divider and use Up/Down arrows. The chosen split is retained while switching selections or folders, and both panels scroll independently.
+   **Selected image** starts collapsed, showing its name with a chevron on the right. Click the header to reveal details and controls. The header stays above the scrolling body. When expanded, drag the horizontal divider above it to give either panel more space, or focus the divider and use Up/Down arrows. Collapsing returns space to the collection; expanding restores the chosen split, including after switching selections or folders.
 5. Confirm the desired folders in **Image library** once. Subsequent application starts load those folders automatically, prioritizing valid cached previews and decoding source files when no current preview is available. Per-image rendering preferences and ASTAP solutions are retained locally; **Options** supplies the startup observer, sky and display defaults.
 
 Optional local plate-solved Horsehead FITS/XISF images can be opened together from **Image library** or **Add images**. Photographs are not bundled; see the [example-image guide](../examples/README.md).
@@ -324,7 +350,7 @@ Processed previews are stored in a local **SQLite database**, shared by folder b
 
 - Default location: `%LOCALAPPDATA%\SkyBrowser\Cache\previews-v1.sqlite3`. No database server or account is needed.
 - Rendering modes and finishing settings are remembered for each source image. Changing the settings creates a separate preview variant; returning to an existing variant reuses it.
-- Source signatures include file size, modification/creation times and SHA-256 samples from the beginning, middle and end of each file. Distributed XISF data files are tracked too. These are fast change detectors, not full-file integrity hashes: an edit that deliberately preserves timestamps and only changes unsampled bytes can evade detection. Rendering pipeline/library versions also invalidate older previews.
+- Source signatures include file size, modification/creation times and SHA-256 samples from the beginning, middle and end of each file. Distributed XISF data files are tracked too. These are fast change detectors, not full-file integrity hashes: an edit that deliberately preserves timestamps and only changes unsampled bytes can evade detection. An explicit processing-pipeline revision and dependency informational versions/source revisions invalidate incompatible previews. Unrelated Core changes, output paths and Debug/Release/publish builds share compatible entries; assembly module IDs and the application version are excluded. The transition from the former build-specific keys needs one initial refresh; later unchanged starts reuse those previews.
 - Stored preview data defaults to **10 GiB**, configurable in **Options → Cache**, with least recently used previews evicted automatically. SQLite pages, journals and small preference/history records add some disk overhead. The Cache tab shows usage and the cache folder. **Clear saved previews** releases previews from the active cache immediately while retaining rendering preferences, recent folders and loaded images.
 - Cached files load first, and images appear progressively. Switching folders cancels the preceding request. Warm cache hits can load while a previous cold image finishes decoding; cold jobs are serialized to bound memory use. Image processing and database work run off the UI thread.
 
@@ -357,9 +383,13 @@ Select an image, expand **Sky background & cleanup**, adjust the background slid
 
 Configure **Options → Plate solving** with an absolute `astap.exe` or `astap_cli.exe` path. ASTAP and a star database must be installed separately; an optional database folder can be set. The default timeout is 300 seconds (10–3600 supported). Image height defaults to 0 for automatic scale search; an explicit degree value can help unusually wide/narrow fields. See [ASTAP's command-line documentation](https://www.hnsky.org/astap.htm#astap_command_line) for its automatic scale-search range and database requirements.
 
-**Blind solve & place** decodes the selected image into a unique temporary full-frame, linear Float32 Gray FITS copy. RGB is averaged, alpha is masked, supported Bayer data is reconstructed first, and display stretch/orientation is not applied. ASTAP never receives the original path. Process arguments use full-sky search (`-r 180 -ra 0 -spd 90`), auto downsampling (`-z 0`), configured/automatic field height (`-fov`), a temporary output base (`-o`) and `-sip n` to request supported linear TAN. No `-update` flag is used. Standard output/error are drained concurrently with bounded retained diagnostics; cancellation/timeout terminates the process tree and waits for exit.
+**Blind solve & place** decodes the selected image into a unique temporary full-frame, linear Float32 Gray FITS copy. RGB is averaged, alpha is masked, supported Bayer data is reconstructed first, and display stretch/orientation is not applied. ASTAP never receives the original path or source metadata. Valid paired pointing metadata starts a nearby search (`-r 5`, up to 1,000 stars): native XISF `Observation:Center:RA/Dec`, FITS `RA/DEC`, `OBJCTRA/OBJCTDEC`, or degree-valued equatorial `CRVAL` axes. Numeric RA is degrees except `OBJCTRA` (hours); sexagesimal RA is hours. ASTAP receives RA in hours and declination as south-pole distance (Dec + 90). These are approximate search hints, not a placement.
+
+The nearby attempt can estimate field height from source rows and FITS `YPIXSZ` (microns including binning) / `FOCALLEN` (mm), or native XISF sensor pixel size, binning and focal length (metres). An explicit Options field height takes precedence. Missing/invalid metadata is ignored. Nearby failure, insufficient stars or a short attempt timeout falls back to the original full-sky search (`-r 180 -ra 0 -spd 90`, 500 stars), discarding metadata scale and position; the configured field height is retained, with 0 meaning automatic. The nearby attempt gets at most 20 seconds or one quarter of the total time limit, whichever is smaller. Both attempts share that total limit and use separate temporary output bases. Auto downsampling (`-z 0`), normal search speed, the standard quad tolerance (0.007), and `-sip n` request supported linear TAN. No `-update` flag is used. Standard output/error are drained concurrently with bounded retained diagnostics; cancellation/timeout terminates the process tree and waits for exit. Database, input and malformed-result errors remain visible rather than triggering a misleading retry.
 
 Successful INI reports must identify a solved image and contain finite reference pixels, celestial coordinates and a nonsingular CD matrix. The complete 33 x 33 mesh is evaluated before publication, and source/sidecar signatures are revalidated before committing. Placements persist separately from original metadata and disposable previews, keyed by source signature and image index. They apply on imports, reprocessing, cache hits and startup restoration; changed sources invalidate them. An explicit successful solve replaces manual placement. Original files remain byte-for-byte unchanged. A scene transferred to another computer still requires its sources and that computer's library solution (or another solve); solutions are local archive records.
+
+**Forget ASTAP solution** under **Selected image** removes only that source path/image-index's local solution and updates its library placement flag in one transaction. The scene immediately restores the file's own astrometry and warning, or shows **Needs placement** when none exists. Manual placement remains active. No source decoding is needed; previews, display preferences, organization, other images and original files are preserved. Removal survives cache clearing and restarts. Astrometry embedded in a saved solved copy remains part of that file and is not removed by this action.
 
 Image sizing uses the fitted TAN matrix and full source dimensions, including rotation and separate X/Y scales. The selected-image inspector shows field width/height and the angular size of a source pixel at the image center, independent of preview resolution. ASTAP's recognized "inexact scale! Set FOV=... or scale=..." advisory compares its starting search scale with the fitted result. After validating the solution, that advisory is dismissed because the fitted scale is already applied; other diagnostics are retained. Rounded numbers in the advisory never replace the precise matrix or change global field-height hints.
 

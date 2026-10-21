@@ -5,6 +5,9 @@ public readonly record struct DistanceSpaceProjection(double X, double Y, double
 /// <summary>Perspective camera in linear light-years, using the atlas J2000 axes (Y north).</summary>
 public sealed class DistanceSpaceCamera
 {
+    private bool _basisValid;
+    private SkyVector _back, _right, _up;
+
     public SkyVector Center { get; private set; }
     public double Distance { get; private set; } = 180_000;
     public double Yaw { get; private set; } = 35;
@@ -16,11 +19,49 @@ public sealed class DistanceSpaceCamera
     // Limit the visible focus span consistently across zoom, presets and framing.
     public static readonly double MaximumDistance = MaximumViewHeight / ProjectionHeightFactor;
 
-    public SkyVector Back => new SkyCoordinate(Yaw, Pitch).Vector;
-    public SkyVector Right => SkyVector.Cross(new(0, 1, 0), Back).Normalized;
-    public SkyVector Up => SkyVector.Cross(Back, Right).Normalized;
+    public SkyVector Back
+    {
+        get
+        {
+            EnsureBasis();
+            return _back;
+        }
+    }
+
+    public SkyVector Right
+    {
+        get
+        {
+            EnsureBasis();
+            return _right;
+        }
+    }
+
+    public SkyVector Up
+    {
+        get
+        {
+            EnsureBasis();
+            return _up;
+        }
+    }
     public SkyVector Eye => Center + Back * Distance;
     public double ViewHeight => Math.Min(MaximumViewHeight, Distance * ProjectionHeightFactor);
+
+    private void EnsureBasis()
+    {
+        if (_basisValid)
+        {
+            return;
+        }
+
+        // A frame projects thousands of catalogue points and guide vertices. Its
+        // orientation changes only when orbiting or returning to the home view.
+        _back = new SkyCoordinate(Yaw, Pitch).Vector;
+        _right = SkyVector.Cross(new(0, 1, 0), _back).Normalized;
+        _up = SkyVector.Cross(_back, _right).Normalized;
+        _basisValid = true;
+    }
 
     public static SkyVector Position(TargetDistanceEstimate estimate) => estimate.Target.Position.Vector * estimate.LightYears;
 
@@ -39,6 +80,7 @@ public sealed class DistanceSpaceCamera
         Frame(default, distance);
         Yaw = 35;
         Pitch = 32;
+        _basisValid = false;
     }
 
     public void Orbit(double yaw, double pitch)
@@ -46,6 +88,7 @@ public sealed class DistanceSpaceCamera
         if (!double.IsFinite(yaw) || !double.IsFinite(pitch)) { return; }
         Yaw = SkyCoordinate.Normalize(Yaw + yaw);
         Pitch = Math.Clamp(Pitch + pitch, -89.5, 89.5);
+        _basisValid = false;
     }
 
     public void Zoom(double steps)
@@ -63,13 +106,14 @@ public sealed class DistanceSpaceCamera
     public DistanceSpaceProjection? Project(SkyVector point, double width, double height)
     {
         if (width <= 0 || height <= 0) { return null; }
-        var relative = point - Eye;
-        double depth = -SkyVector.Dot(relative, Back);
+        EnsureBasis();
+        var relative = point - (Center + _back * Distance);
+        double depth = -SkyVector.Dot(relative, _back);
         // Relative clipping planes retain precision from nearby nebulae to distant galaxies.
         if (depth <= Distance * 1e-5 || depth > Distance * 8) { return null; }
-        double scale = height / (2 * Math.Tan(FieldOfView * SkyCoordinate.Radians / 2) * depth);
-        double x = width / 2 + SkyVector.Dot(relative, Right) * scale;
-        double y = height / 2 - SkyVector.Dot(relative, Up) * scale;
+        double scale = height / (ProjectionHeightFactor * depth);
+        double x = width / 2 + SkyVector.Dot(relative, _right) * scale;
+        double y = height / 2 - SkyVector.Dot(relative, _up) * scale;
         return double.IsFinite(x) && double.IsFinite(y) ? new(x, y, depth) : null;
     }
 }

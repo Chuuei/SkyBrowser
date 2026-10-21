@@ -4,12 +4,12 @@
 
 Explore your astronomical photographs in their place on the sky. SkyBrowser combines your FITS and XISF images with a simple star map. You can look around, compare photographs and return to your saved image folders later.
 
-<!-- figure height=120 crop=0,0,1424,881 markers=1:0.89:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
+<!-- figure height=95 crop=0,0,1424,881 markers=1:0.89:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
 ![The main window, showing a wide Horsehead field and a smaller image of the same region.](manual/screenshots/main-window.png)
 
 - **1. Top bar:** see the app version, open Options and add images.
 - **2. Image collection:** open the library, search loaded images and choose one.
-- **3. Selected image:** change the chosen image's appearance, visibility and placement. Drag the divider above this panel to resize it.
+- **3. Selected image:** click the name or right-hand chevron to reveal appearance and placement controls. Drag the divider above the expanded panel to resize it.
 - **4. Sky view:** drag to look around and scroll to zoom. The bottom status bar reports progress and problems.
 
 | Start here | Page | Explore further | Page |
@@ -25,6 +25,7 @@ Explore your astronomical photographs in their place on the sky. SkyBrowser comb
 | Organize your collection | 18 | Survey background | 19 |
 | Target visibility | 20 | Measurements and sky guides | 21 |
 | Published target distances | 22 | Explore objects in 3D | 23 |
+| Camera framing and mosaics | 24 | Moon position and phase | 25 |
 
 > **Your originals stay safe.** Display changes, blending and placement do not rewrite your scientific image files. Keep your originals available for future starts.
 
@@ -91,7 +92,10 @@ The shared **Go** button returns to the selected target. You can also enter a kn
 
 ## Choose, hide and search
 
-Select an entry to open **Selected image** controls. Choosing a sky target or measuring deselects the image and hides these controls. Click an image again to return.
+Select an entry to show its name below the collection. Click the name or **chevron on its right** to expand **Selected image** details and buttons; click again to collapse them and give the list more room. The header stays visible while expanded. Choosing a sky target or measuring deselects the image and hides the region.
+
+<!-- figure height=36 crop=18,727,312,789 -->
+![The compact selected-image header; click its name or chevron to reveal the controls.](manual/screenshots/selected-image-collapsed.png)
 
 The **eye icon** controls visibility: green means visible; crossed-out means hidden. Deselecting leaves visibility unchanged. **Remove** keeps the source file. Arrows reorder entries; drag the divider to resize the panels.
 
@@ -103,15 +107,12 @@ Use **Search names & metadata** to find an image by filename, target, telescope,
 
 Choose the small circled **i** beside an entry to open **Image details**. The window shows its preview, source path, original and preview dimensions, file size, display mode and sky placement. Search the metadata table to find a keyword, value or comment. Select a row to read and copy its value in the box below.
 
-<!-- figure height=190 crop=0,0,884,762 -->
+<!-- figure height=155 crop=0,0,884,762 -->
 ![Image details for the narrower Horsehead image. Metadata and the original source path are available together.](manual/screenshots/image-details.png)
 
 **Double-click a photograph in the sky** to inspect it internally, choosing the foremost overlapping image. **Inspect full resolution…** here or under Selected image also opens 100% zoom with source values and sky coordinates below the image (page 15).
 
 To open the original in the Windows default application, use the small arrow button in a corner of the hovered or selected sky image. Zoom in if the photograph is too small to show it. Large metadata values may be shortened.
-
-<!-- figure height=75 crop=500,40,620,150 -->
-![The corner arrow opens the original in its default application. Double-click the photograph itself for internal inspection.](manual/screenshots/sky-image-actions.png)
 
 ---
 
@@ -372,7 +373,7 @@ Add folders in **Image library**, then confirm with **Load folders**. Their imag
 <!-- figure height=175 -->
 ![The library lists image folders with controls to add, remove and confirm them.](manual/screenshots/image-library.png)
 
-Use **Remove selected** (Ctrl/Shift for several) or **Remove all** to edit the list. **Cancel** discards edits. **Load folders** saves all listed folders, even those hidden by the folder filter. Confirmed removals take their images out of the sky; files and saved solutions stay safe. Unavailable folders remain listed for later use.
+Use **Remove selected** (Ctrl/Shift for several) or **Remove all** to edit the list. **Cancel** discards edits. **Load folders** saves every listed folder, including filtered ones. Removed folders leave the sky; files and saved solutions stay safe. Unavailable folders remain listed.
 
 ## Solve an image without knowing its coordinates
 
@@ -380,11 +381,11 @@ Use **Remove selected** (Ctrl/Shift for several) or **Remove all** to edit the l
 ![ASTAP executable, optional star database, time limit and image-height hint in Options.](manual/screenshots/options-plate-solving.png)
 
 1. Install ASTAP and a star database. In **Options → Plate solving**, browse to **astap.exe** or **astap_cli.exe**. The optional database folder is useful for databases installed elsewhere.
-2. Keep image height at **0** for automatic scale search, or enter its height in degrees for an unusually wide/narrow field. Save options.
-3. Select an image and choose **Blind solve & place...**. ASTAP searches the whole sky. **Cancel loading** or the time limit stops it. The inspector shows fitted field size and pixel scale.
+2. Leave image height at **0** for automatic scale search, or enter its height in degrees. Save options.
+3. Choose **Blind solve & place...**. Valid metadata guide a quick search, then it tries the whole sky. **Cancel loading** or the time limit stops it. The inspector shows field size and pixel scale.
 4. Choose **Save solved copy...** and select FITS or XISF to embed the solution in a new file with the original scientific pixels. The source stays unchanged. FITS may omit XISF-only metadata.
 
-Local solutions survive clearing previews; changed source files invalidate them. Saved solved copies carry their astrometry between computers without requiring the local library.
+Local solves survive cache clearing; source changes invalidate them. **Selected image → Forget ASTAP solution** removes its local solve across restarts. File placement returns, or **Needs placement** appears. Manual placement, previews and originals stay safe. Solved copies retain embedded astrometry.
 
 ---
 
@@ -475,7 +476,7 @@ Choose **Organize…**. Check only the fields you want to replace. Tags are comm
 <!-- figure height=245 -->
 ![The batch dialog changes only the chosen fields for the selected images.](manual/screenshots/collection-batch.png)
 
-Favorites, tags and groups are saved in the library, per source path and image number. They survive restarts, folder removal and clearing previews. Keep the original paths to retain those associations; moved-file recovery remains future work.
+Favorites, tags and groups are saved in the library, per source path and image number. They survive restarts, folder removal and clearing previews. Keep the original paths to retain those associations.
 
 The same dialog can show/hide images, set opacity or change display mode using each image's current background/cleanup settings. Visibility and opacity apply to this scene. Display choices persist. Cancellation keeps saved organization and completed previews; other previews keep their prior display. Failures appear in **Details** and do not stop the remaining batch.
 
@@ -524,7 +525,7 @@ The mint curve is your target; gold is the Sun and blue is the Moon. The dashed 
 <!-- figure height=110 crop=30,665,910,900 -->
 ![A fixed demonstration report for M31, latitude 0 and longitude 0, beginning at noon UTC on 1 January 2000.](manual/screenshots/sky-tools-visibility.png)
 
-The report lists geometric rise/set events, upper transit, maximum altitude, Moon phase/illumination and separation, darkness windows and imaging windows. Circumpolar targets and polar day/night produce explicit results instead of invented crossings.
+The report lists geometric rise/set events, upper transit, maximum altitude, Moon phase/illumination and separation, darkness windows and imaging windows. Circumpolar targets and polar day/night produce explicit results instead of invented crossings. Changing planning inputs clears outdated results. **Framing & mosaics > Check panel visibility** copies a selected panel's exact center here; set the location/date and calculate.
 
 > **Interpret the limits.** Altitudes assume a flat horizon at sea level, without refraction, terrain or weather. Curves and detection of short windows use two-minute samples; detected boundaries are refined. Very brief grazing windows can be missed. A useful geometric window does not guarantee clear skies or suitable local conditions.
 
@@ -604,3 +605,51 @@ Click a point or search result to centre zoom and orbit on it. **Recenter on tar
 Rings measure **light-years from the focused object** (Solar System by default). The plane stays parallel to the **J2000 equatorial plane**. Cyan/amber show north/south; guides meet the plane. Panning and **Frame pair** retain A as origin; **Reset to Sun** restores the Sun. Toggle guides and labels below the map.
 
 **Scale and limits:** The maximum vertical focus span is **13.8 billion light-years**, with a status message at the zoom-out limit. Positions use a linear scale; markers use symbol sizes. Distance errors and cosmological effects are not modelled. Navigation leaves the atlas unchanged and resets on closing.
+
+---
+
+# 23 / Camera framing and mosaics
+
+Find your target in the atlas, then open **Sky tools… > Framing & mosaics**. Plan a single photograph or a grid of overlapping exposures.
+
+1. Choose an equipment profile. There are **29 configurations** for Seestar, DWARF, Vaonis, Unistellar and Celestron, including separate wide-angle lenses where available. Sources and approximation notes appear below the choice.
+2. Choose **Use atlas center**, or enter J2000 RA/declination in degrees. Set **Rotation**; 0° is north up/east left, positive angles turn counterclockwise. **Rotate 90°** swaps the orientation.
+3. Use 1 row and 1 column for one exposure, or up to 10 of each for a mosaic. Set **Overlap** (20% initially), then **Show plan on atlas**. Numbered outlines appear over the sky and the atlas fits the plan.
+
+<!-- pair -->
+<!-- figure height=185 -->
+![Equipment, rotation, overlap and panel coordinates for a six-panel demonstration.](manual/screenshots/sky-tools-framing.png)
+<!-- figure height=150 crop=330,120,1424,846 -->
+![A rotated six-panel field over M31; the brighter outline identifies the selected panel.](manual/screenshots/sky-tools-mosaic.png)
+
+Select a panel in the list to highlight it. **Center selected panel** shows that field; **Fit whole plan** returns to the grid. **Check panel visibility** sends its center to the visibility planner (page 20). **Export coordinates…** saves every panel to CSV: J2000 RA in degrees and hours, declination, field dimensions and each panel's actual CCW rotation. Telescope app import formats vary.
+
+**Your own equipment:** Enter a name and field width/height in degrees, or expand the sensor calculator and supply sensor dimensions and effective focal length in millimetres. Include any reducer or Barlow. Choose **Use calculated field**, then **Save custom profile** with your own name. Saving the same custom name updates it; **Remove custom** deletes it. Profiles survive restart independently of the caches.
+
+Editing plan settings hides the old outline and disables export until applied. **Hide plan** removes the overlay; closing Sky tools retains it for this run. Factory fields describe native frames, without built-in mosaic expansion. Diagonal fields use the sensor aspect ratio. Lens distortion, stacking crops and time-dependent field rotation are not modelled. Overlap describes spacing in the central tangent plane; sky overlap varies over wide mosaics. Check framing and supported rotations in your telescope app. Plans are limited to a 110° span.
+
+---
+
+# 24 / Moon position and phase
+
+Enable **Moon** above the sky view to show a small lunar graphic at its calculated position. Choose **Go to Moon** beside it to bring the Moon into view. This clears image editing selection and keeps your photographs visible.
+
+<!-- figure height=170 -->
+![The Moon at a fixed public demonstration time and latitude/longitude zero. The illuminated side follows the Sun in the selected view.](manual/screenshots/moon-overlay.png)
+
+## Follow the lunar cycle
+
+The shaded disk shows the sunlit side, with a faint dark limb so you can still locate a nearly new Moon. With **Labels** enabled, its name, phase and illuminated percentage appear beside it. Hover directly over the disk for its J2000 coordinates, UTC time, illumination and position reference. Waxing and waning phases illuminate opposite sides; the graphic rotates with the sky's orientation.
+
+<!-- figure height=60 crop=805,420,1230,540 -->
+![A closer look at the small phase illustration and its readout.](manual/screenshots/moon-overlay.png)
+
+## Choose the time and location
+
+With an observing location active, the Moon follows the **scene timeline** and includes the apparent position shift caused by your location on Earth. Scrub the timeline, step days, or choose **Live now** to watch the lunar cycle change. A fixed scene time stays fixed. The flat geometric horizon does not include refraction, weather or terrain.
+
+Without an observing location, the atlas shows the Moon from Earth's center at **live UTC** and updates automatically. Hover details identify which reference is in use.
+
+To enable the Moon automatically at startup, choose **Options > Sky > Moon position and phase**, then **Save options**. The toolbar checkbox changes the current view; the Options checkbox sets your startup default.
+
+> **An illustration, not angular scale.** The marker stays small as you zoom, so it can be found without covering your photographs. Its crater texture is decorative; it does not model libration or eclipses. Sky-view exports retain the Moon when enabled. Turning **Labels** off hides its text while keeping the phase graphic.

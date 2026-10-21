@@ -65,6 +65,16 @@ dotnet publish src/SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 --arti
 
 ## Source format and screenshots
 
+Refresh the collapsed selected-image header and expanded main-window illustrations
+without changing other figures:
+
+```powershell
+dotnet run --project tools/ManualScreenshots/SkyBrowser.ManualScreenshots.csproj -c Release -- --selected-image-only C:\SkyBrowserDemo\Samples
+```
+
+This mode requires the solved overlapping pair and merges four anonymous captures
+into the manifest. Review the full collapsed, expanded, blended and hover images.
+
 Refresh the survey, planning and measurement illustrations independently:
 
 ```powershell

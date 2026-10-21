@@ -13,7 +13,7 @@ Display processing preserves your original scientific files.
 
 ## Download and start
 
-1. Download the **win-x64** application ZIP from the
+1. Download the **win-x64-compact.zip** application ZIP from the
    [latest release](https://github.com/Chuuei/SkyBrowser/releases/latest).
    Choose the application ZIP, rather than GitHub's automatically generated source ZIP.
 2. Extract the complete ZIP into a folder you can write to.
@@ -34,16 +34,21 @@ first; new images and missing or stale previews load from the source files.
 SkyBrowser targets Windows x64 and .NET 10/WPF. The initial release is an early
 0.x release, verified locally on Windows x64 and built/tested by Windows CI.
 The executable is unsigned; verify the release's SHA-256 checksum if Windows asks
-you to assess the download. Both Windows packages include .NET and work without
-installing the runtime. The **win-x64-compact.zip** variant has just three files:
+you to assess the download. The Windows package includes .NET and works without
+installing the runtime. The **win-x64-compact.zip** has just three files:
 **SkyBrowser.exe**, **SkyBrowser-User-Manual.pdf** and **SkyBrowser-Notices.zip**.
 Keep all three when distributing it. The notices archive preserves the licences,
 attribution and catalogue copy; extract it when you want to read those files.
-The regular ZIP keeps the same supporting files in an ordinary folder structure.
+Releases provide this compact Windows package, plus source/compliance archives.
 
 Read the illustrated [PDF manual](docs/SkyBrowser-User-Manual.pdf), also supplied
 in the application ZIP, or the [online manual](docs/user-manual.md).
 See [release notes](CHANGELOG.md) for current limits.
+
+**Sky tools → Framing & mosaics** plans camera fields and overlapping panels on the
+atlas. Choose from 29 sourced smart-telescope configurations, save your own equipment,
+export J2000 coordinates, and check a panel in the target visibility planner.
+See [equipment presets and conventions](docs/smart-telescope-profiles.md).
 
 ## Bring your photographs
 

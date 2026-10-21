@@ -4,6 +4,44 @@ namespace SkyBrowser.Tests;
 
 public sealed class DistanceSpaceTests
 {
+    [Fact]
+    public void ProjectionTracksOrbitHomeFramingMovementAndZoom()
+    {
+        var camera = new DistanceSpaceCamera();
+        var point = new SkyVector(300, -20, 500);
+
+        void CheckProjection()
+        {
+            // Independent basis calculation catches stale cached directions after
+            // each public camera operation, including projection before reading axes.
+            var back = new SkyCoordinate(camera.Yaw, camera.Pitch).Vector;
+            var right = SkyVector.Cross(new(0, 1, 0), back).Normalized;
+            var up = SkyVector.Cross(back, right).Normalized;
+            var relative = point - (camera.Center + back * camera.Distance);
+            double depth = -SkyVector.Dot(relative, back);
+            double scale = 600 / (2 * Math.Tan(DistanceSpaceCamera.FieldOfView * SkyCoordinate.Radians / 2) * depth);
+            var projected = camera.Project(point, 800, 600)!.Value;
+            Assert.Equal(400 + SkyVector.Dot(relative, right) * scale, projected.X, 10);
+            Assert.Equal(300 - SkyVector.Dot(relative, up) * scale, projected.Y, 10);
+            Assert.Equal(depth, projected.Depth, 10);
+            Assert.Equal(back, camera.Back);
+            Assert.Equal(right, camera.Right);
+            Assert.Equal(up, camera.Up);
+        }
+
+        CheckProjection();
+        camera.Orbit(110, -70);
+        CheckProjection();
+        camera.Frame(new(50, 200, -30), 10_000);
+        CheckProjection();
+        camera.Move(30, -40, 10);
+        CheckProjection();
+        camera.Zoom(2);
+        CheckProjection();
+        camera.Home();
+        CheckProjection();
+    }
+
     [Theory]
     [InlineData(0, 0, 100, 0, 0)]
     [InlineData(90, 0, 0, 0, -100)]

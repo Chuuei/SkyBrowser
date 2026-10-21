@@ -14,6 +14,7 @@ public sealed class VisibilityChart : FrameworkElement
         set
         {
             field = value;
+            if (value is null) { ToolTip = "Calculate visibility for the current planning settings."; }
             InvalidateVisual();
         }
     }

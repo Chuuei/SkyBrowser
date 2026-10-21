@@ -1,6 +1,21 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 - 2026-10-21
+
+- Add **Forget ASTAP solution** for the selected image. Remove its saved local solve across restarts, restore file astrometry or show Needs placement, and preserve manual placement, previews and original files.
+
+- Guide ASTAP with valid image position and equipment metadata before falling back to a full-sky search. Use a larger star set for the quick nearby attempt, retain one overall time limit and preserve original files.
+
+- Make Selected image collapsible, with an always-visible image name and right-hand chevron. Start collapsed, return space to the collection when closed, and restore the adjustable split when expanded.
+
+- Add an optional illustrated Moon overlay at its calculated J2000 position, with observer parallax, a Sun-oriented phase graphic, illumination readout, hover details and Go to Moon. Follow scene time/location or live UTC in atlas mode; retain the choice in Options → Sky and include it in sky exports.
+
+- Keep compatible cached previews across unrelated Core rebuilds, output paths and Debug/Release/publish configurations by using an explicit processing revision and stable dependency identities. Preserve source/settings validation; old build-specific entries need one initial refresh. Count cached images accurately when refreshing an already loaded folder.
+
+- Add camera framing and mosaics to Sky tools, with rotatable native fields, 1–10 rows/columns, overlap, numbered panel outlines, spherical panel coordinates and CSV export.
+- Include 29 manufacturer-sourced smart-telescope configurations across ZWO, DWARFLAB, Vaonis, Unistellar and Celestron, plus a sensor/focal-length calculator and saved custom profiles.
+- Connect mosaic panels to the target visibility planner; clear stale reports and cancel calculations when planning inputs change.
+- Produce only the compact Windows application ZIP, retaining source/compliance assets and checksums. Remove workspace recovery (#8) from the roadmap.
 
 ## 0.9.0 - 2026-10-20
 

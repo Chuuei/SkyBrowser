@@ -188,7 +188,10 @@ public partial class MainWindow
                         }
                         if (Sky.Layers.Contains(layer))
                         {
-                            layer.ReplaceDisplay(loaded[0], mode);
+                            using (Sky.DeferLayerUpdates())
+                            {
+                                layer.ReplaceDisplay(loaded[0], mode);
+                            }
                         }
                     }
                     completed++;

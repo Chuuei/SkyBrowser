@@ -46,6 +46,41 @@ public partial class MainWindow
     private void OpenInspection(SkyImageLayer layer) =>
         new ImageInspectionWindow(layer, Library) { Owner = this }.Show();
 
+    private void InspectorExpansionChanged(object sender, RoutedEventArgs e)
+    {
+        if (ReferenceEquals(e.OriginalSource, InspectorExpander))
+        {
+            UpdateInspectorLayout();
+        }
+    }
+
+    private void UpdateInspectorLayout()
+    {
+        bool expanded = Selected is not null && InspectorExpander.IsExpanded;
+        if (_inspectorLayoutExpanded && !expanded)
+        {
+            _collectionHeight = CollectionRow.Height;
+            _inspectorHeight = InspectorRow.Height;
+        }
+        if (expanded)
+        {
+            if (!_inspectorLayoutExpanded)
+            {
+                CollectionRow.Height = _collectionHeight;
+                InspectorRow.Height = _inspectorHeight;
+            }
+            InspectorRow.MinHeight = 140;
+        }
+        else
+        {
+            InspectorRow.MinHeight = 0;
+            InspectorRow.Height = Selected is null ? new(0) : GridLength.Auto;
+            CollectionRow.Height = new(1, GridUnitType.Star);
+        }
+        _inspectorLayoutExpanded = expanded;
+        CollectionDivider.Visibility = expanded ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void UpdateInspector()
     {
         if (_updating)
@@ -58,22 +93,8 @@ public partial class MainWindow
         {
             var selected = Selected;
             Sky.SelectedLayer = selected;
-            if (selected is not null && InspectorBorder.Visibility == Visibility.Collapsed)
-            {
-                CollectionRow.Height = _collectionHeight;
-                InspectorRow.Height = _inspectorHeight;
-                InspectorRow.MinHeight = 140;
-            }
-            else if (selected is null && InspectorBorder.Visibility == Visibility.Visible)
-            {
-                _collectionHeight = CollectionRow.Height;
-                _inspectorHeight = InspectorRow.Height;
-                InspectorRow.MinHeight = 0;
-                InspectorRow.Height = new(0);
-            }
-
             InspectorBorder.Visibility = selected is null ? Visibility.Collapsed : Visibility.Visible;
-            CollectionDivider.Visibility = InspectorBorder.Visibility;
+            UpdateInspectorLayout();
             Inspector.IsEnabled = selected is not null && _operation is null;
             ImageTitle.Text = selected?.Name ?? "Select an image to inspect it";
             ImageMetadata.Text = selected?.Image.Metadata ?? "";
@@ -91,8 +112,8 @@ public partial class MainWindow
                 : "Manual placement overrides the file's solution.";
             FitButton.IsEnabled = placement is not null;
             SolveButton.IsEnabled = selected is not null && _operation is null;
-            SaveSolvedImageButton.IsEnabled = selected is { Manual: null, Image.Placement: { } savedPlacement } &&
-                savedPlacement.Description == "ASTAP · blind solve" && _operation is null;
+            SaveSolvedImageButton.IsEnabled = selected is { Manual: null, Image.HasAstapSolution: true } && _operation is null;
+            ForgetSolutionButton.IsEnabled = selected?.Image.HasAstapSolution == true && _operation is null;
             SolveButton.ToolTip = _options.AstapExecutablePath.Length == 0
                 ? "Configure ASTAP in Options → Plate solving, then blind solve this image."
                 : "Search the whole sky with ASTAP; store the placement without changing the original.";
@@ -169,7 +190,10 @@ public partial class MainWindow
                 operation.Token
             );
             operation.Token.ThrowIfCancellationRequested();
-            selected.ReplaceDisplay(loaded[0], mode);
+            using (Sky.DeferLayerUpdates())
+            {
+                selected.ReplaceDisplay(loaded[0], mode);
+            }
             _collectionView.Refresh();
             loadProgress.FinishItem(1, loaded[0].IsFromCache ? 1 : 0);
             SetStatus($"{selected.Name} · {loaded[0].DisplayDescription}");

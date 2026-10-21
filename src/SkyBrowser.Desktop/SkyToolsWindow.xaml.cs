@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using SkyBrowser.Core.Astronomy;
+using SkyBrowser.Core.Configuration;
 using SkyBrowser.Desktop.Controls;
 
 namespace SkyBrowser.Desktop;
@@ -14,11 +15,13 @@ public partial class SkyToolsWindow : Window
     private Task? _initialization;
     private bool _ready, _closed;
 
-    public SkyToolsWindow(SkyViewport sky, SurveyImageService surveys)
+    public SkyToolsWindow(SkyViewport sky, SurveyImageService surveys, EquipmentProfileStore? equipmentStore = null)
     {
         _sky = sky;
         _surveys = surveys;
         InitializeComponent();
+        _equipmentStore = equipmentStore ?? new(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(surveys.DatabasePath)!, "equipment-profiles.json"));
+        InitializeFraming();
         InitializeTargetDistances();
         SurveyChoice.ItemsSource = SurveyDefinition.All;
         SurveyChoice.SelectedIndex = 0;

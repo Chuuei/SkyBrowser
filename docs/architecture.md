@@ -30,7 +30,7 @@ while preserving one window and one owner for cancellation and busy state.
 | `MainWindow.SkyTools.cs` | Survey service/restore lifetime and Sky tools window ownership |
 
 `SkyToolsWindow.xaml.cs` owns initialization and the window lifetime. Its Surveys,
-Visibility, Measurements and Distances partial files own their respective handlers.
+Visibility, Measurements, Distances and Framing partial files own their respective handlers.
 Survey and visibility operations have separate cancellation identities, both linked
 to the window lifetime. Closing the window cancels them and detaches atlas events.
 
@@ -64,12 +64,52 @@ The window owns search controls, display choices and source/result presentation.
 The scene has no dependency on WPF controls or the dispatcher and can be tested
 without creating a window.
 
+`DistanceSpaceCamera` retains its orientation basis between projections. Orbit and
+Home invalidate that basis; framing, movement and zoom change position or scale
+without changing the axes. This keeps catalogue and guide projection inexpensive.
+
+`SkyImageLayer` owns the consistency of its image, bitmap and placement. Display
+replacement prepares all three before raising notifications, and rebuilds manual
+geometry if the source dimensions changed. Callers batch viewport updates while
+publishing a replacement; they do not reapply manual placement themselves.
+Astrometry-only replacements reuse the existing preview bitmap.
+
 ## Persistence and scientific boundaries
+
+`AstapPlateSolver` creates one scientific temporary input and validates/commits the
+result. Its Hints partial parses approximate source coordinates and instrument
+scale without granting them placement status; its Search partial owns the bounded
+nearby attempt, full-sky fallback, shared deadline and process cleanup. Failed hints
+cannot contaminate the fallback's output or override an explicit user field height.
+
+`MosaicPlan` in Core owns rectilinear fields, tangent-plane grid spacing, spherical
+panel centers and parallel-transported orientations. `SmartTelescopeProfiles`
+loads the embedded manufacturer-sourced native-field snapshot. `EquipmentProfileStore`
+atomically saves custom configurations beside options, with bounded reads and backup
+recovery. It is independent of the preview and survey caches. The atlas owns the
+transient plan, so closing Sky tools retains its overlay; no workspace restoration
+is implied. Input edits invalidate the overlay/export until explicitly applied.
+CSV exports use invariant J2000 degrees/hours and actual per-panel CCW rotations.
+Selecting a panel can populate the existing visibility planner. Planning input
+changes cancel pending work and clear stale charts/reports.
 
 The durable library, preview cache, survey cache and application options have
 different lifetimes. Keep those stores separate. Cache loss must not remove library
 organization or other durable library records, or hide an otherwise readable image. Source signatures bind
 cached previews and saved astrometry to their original scientific files.
+Individual damaged preference or survey records must not hide other valid records.
+Validate survey metadata, SQLite storage types and request keys before exposing
+saved regions; restoration still validates the scientific payload separately.
+
+`LoadedSkyImage` retains file astrometry when applying a local ASTAP overlay and
+exposes its provenance through `HasAstapSolution`. The preview cache stores the
+file's placement and warning, independent of that overlay. `ImageLibrary.ForgetSolution`
+deletes the selected path/image-index solution and updates its indexed placement
+flag in one transaction, then returns the retained file placement without decoding.
+The desktop publishes that replacement immediately while preserving manual placement
+and display state. Other solutions and library organization remain intact. Solved
+exports recheck the durable record, so stale scene snapshots cannot export a solve
+that has been forgotten.
 
 Numerical/format contracts and source attribution are detailed in the
 [technical reference](technical-reference.md). Rendering and refactoring must

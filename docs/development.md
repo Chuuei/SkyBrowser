@@ -83,8 +83,7 @@ The self-contained application does not require a separately installed .NET runt
 The Windows publish profile pins the reviewed runtime patch independently of the
 SDK selected for building. Update its version and the redistribution inventory
 together when reviewing a runtime security update.
-The regular ZIP keeps the PDF, license/NOTICE files and `Data` directory alongside
-the executable. `Build-Release.ps1` also produces a **win-x64-compact.zip** with
+`Build-Release.ps1` produces one Windows application ZIP, **win-x64-compact.zip**, with
 exactly three files: the same executable, the PDF and `SkyBrowser-Notices.zip`.
 The latter preserves every supporting file and its relative path, including the
 adapted catalogue JSON. Keep this archive with the executable when redistributing.
@@ -95,7 +94,10 @@ packaging moves only documents, notices and the duplicate catalogue copy into a
 ZIP. The catalogue used at runtime is embedded in the Core assembly. The packager
 rejects unexpected external runtime files rather than silently archiving them,
 then verifies every file hash from the finished outer and inner ZIPs. CI validates
-both formats. To package an existing validated publish directory:
+the publish directory and compact archive. The regular Windows ZIP is no longer
+created; source/compliance archives and checksums remain. Existing release archives
+in the output directory cause packaging to stop, preventing stale assets from
+entering a new release. To package an existing validated publish directory:
 
 ```powershell
 ./tools/New-CompactPackage.ps1 -PublishDirectory ./artifacts/publish/SkyBrowser.Desktop/release_win-x64 -OutputPath ./artifacts/compact/SkyBrowser-win-x64-compact.zip

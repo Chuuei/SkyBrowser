@@ -11,6 +11,50 @@ namespace SkyBrowser.Tests;
 
 public sealed class SurveyTests
 {
+    [Theory]
+    [InlineData("survey='unknown'")]
+    [InlineData("dec=91")]
+    [InlineData("size=4294967424")]
+    [InlineData("ra='invalid'")]
+    [InlineData("key='wrong-key'")]
+    public async Task InvalidCachedMetadataDoesNotHideValidOfflineRegions(string damage)
+    {
+        string directory = TestImages.NewDirectory();
+        try
+        {
+            var valid = new SurveyRequest(SurveyDefinition.Color.Id, new(10, 40), 2, 128);
+            var damaged = valid with { Center = new(20, 40) };
+            var fixtures = new[] { valid, damaged }.ToDictionary(request => request.DownloadUri,
+                request => FitsFixture(directory, request));
+            var handler = new Handler((message, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(fixtures[message.RequestUri!])
+            }));
+            using var client = new HttpClient(handler);
+            var service = new SurveyImageService(Path.Combine(directory, "cache"), client);
+            await service.LoadAsync(valid, false);
+            await service.LoadAsync(damaged, false);
+            using (var connection = new SqliteConnection($"Data Source={service.DatabasePath};Pooling=False"))
+            {
+                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = $"UPDATE frames SET {damage} WHERE key=$key";
+                command.Parameters.AddWithValue("$key", damaged.Key);
+                command.ExecuteNonQuery();
+            }
+
+            Assert.Equal(valid, Assert.Single(service.GetCached()).Request);
+            var restored = Assert.Single(await service.LoadCachedAsync());
+            Assert.Equal(valid, restored.Request);
+            Assert.True(restored.FromCache);
+            Assert.Equal(2, handler.Calls);
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
+        }
+    }
+
     [Fact]
     public async Task RestoringAllCachedRegionsStaysOfflinePreservesOrderAndSkipsDamagedEntries()
     {

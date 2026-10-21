@@ -19,8 +19,8 @@ been replaced by automatic startup loading from saved folders. ASTAP executable,
 database paths, timeout and optional field-height hint are configurable. Solving
 searches the whole sky, applies the fitted scale and supports solved FITS/XISF
 copies. Recognized Bayer data produces color previews without changing original
-samples or astrometry. Tags, thumbnails and sorting followed in 0.6.0; archive
-relocation and more efficient initial decoding remain future work.
+samples or astrometry. Tags, thumbnails and sorting followed in 0.6.0;
+more efficient initial decoding remains future work.
 
 ## Released in 0.4.0
 
@@ -126,15 +126,21 @@ presets, source details and two-object measurements. It leaves the atlas unchang
 - **Current documentation:** update the beginner manual, anonymous screenshots,
   technical reference and regression coverage for these workflows.
 
-## Next priorities
+## Completed since 0.9.0
 
-8. **Full workspace recovery:** restore camera/layer choices, undo/redo, locate
-   missing files and remap moved archive folders, beyond the saved folder list.
+10. **Camera framing and mosaics:** equipment profiles, rotatable field-of-view
+    rectangles, overlap/panel planning and CSV coordinate export. Includes 29
+    manufacturer-sourced smart-telescope configurations and saved custom fields.
+    Spherical panel centers/orientations work across RA zero and the poles.
+11. **Target visibility integration:** the planner released in 0.6.0 now accepts
+    individual mosaic panel centers. Changing planning inputs clears stale reports
+    and cancels outdated calculations.
+
+Only the compact Windows application ZIP is produced for future releases; source,
+native compliance archives and checksums remain available.
 
 ## Astronomy and planning
 
-10. **Camera framing and mosaics:** equipment profiles, rotatable field-of-view
-    rectangles, overlap/panel planning and coordinate export.
 13. **Processed-image imports:** TIFF/PNG/JPEG with solving or saved placement.
 
 Current product focus: a browsable atlas of the user's photographs. Library,

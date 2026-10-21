@@ -104,6 +104,7 @@ public partial class OptionsWindow : Window
             ShowGrid.IsChecked = options.ShowGrid;
             ShowConstellations.IsChecked = options.ShowConstellations;
             ShowLabels.IsChecked = options.ShowLabels;
+            ShowMoon.IsChecked = options.ShowMoon;
             ShowOutlines.IsChecked = options.ShowOutlines;
             BlendOverlaps.IsChecked = options.BlendOverlaps;
             ShowCachedSurveyImages.IsChecked = options.ShowCachedSurveyImages;
@@ -159,6 +160,7 @@ public partial class OptionsWindow : Window
             ShowGrid = ShowGrid.IsChecked == true,
             ShowConstellations = ShowConstellations.IsChecked == true,
             ShowLabels = ShowLabels.IsChecked == true,
+            ShowMoon = ShowMoon.IsChecked == true,
             ShowOutlines = ShowOutlines.IsChecked == true,
             BlendOverlaps = BlendOverlaps.IsChecked == true,
             ShowCachedSurveyImages = ShowCachedSurveyImages.IsChecked == true,

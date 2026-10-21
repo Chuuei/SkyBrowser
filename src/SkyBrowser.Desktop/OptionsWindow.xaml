@@ -244,6 +244,7 @@
           <CheckBox x:Name="ShowGrid" Content="Coordinate grid" Margin="0,0,0,14" />
           <CheckBox x:Name="ShowConstellations" Content="Constellation lines" Margin="0,0,0,14" />
           <CheckBox x:Name="ShowLabels" Content="Sky labels" Margin="0,0,0,14" />
+          <CheckBox x:Name="ShowMoon" Content="Moon position and phase" Margin="0,0,0,14" ToolTip="Show an illustrative Moon at its calculated sky position. Uses scene time and observer location, or live UTC in atlas mode." />
           <CheckBox x:Name="ShowOutlines" Content="Image outlines" Margin="0,0,0,14" />
           <CheckBox
             x:Name="BlendOverlaps"

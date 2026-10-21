@@ -58,7 +58,8 @@ public partial class MainWindow
             _skyToolsWindow.Activate();
             return _skyToolsWindow;
         }
-        var window = new SkyToolsWindow(Sky, SurveyService) { Owner = this };
+        var window = new SkyToolsWindow(Sky, SurveyService,
+            new SkyBrowser.Core.Configuration.EquipmentProfileStore(Path.Combine(Path.GetDirectoryName(_optionsStore.FilePath)!, "equipment-profiles.json"))) { Owner = this };
         _skyToolsWindow = window;
         window.Closed += (_, _) => _skyToolsWindow = null;
         window.Show();

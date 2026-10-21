@@ -267,6 +267,7 @@ public sealed partial class ImageLibrary
 
     private static LoadedSkyImage ApplySolution(LoadedSkyImage image, SqliteConnection connection, SqliteTransaction transaction, string stamp)
     {
+        image = image.WithoutAstapSolution();
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = "SELECT grid FROM solutions WHERE path=$path AND image_index=$index AND stamp=$stamp AND width=$width AND height=$height";
@@ -281,7 +282,7 @@ public sealed partial class ImageLibrary
         }
         var grid = JsonSerializer.Deserialize(json, LibraryJsonContext.Default.SkyCoordinateArray)
             ?? throw new InvalidDataException("Empty saved plate solution.");
-        return image with { Placement = ImagePlacement.FromSampleGrid("ASTAP · blind solve", grid), PlacementWarning = null };
+        return image.WithAstapSolution(ImagePlacement.FromSampleGrid("ASTAP · blind solve", grid));
     }
 
     internal void SaveSolution(string sourcePath, int imageIndex, int width, int height, SourceSnapshot snapshot,
@@ -321,12 +322,41 @@ public sealed partial class ImageLibrary
         return ApplySolution(image, connection, transaction, Stamp(snapshot));
     }
 
+    /// <summary>
+    /// Removes the local ASTAP solution for this source path and image index, then
+    /// returns the image with its retained file astrometry. Other images, previews,
+    /// organization and original files are preserved. Cancellation before commit
+    /// leaves the saved solution unchanged; unavailable source files need not be opened.
+    /// </summary>
+    public LoadedSkyImage ForgetSolution(LoadedSkyImage image, CancellationToken token = default)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        token.ThrowIfCancellationRequested();
+        var restored = image.WithoutAstapSolution();
+        using var connection = Open();
+        using var transaction = connection.BeginTransaction();
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = """
+            DELETE FROM solutions WHERE path=$path AND image_index=$index;
+            UPDATE images SET placed=$placed WHERE path=$path AND image_index=$index;
+            """;
+        command.Parameters.AddWithValue("$path", Key(image.SourcePath));
+        command.Parameters.AddWithValue("$index", image.ImageIndex);
+        command.Parameters.AddWithValue("$placed", restored.Placement is not null);
+        command.ExecuteNonQuery();
+        token.ThrowIfCancellationRequested();
+        transaction.Commit();
+        return restored;
+    }
+
     internal ImagePlacement SolutionForExport(LoadedSkyImage image, SourceSnapshot snapshot)
     {
         using var connection = Open();
         using var transaction = connection.BeginTransaction();
-        var current = ApplySolution(image with { Placement = null }, connection, transaction, Stamp(snapshot));
-        return current.Placement ?? throw new InvalidOperationException("No saved ASTAP solution matches the current source. Reload and blind solve the image before saving a solved copy.");
+        var current = ApplySolution(image, connection, transaction, Stamp(snapshot));
+        return current.HasAstapSolution ? current.Placement!
+            : throw new InvalidOperationException("No saved ASTAP solution matches the current source. Reload and blind solve the image before saving a solved copy.");
     }
 
     /// <summary>Scans archives recursively; unchanged files reuse retained metadata without decoding.</summary>

@@ -24,6 +24,7 @@ public partial class MainWindow : Window
     private bool _firstRunHandled;
     private GridLength _collectionHeight = new(3, GridUnitType.Star);
     private GridLength _inspectorHeight = new(2, GridUnitType.Star);
+    private bool _inspectorLayoutExpanded;
     private ProcessedImageCache _cache;
     private CachedSkyImageLoader _imageLoader;
     private readonly ApplicationOptionsStore _optionsStore;
