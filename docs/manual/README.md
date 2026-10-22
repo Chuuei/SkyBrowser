@@ -65,6 +65,13 @@ dotnet publish src/SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 --arti
 
 ## Source format and screenshots
 
+Refresh Options, the Accessibility tab and the F1 guide without private sample
+images using `dotnet run --project tools/ManualScreenshots -c Release -- --accessibility-only`.
+This mode uses only neutral demonstration settings and paths, retains the other
+manifest entries and writes five figures. Inspect every full PNG before rebuilding
+the PDF. The Accessibility chapter documents interface size, contrast, reduced
+motion, screen-reader values and coordinate/pixel alternatives.
+
 Refresh the collapsed selected-image header and expanded main-window illustrations
 without changing other figures:
 

@@ -1,6 +1,7 @@
 <Window x:Class="SkyBrowser.Desktop.DistanceSpaceWindow"
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+  xmlns:services="clr-namespace:SkyBrowser.Desktop.Services"
   xmlns:controls="clr-namespace:SkyBrowser.Desktop.Controls"
   Title="SkyBrowser · Objects in 3D" Width="1200" Height="820" MinWidth="900" MinHeight="650"
   Style="{StaticResource {x:Type Window}}" WindowStartupLocation="CenterOwner">
@@ -9,7 +10,7 @@
     <DockPanel Margin="0,0,0,14">
       <StackPanel>
         <TextBlock Text="Objects in 3D" FontSize="23" FontWeight="SemiBold" />
-        <TextBlock Text="Published distances from our Solar System" Foreground="#8D9AAD" Margin="0,4,0,0" />
+        <TextBlock Text="Published distances from our Solar System" Foreground="{DynamicResource UiBrush8D9AAD}" Margin="0,4,0,0" />
       </StackPanel>
       <WrapPanel HorizontalAlignment="Right" VerticalAlignment="Center">
         <Button x:Name="SolarHomeButton" Content="Reset to Sun" Click="HomeClicked" Margin="0,0,10,0" />
@@ -24,7 +25,7 @@
     </DockPanel>
     <Grid Grid.Row="1">
       <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="14" /><ColumnDefinition Width="272" /></Grid.ColumnDefinitions>
-      <Border BorderBrush="#2A3A4D" BorderThickness="1" CornerRadius="5" ClipToBounds="True">
+      <Border BorderBrush="{DynamicResource UiBrush2A3A4D}" BorderThickness="1" CornerRadius="5" ClipToBounds="True">
         <controls:DistanceSpaceView x:Name="SpaceView" AutomationProperties.Name="Interactive three dimensional object map" />
       </Border>
       <Grid Grid.Column="2">
@@ -46,13 +47,13 @@
           ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
           <ListBox.ItemTemplate><DataTemplate><StackPanel Margin="0,2">
             <TextBlock Text="{Binding Target.Name}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Target.Name}" />
-            <TextBlock Text="{Binding SourceValue}" FontSize="10" Foreground="#8D9AAD" />
+            <TextBlock Text="{Binding SourceValue}" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" />
           </StackPanel></DataTemplate></ListBox.ItemTemplate>
         </ListBox>
         <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" MaxHeight="260" Margin="0,12,0,0">
           <StackPanel>
             <TextBlock x:Name="SelectedName" Text="Select a point or search result" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
-            <TextBlock x:Name="SelectedDetails" Text="Click the map to give it keyboard focus." TextWrapping="Wrap" Foreground="#A2B6CA" FontSize="11" Margin="0,7,0,8" />
+            <TextBlock x:Name="SelectedDetails" Text="Click the map to give it keyboard focus." TextWrapping="Wrap" Foreground="{DynamicResource UiBrushA2B6CA}" FontSize="11" Margin="0,7,0,8" />
             <WrapPanel>
               <Button x:Name="FocusObjectButton" Content="Recenter on target" Click="FocusObjectClicked" IsEnabled="False" />
               <Button x:Name="ObjectSourceButton" Content="Open source" Click="SourceClicked" IsEnabled="False" Margin="6,0,0,0" />
@@ -62,28 +63,28 @@
       </Grid>
     </Grid>
     <StackPanel Grid.Row="2" Margin="0,12,0,0">
-      <Border x:Name="PairPanel" Visibility="Collapsed" Background="#172332" Padding="10" Margin="0,0,0,10" CornerRadius="4">
+      <Border x:Name="PairPanel" Visibility="Collapsed" Background="{DynamicResource UiBrush172332}" Padding="10" Margin="0,0,0,10" CornerRadius="4">
         <DockPanel>
           <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Center" Margin="12,0,0,0">
             <Button x:Name="FramePairButton" Content="Frame pair" Click="FramePairClicked" />
             <Button x:Name="ClearPairButton" Content="Clear measurement" Click="ClearPairClicked" Margin="6,0,0,0" />
           </WrapPanel>
           <StackPanel>
-            <TextBlock x:Name="PairResult" Foreground="#FFE49B" FontSize="15" TextWrapping="Wrap" />
-            <TextBlock x:Name="PairNames" Foreground="#A2B6CA" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
+            <TextBlock x:Name="PairResult" services:Accessibility.LiveSetting="Polite" Foreground="{DynamicResource UiBrushFFE49B}" FontSize="15" TextWrapping="Wrap" />
+            <TextBlock x:Name="PairNames" Foreground="{DynamicResource UiBrushA2B6CA}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0" />
           </StackPanel>
         </DockPanel>
       </Border>
       <WrapPanel>
         <CheckBox x:Name="GuidesChoice" Content="Distance rings &amp; guides" IsChecked="True" Click="DisplayChanged" />
         <CheckBox x:Name="LabelsChoice" Content="Object labels" IsChecked="True" Click="DisplayChanged" />
-        <TextBlock Text="Cyan: north of plane · Amber: south" Foreground="#A2B6CA" FontSize="11" VerticalAlignment="Center" Margin="12,0,0,0" />
+        <TextBlock Text="Cyan: north of plane · Amber: south" Foreground="{DynamicResource UiBrushA2B6CA}" FontSize="11" VerticalAlignment="Center" Margin="12,0,0,0" />
       </WrapPanel>
       <TextBlock Text="Drag: orbit · Right-drag / Shift-drag: pan · Wheel / + −: zoom · WASD: move · Q/E: down/up · Arrows: orbit · F: focus · Home: reset"
-        Foreground="#A2B6CA" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,5" />
+        Foreground="{DynamicResource UiBrushA2B6CA}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,5" />
       <TextBlock x:Name="ReferencePlaneDescription"
-        Foreground="#8D9AAD" FontSize="10" TextWrapping="Wrap" />
-      <TextBlock x:Name="SpaceStatus" Foreground="#8BE2C3" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0" />
+        Foreground="{DynamicResource UiBrush8D9AAD}" FontSize="10" TextWrapping="Wrap" />
+      <TextBlock x:Name="SpaceStatus" services:Accessibility.LiveSetting="Polite" Foreground="{DynamicResource UiBrush8BE2C3}" FontSize="11" TextWrapping="Wrap" Margin="0,7,0,0" />
     </StackPanel>
   </Grid>
 </Window>

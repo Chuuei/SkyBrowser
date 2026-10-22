@@ -440,6 +440,18 @@ The display maps the original stored rows to their astrometric coordinates. XISF
 
 ## Build and verify
 
+The separate [FlaUI/UIA3 suite](../tests/SkyBrowser.UiTests/README.md) tests the
+running executable through the Windows accessibility tree and real keyboard/mouse
+input. It covers first-run setup, Options, all settings tabs and the library
+dialog, readable custom views, live announcements, focus restoration and enlarged
+interfaces, using isolated profiles. Run on an unlocked interactive desktop,
+separately from other desktop tests. See [accessibility support and evidence](accessibility.md)
+for implemented behavior and remaining assistive-technology acceptance work.
+
+```powershell
+dotnet test tests/SkyBrowser.UiTests -c Release --artifacts-path ./artifacts
+```
+
 See the [performance review](performance-review.md) for measured rendering/loading improvements, validation, remaining costs and repeatable CPU/allocation probes.
 
 ```powershell

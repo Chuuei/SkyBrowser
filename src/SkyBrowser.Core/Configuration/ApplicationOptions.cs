@@ -11,6 +11,10 @@ public sealed record ApplicationOptions
 
     public int Version { get; init; } = 1;
 
+    public double InterfaceScale { get; init; } = 1;
+    public bool UseHighContrast { get; init; }
+    public bool ReduceMotion { get; init; }
+
     public string CacheDirectory { get; init; } = DefaultCacheDirectory;
 
     public double CacheSizeGb { get; init; } = 10;
@@ -46,6 +50,10 @@ public sealed record ApplicationOptions
 
     public void Validate()
     {
+        if (!double.IsFinite(InterfaceScale) || InterfaceScale is < 1 or > 2)
+        {
+            throw new ArgumentException("Interface size must be between 100% and 200%.");
+        }
         if (Version != 1)
         {
             throw new ArgumentException($"Unsupported options version {Version}.");

@@ -7,6 +7,12 @@ namespace SkyBrowser.Desktop.Controls;
 /// <summary>Depth-sorted perspective point cloud, with screen-sized symbols and collision-limited labels.</summary>
 public sealed partial class DistanceSpaceView : FrameworkElement
 {
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
+        new Services.AccessibleViewPeer(this, () =>
+            $"Three dimensional object view. Reference origin {ReferenceOriginName}. " +
+            (Selected is { } selected ? $"Selected {selected.Target.Name}. Distance {selected.SourceValue}. " : "No object selected. ") +
+            (PairMeasurement is { } pair ? $"Pair angular separation {pair.Degrees:0.######} degrees. " : "") +
+            "Search and select named objects in the adjacent list to read details and measure a pair without pointing at the map.");
     private Point? _down, _previous;
     private bool _dragged, _shiftClick;
     private readonly DistanceSpaceScene _scene = new();
@@ -73,6 +79,8 @@ public sealed partial class DistanceSpaceView : FrameworkElement
         ClipToBounds = true;
         Cursor = Cursors.Hand;
         ToolTip = "Click to centre navigation · Shift-click a second object to measure · Drag to orbit · Right-drag or Shift-drag to pan · Wheel to zoom";
+        System.Windows.Automation.AutomationProperties.SetHelpText(this,
+            "Arrows orbit; WASD move; Q/E move vertically; plus/minus zoom; F focuses; Home resets. Use the named object list and Select second target for nonvisual selection.");
         SizeChanged += (_, _) => InvalidateVisual();
         LostMouseCapture += (_, _) =>
         {
@@ -85,6 +93,7 @@ public sealed partial class DistanceSpaceView : FrameworkElement
     {
         InvalidateVisual();
         ViewChanged?.Invoke(this, EventArgs.Empty);
+        Services.AccessibleViewPeer.Notify(this);
     }
 
     public void FocusSelected(bool keepScale = false) => _scene.FocusSelected(keepScale);

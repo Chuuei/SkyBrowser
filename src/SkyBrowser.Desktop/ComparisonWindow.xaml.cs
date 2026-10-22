@@ -273,7 +273,8 @@ public partial class ComparisonWindow : Window
 
     private void UpdateTimer()
     {
-        if (_ready && !_closed && IsActive && Mode == ComparisonMode.Blink && BlinkRunning.IsChecked == true)
+        if (_ready && !_closed && IsActive && Mode == ComparisonMode.Blink && BlinkRunning.IsChecked == true &&
+            !Services.AccessibilityPreferences.MotionReduced)
         {
             _timer.Start();
         }
@@ -283,7 +284,15 @@ public partial class ComparisonWindow : Window
         }
     }
 
-    private void TimerTick(object? sender, EventArgs e) => ToggleFrame();
+    private void TimerTick(object? sender, EventArgs e)
+    {
+        if (Services.AccessibilityPreferences.MotionReduced)
+        {
+            _timer.Stop();
+            return;
+        }
+        ToggleFrame();
+    }
 
     public void ToggleFrame()
     {

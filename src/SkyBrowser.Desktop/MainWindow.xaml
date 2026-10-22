@@ -24,8 +24,8 @@
     </Grid.RowDefinitions>
     <Border
       Grid.Row="0"
-      Background="#101722"
-      BorderBrush="#253044"
+      Background="{DynamicResource UiBrush101722}"
+      BorderBrush="{DynamicResource UiBrush253044}"
       BorderThickness="0,0,0,1">
       <Grid Margin="24,0">
         <Grid.ColumnDefinitions>
@@ -35,9 +35,9 @@
         </Grid.ColumnDefinitions>
         <StackPanel x:Name="ApplicationHeading" Orientation="Horizontal" VerticalAlignment="Center">
           <Grid Width="34" Height="34" Margin="0,0,12,0">
-            <Ellipse Stroke="#8BE2C3" StrokeThickness="1" Margin="5" />
+            <Ellipse Stroke="{DynamicResource UiBrush8BE2C3}" StrokeThickness="1" Margin="5" />
             <Ellipse
-              Stroke="#8BE2C3"
+              Stroke="{DynamicResource UiBrush8BE2C3}"
               StrokeThickness="1"
               Width="34"
               Height="12"
@@ -46,7 +46,7 @@
                 <RotateTransform Angle="-35" />
               </Ellipse.RenderTransform>
             </Ellipse>
-            <Ellipse Fill="#8BE2C3" Width="4" Height="4" />
+            <Ellipse Fill="{DynamicResource UiBrush8BE2C3}" Width="4" Height="4" />
           </Grid>
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="SkyBrowser" FontSize="22" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -56,13 +56,13 @@
               ToolTip="{x:Static services:ApplicationVersion.InformationalVersion}"
               AutomationProperties.Name="Application version"
               FontSize="11"
-              Foreground="#8D9AAD"
+              Foreground="{DynamicResource UiBrush8D9AAD}"
               VerticalAlignment="Center"
               Margin="8,0,0,0" />
             <TextBlock
               Text="YOUR PERSONAL SKY ATLAS"
               FontSize="11"
-              Foreground="#8D9AAD"
+              Foreground="{DynamicResource UiBrush8D9AAD}"
               VerticalAlignment="Center"
               Margin="16,0,0,0" />
           </StackPanel>
@@ -85,9 +85,9 @@
           <Button
             Content="+  Add images"
             Click="ImportClicked"
-            Background="#8BE2C3"
-            Foreground="#0A2925"
-            BorderBrush="#8BE2C3"
+            Background="{DynamicResource UiBrush8BE2C3}"
+            Foreground="{DynamicResource UiBrush0A2925}"
+            BorderBrush="{DynamicResource UiBrush8BE2C3}"
             FontWeight="SemiBold" />
         </StackPanel>
       </Grid>
@@ -97,7 +97,7 @@
         <ColumnDefinition Width="330" />
         <ColumnDefinition Width="*" />
       </Grid.ColumnDefinitions>
-      <Border Background="#101722" BorderBrush="#253044" BorderThickness="0,0,1,0">
+      <Border Background="{DynamicResource UiBrush101722}" BorderBrush="{DynamicResource UiBrush253044}" BorderThickness="0,0,1,0">
         <Grid Margin="18,20,18,12">
           <!-- Selected images show a compact header; expanding restores the adjustable panel proportions. -->
           <Grid.RowDefinitions>
@@ -113,13 +113,13 @@
                 Text="IMAGE COLLECTION"
                 FontSize="11"
                 FontWeight="SemiBold"
-                Foreground="#8D9AAD" />
+                Foreground="{DynamicResource UiBrush8D9AAD}" />
               <TextBlock
                 x:Name="LayerCount"
                 Text="0 images"
                 HorizontalAlignment="Right"
                 FontSize="11"
-                Foreground="#8BE2C3" />
+                Foreground="{DynamicResource UiBrush8BE2C3}" />
             </DockPanel>
             <Button x:Name="LibraryButton" Content="Image library…" Click="LibraryClicked"
               ToolTip="Search your persistent archive and add selected images to the sky" Margin="0,0,0,8" />
@@ -143,7 +143,7 @@
                 Margin="7,0,0,0" />
             </Grid>
             <ComboBox
-              x:Name="RecentFolders"
+              x:Name="RecentFolders" AutomationProperties.Name="Recent image folders"
               Visibility="Collapsed"
               Tag="Recent folders…"
               DisplayMemberPath="Name"
@@ -158,7 +158,7 @@
             <TextBlock
               x:Name="FolderLocation"
               Text="All added images"
-              Foreground="#7D8CA1"
+              Foreground="{DynamicResource UiBrush7D8CA1}"
               FontSize="10"
               TextTrimming="CharacterEllipsis"
               Margin="0,0,0,6" />
@@ -185,16 +185,16 @@
                   <Ellipse
                     Width="9"
                     Height="9"
-                    Stroke="#8D9AAD"
+                    Stroke="{DynamicResource UiBrush8D9AAD}"
                     StrokeThickness="1.2"
                     HorizontalAlignment="Left"
                     VerticalAlignment="Top" />
-                  <Path Data="M 8 8 L 13 13" Stroke="#8D9AAD" StrokeThickness="1.2" />
+                  <Path Data="M 8 8 L 13 13" Stroke="{DynamicResource UiBrush8D9AAD}" StrokeThickness="1.2" />
                 </Grid>
                 <TextBlock
                   x:Name="SearchPlaceholder"
                   Text="Search names &amp; metadata"
-                  Foreground="#7D8CA1"
+                  Foreground="{DynamicResource UiBrush7D8CA1}"
                   FontSize="11"
                   Margin="29,0,5,0"
                   VerticalAlignment="Center"
@@ -215,21 +215,21 @@
             <Expander Header="Sort &amp; filter" Margin="0,4,0,7" AutomationProperties.Name="Collection sorting and filters">
               <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
                 <StackPanel Margin="0,9,8,0">
-                  <TextBlock Text="Sort collection" FontSize="10" Foreground="#8D9AAD" Margin="0,0,0,4" />
+                  <TextBlock Text="Sort collection" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" Margin="0,0,0,4" />
                   <ComboBox x:Name="CollectionSortChoice" SelectedIndex="0" SelectionChanged="CollectionFiltersChanged" AutomationProperties.Name="Sort image collection">
                     <ComboBoxItem Content="Layer order" /><ComboBoxItem Content="Name" /><ComboBoxItem Content="Object" />
                     <ComboBoxItem Content="Filter" /><ComboBoxItem Content="Telescope" /><ComboBoxItem Content="Camera" />
                     <ComboBoxItem Content="Observation date" /><ComboBoxItem Content="Favorites first" /><ComboBoxItem Content="Group" />
                   </ComboBox>
-                  <TextBlock Text="Metadata field / contains" FontSize="10" Foreground="#8D9AAD" Margin="0,10,0,4" />
+                  <TextBlock Text="Metadata field / contains" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" Margin="0,10,0,4" />
                   <ComboBox x:Name="MetadataChoice" SelectedIndex="0" SelectionChanged="CollectionFiltersChanged" AutomationProperties.Name="Collection metadata field">
                     <ComboBoxItem Content="Object" /><ComboBoxItem Content="Filter" /><ComboBoxItem Content="Telescope" />
                     <ComboBoxItem Content="Camera" /><ComboBoxItem Content="Observation date (ISO)" />
                   </ComboBox>
                   <TextBox x:Name="MetadataQuery" TextChanged="CollectionFiltersChanged" Margin="0,4,0,0" AutomationProperties.Name="Metadata contains" />
-                  <TextBlock Text="Tag (exact)" FontSize="10" Foreground="#8D9AAD" Margin="0,9,0,4" />
+                  <TextBlock Text="Tag (exact)" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" Margin="0,9,0,4" />
                   <TextBox x:Name="TagQuery" TextChanged="CollectionFiltersChanged" AutomationProperties.Name="Filter collection by tag" />
-                  <TextBlock Text="Group (exact)" FontSize="10" Foreground="#8D9AAD" Margin="0,9,0,4" />
+                  <TextBlock Text="Group (exact)" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" Margin="0,9,0,4" />
                   <TextBox x:Name="GroupQuery" TextChanged="CollectionFiltersChanged" AutomationProperties.Name="Filter collection by group" />
                   <CheckBox x:Name="FavoriteFilter" Content="Favorites only" Click="CollectionFiltersChanged" Margin="0,10,0,7" />
                   <Button Content="Clear all filters" Click="ClearCollectionFiltersClicked" Padding="8,4" />
@@ -244,8 +244,14 @@
             </WrapPanel>
           </StackPanel>
           <Grid Grid.Row="1" Margin="0,4,0,0">
-            <ListBox x:Name="LayerList" SelectionMode="Extended" SelectionChanged="LayerSelectionChanged" MouseDoubleClick="LayerDoubleClicked"
+            <ListBox x:Name="LayerList" AutomationProperties.Name="Image collection" SelectionMode="Extended" SelectionChanged="LayerSelectionChanged" MouseDoubleClick="LayerDoubleClicked"
               ScrollViewer.CanContentScroll="True" VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+              <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                  <Setter Property="AutomationProperties.Name" Value="{Binding Name}" />
+                  <Setter Property="AutomationProperties.HelpText" Value="Use the image actions to change visibility, inspect, frame or adjust this image." />
+                </Style>
+              </ListBox.ItemContainerStyle>
               <ListBox.ItemTemplate>
                 <DataTemplate>
                   <Grid>
@@ -266,18 +272,18 @@
                       <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                       <TextBlock
                         Text="{Binding SourceLabel}"
-                        Foreground="#8D9AAD"
+                        Foreground="{DynamicResource UiBrush8D9AAD}"
                         FontSize="10"
                         Margin="0,4,0,0"
                         TextTrimming="CharacterEllipsis"
                         ToolTip="{Binding Image.SourcePath}" />
                       <TextBlock
                         Text="{Binding PlacementLabel}"
-                        Foreground="#8BE2C3"
+                        Foreground="{DynamicResource UiBrush8BE2C3}"
                         FontSize="10"
                         Margin="0,4,0,0"
                         TextTrimming="CharacterEllipsis" />
-                      <TextBlock Text="{Binding OrganizationLabel}" Foreground="#C3B88A" FontSize="10" TextTrimming="CharacterEllipsis" ToolTip="{Binding OrganizationLabel}" Margin="0,3,0,0" />
+                      <TextBlock Text="{Binding OrganizationLabel}" Foreground="{DynamicResource UiBrushC3B88A}" FontSize="10" TextTrimming="CharacterEllipsis" ToolTip="{Binding OrganizationLabel}" Margin="0,3,0,0" />
                     </StackPanel>
                     <Button
                       x:Name="ImageInfoButton"
@@ -291,7 +297,7 @@
                       ToolTip="Image details and metadata"
                       Background="Transparent"
                       AutomationProperties.Name="{Binding Name, StringFormat=Show image details for {0}}">
-                      <Path Width="15" Height="15" Fill="#8BE2C3">
+                      <Path Width="15" Height="15" Fill="{DynamicResource UiBrush8BE2C3}">
                         <Path.Data>
                           <!-- Share one coordinate space so the ring, dot and stem stay centered together. -->
                           <GeometryGroup FillRule="EvenOdd">
@@ -315,13 +321,13 @@
                 LineHeight="33" />
               <TextBlock
                 Text="Add FITS or XISF files to explore your photographs on the celestial sphere."
-                Foreground="#8D9AAD"
+                Foreground="{DynamicResource UiBrush8D9AAD}"
                 TextWrapping="Wrap"
                 Margin="0,15,0,0"
                 LineHeight="20" />
               <TextBlock
                 Text="You can also drop images or folders anywhere in this window."
-                Foreground="#64758C"
+                Foreground="{DynamicResource UiBrush64758C}"
                 TextWrapping="Wrap"
                 Margin="0,12,0,0"
                 LineHeight="19" />
@@ -338,7 +344,7 @@
                 TextWrapping="Wrap" />
               <TextBlock
                 Text="Try a target, filename, filter or telescope. Clear the search to show the full collection."
-                Foreground="#8D9AAD"
+                Foreground="{DynamicResource UiBrush8D9AAD}"
                 TextWrapping="Wrap"
                 Margin="0,12,0,0"
                 LineHeight="20" />
@@ -361,21 +367,21 @@
             <GridSplitter.Template>
               <ControlTemplate TargetType="GridSplitter">
                 <Grid Background="{TemplateBinding Background}">
-                  <Border Height="1" Background="#293548" VerticalAlignment="Center" />
+                  <Border Height="1" Background="{DynamicResource UiBrush293548}" VerticalAlignment="Center" />
                   <Border
                     x:Name="Grip"
                     Width="36"
                     Height="3"
-                    Background="#65758A"
+                    Background="{DynamicResource UiBrush65758A}"
                     CornerRadius="2"
                     VerticalAlignment="Center" />
                 </Grid>
                 <ControlTemplate.Triggers>
                   <Trigger Property="IsMouseOver" Value="True">
-                    <Setter TargetName="Grip" Property="Background" Value="#8BE2C3" />
+                    <Setter TargetName="Grip" Property="Background" Value="{DynamicResource UiBrush8BE2C3}" />
                   </Trigger>
                   <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                    <Setter TargetName="Grip" Property="Background" Value="#8BE2C3" />
+                    <Setter TargetName="Grip" Property="Background" Value="{DynamicResource UiBrush8BE2C3}" />
                   </Trigger>
                 </ControlTemplate.Triggers>
               </ControlTemplate>
@@ -385,7 +391,7 @@
             x:Name="InspectorBorder"
             Grid.Row="3"
             Padding="0,8,0,0"
-            BorderBrush="#253044"
+            BorderBrush="{DynamicResource UiBrush253044}"
             Visibility="Collapsed">
             <Border.Style>
               <Style TargetType="Border">
@@ -405,7 +411,7 @@
               AutomationProperties.Name="{Binding Text, ElementName=ImageTitle}">
               <Expander.Header>
                 <StackPanel>
-                  <TextBlock Text="SELECTED IMAGE" FontSize="10" Foreground="#8D9AAD" Margin="0,0,0,5" />
+                  <TextBlock Text="SELECTED IMAGE" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" Margin="0,0,0,5" />
                   <TextBlock x:Name="ImageTitle" FontSize="16" FontWeight="SemiBold"
                     TextTrimming="CharacterEllipsis" ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}" />
                 </StackPanel>
@@ -418,20 +424,20 @@
                 <StackPanel x:Name="Inspector" IsEnabled="False">
                   <TextBlock
                     x:Name="ImageMetadata"
-                    Foreground="#8D9AAD"
+                    Foreground="{DynamicResource UiBrush8D9AAD}"
                     FontSize="11"
                     TextWrapping="Wrap"
                     Margin="0,7,0,0"
                     LineHeight="17" />
                   <TextBlock
                     x:Name="ImagePosition"
-                    Foreground="#8BE2C3"
+                    Foreground="{DynamicResource UiBrush8BE2C3}"
                     FontSize="11"
                     Margin="0,8,0,0"
                     TextWrapping="Wrap" />
                   <TextBlock
                     x:Name="PlacementWarning"
-                    Foreground="#E9BA7B"
+                    Foreground="{DynamicResource UiBrushE9BA7B}"
                     FontSize="11"
                     TextWrapping="Wrap"
                     Margin="0,7,0,0" />
@@ -476,10 +482,10 @@
                   </StackPanel>
                   <TextBlock
                     Text="Display"
-                    Foreground="#8D9AAD"
+                    Foreground="{DynamicResource UiBrush8D9AAD}"
                     FontSize="11"
                     Margin="0,0,0,5" />
-                  <ComboBox x:Name="DisplayChoice" SelectedIndex="0" SelectionChanged="DisplayChanged">
+                  <ComboBox x:Name="DisplayChoice" AutomationProperties.Name="Selected image display mode" SelectedIndex="0" SelectionChanged="DisplayChanged">
                     <ComboBoxItem Content="Automatic · dark sky (fast)" />
                     <ComboBoxItem Content="Linear / already stretched" />
                     <ComboBoxItem Content="Library auto stretch (25%)" />
@@ -489,27 +495,27 @@
                   <TextBlock
                     x:Name="DisplayDescription"
                     FontSize="10"
-                    Foreground="#78978E"
+                    Foreground="{DynamicResource UiBrush78978E}"
                     Margin="0,5,0,8"
                     TextWrapping="Wrap" />
                   <Expander
                     Header="Sky background &amp; cleanup"
-                    Foreground="#B6C4D5"
+                    Foreground="{DynamicResource UiBrushB6C4D5}"
                     FontSize="12"
                     Margin="0,2,0,12"
                     IsExpanded="True">
                     <StackPanel Margin="0,10,8,0">
                       <DockPanel>
-                        <TextBlock Text="Sky background" FontSize="11" Foreground="#8D9AAD" />
+                        <TextBlock Text="Sky background" FontSize="11" Foreground="{DynamicResource UiBrush8D9AAD}" />
                         <TextBlock
                           x:Name="FinishBackgroundValue"
                           Text="10%"
                           FontSize="11"
-                          Foreground="#8BE2C3"
+                          Foreground="{DynamicResource UiBrush8BE2C3}"
                           HorizontalAlignment="Right" />
                       </DockPanel>
                       <Slider
-                        x:Name="FinishBackground"
+                        x:Name="FinishBackground" AutomationProperties.Name="Selected image sky background (%)"
                         Minimum="0.02"
                         Maximum="0.25"
                         Value="0.10"
@@ -540,7 +546,7 @@
                         Margin="0,0,0,10" />
                       <TextBlock
                         Text="Automatic uses the background target with stretch only. Apply finish selects Dark sky + cleanup and applies the checked cleanup options."
-                        Foreground="#7D8CA1"
+                        Foreground="{DynamicResource UiBrush7D8CA1}"
                         FontSize="10"
                         TextWrapping="Wrap"
                         Margin="0,0,0,10" />
@@ -555,16 +561,16 @@
                     </StackPanel>
                   </Expander>
                   <DockPanel>
-                    <TextBlock Text="Opacity" FontSize="11" Foreground="#8D9AAD" />
+                    <TextBlock Text="Opacity" FontSize="11" Foreground="{DynamicResource UiBrush8D9AAD}" />
                     <TextBlock
                       x:Name="OpacityLabel"
                       Text="100%"
                       FontSize="11"
-                      Foreground="#8D9AAD"
+                      Foreground="{DynamicResource UiBrush8D9AAD}"
                       HorizontalAlignment="Right" />
                   </DockPanel>
                   <Slider
-                    x:Name="OpacitySlider"
+                    x:Name="OpacitySlider" AutomationProperties.Name="Selected image opacity"
                     Minimum="0"
                     Maximum="1"
                     Value="1"
@@ -573,15 +579,15 @@
                     ToolTip="Image opacity. Blend overlaps dims inset images further; hovering temporarily shows an inset at full opacity." />
                   <Expander
                     Header="Manual sky placement"
-                    Foreground="#B6C4D5"
+                    Foreground="{DynamicResource UiBrushB6C4D5}"
                     FontSize="12"
                     Margin="0,5,0,0"
                     x:Name="ManualExpander">
                     <StackPanel Margin="0,12,0,4">
-                      <TextBlock Text="Center RA (degrees, 0–360)" FontSize="10" Foreground="#8D9AAD" />
-                      <TextBox x:Name="ManualRa" Text="0" Margin="0,4,0,8" />
-                      <TextBlock Text="Center declination (degrees)" FontSize="10" Foreground="#8D9AAD" />
-                      <TextBox x:Name="ManualDec" Text="0" Margin="0,4,0,8" />
+                      <TextBlock Text="Center RA (degrees, 0–360)" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" />
+                      <TextBox x:Name="ManualRa" AutomationProperties.Name="Image center right ascension (degrees)" Text="0" Margin="0,4,0,8" />
+                      <TextBlock Text="Center declination (degrees)" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" />
+                      <TextBox x:Name="ManualDec" AutomationProperties.Name="Image center declination (degrees)" Text="0" Margin="0,4,0,8" />
                       <Grid>
                         <Grid.ColumnDefinitions>
                           <ColumnDefinition />
@@ -589,18 +595,18 @@
                           <ColumnDefinition />
                         </Grid.ColumnDefinitions>
                         <StackPanel>
-                          <TextBlock Text="Width (degrees)" FontSize="10" Foreground="#8D9AAD" />
-                          <TextBox x:Name="ManualWidth" Text="2" Margin="0,4,0,8" />
+                          <TextBlock Text="Width (degrees)" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" />
+                          <TextBox x:Name="ManualWidth" AutomationProperties.Name="Image angular width (degrees)" Text="2" Margin="0,4,0,8" />
                         </StackPanel>
                         <StackPanel Grid.Column="2">
-                          <TextBlock Text="Rotation (degrees)" FontSize="10" Foreground="#8D9AAD" />
-                          <TextBox x:Name="ManualRotation" Text="0" Margin="0,4,0,8" />
+                          <TextBlock Text="Rotation (degrees)" FontSize="10" Foreground="{DynamicResource UiBrush8D9AAD}" />
+                          <TextBox x:Name="ManualRotation" AutomationProperties.Name="Image rotation (degrees)" Text="0" Margin="0,4,0,8" />
                         </StackPanel>
                       </Grid>
                       <CheckBox x:Name="ManualMirror" Content="Mirror horizontally" Margin="0,2,0,12" />
                       <TextBlock
                         Text="0° = north up, east left. Positive rotation turns the image counterclockwise on the sky."
-                        Foreground="#7D8CA1"
+                        Foreground="{DynamicResource UiBrush7D8CA1}"
                         FontSize="10"
                         TextWrapping="Wrap"
                         Margin="0,0,0,10" />
@@ -621,7 +627,7 @@
           <TextBlock
             Grid.Row="4"
             Text="Saved folders reopen automatically. Valid cached previews make loading faster. Source files stay untouched."
-            Foreground="#65758A"
+            Foreground="{DynamicResource UiBrush65758A}"
             FontSize="10"
             TextWrapping="Wrap"
             Margin="0,14,0,0"
@@ -635,8 +641,8 @@
           <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <Border
-          Background="#0D141F"
-          BorderBrush="#253044"
+          Background="{DynamicResource UiBrush0D141F}"
+          BorderBrush="{DynamicResource UiBrush253044}"
           BorderThickness="0,0,0,1"
           Padding="16,10">
           <Grid>
@@ -676,12 +682,12 @@
             </WrapPanel>
             <StackPanel Grid.Column="1" Orientation="Horizontal">
               <Button
-                Content="−"
+                Content="−" AutomationProperties.Name="Zoom out"
                 Click="ZoomOutClicked"
                 Padding="10,3"
                 ToolTip="Zoom out" />
               <Button
-                Content="+"
+                Content="+" AutomationProperties.Name="Zoom in"
                 Click="ZoomInClicked"
                 Padding="10,3"
                 Margin="5,0"
@@ -693,8 +699,8 @@
         <local:SkyViewport Grid.Row="1" x:Name="Sky" />
         <Border
           Grid.Row="1"
-          Background="#DE101722"
-          BorderBrush="#29394D"
+          Background="{DynamicResource UiBrushDE101722}"
+          BorderBrush="{DynamicResource UiBrush29394D}"
           BorderThickness="1"
           CornerRadius="6"
           HorizontalAlignment="Left"
@@ -705,7 +711,7 @@
           <Expander
             x:Name="TargetFinder"
             IsExpanded="False"
-            Foreground="#B6C4D5"
+            Foreground="{DynamicResource UiBrushB6C4D5}"
             HorizontalContentAlignment="Stretch"
             AutomationProperties.Name="Find in the sky">
             <Expander.Header>
@@ -713,7 +719,7 @@
                 Text="Find in the sky"
                 FontSize="12"
                 FontWeight="SemiBold"
-                Foreground="#B6C4D5"
+                Foreground="{DynamicResource UiBrushB6C4D5}"
                 ToolTip="Expand or collapse the sky target finder" />
             </Expander.Header>
             <StackPanel Margin="0,10,0,0">
@@ -733,7 +739,7 @@
                   <TextBlock
                     x:Name="TargetSearchPlaceholder"
                     Text="Filter targets…"
-                    Foreground="#7D8CA1"
+                    Foreground="{DynamicResource UiBrush7D8CA1}"
                     FontSize="11"
                     Margin="9,0,5,0"
                     VerticalAlignment="Center"
@@ -753,7 +759,7 @@
                 </ComboBox>
               </Grid>
               <ComboBox
-                x:Name="TargetChoice"
+                x:Name="TargetChoice" AutomationProperties.Name="Sky target"
                 Width="300"
                 SelectionChanged="TargetChanged"
                 SelectedIndex="-1"
@@ -774,7 +780,7 @@
                       <TextBlock
                         Text="{Binding Summary}"
                         FontSize="10"
-                        Foreground="#8D9AAD"
+                        Foreground="{DynamicResource UiBrush8D9AAD}"
                         TextTrimming="CharacterEllipsis"
                         Margin="0,3,0,0" />
                     </StackPanel>
@@ -787,8 +793,8 @@
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock
-                  x:Name="TargetResults"
-                  Foreground="#78978F"
+                  x:Name="TargetResults" services:Accessibility.LiveSetting="Polite"
+                  Foreground="{DynamicResource UiBrush78978F}"
                   FontSize="10"
                   VerticalAlignment="Center"
                   TextWrapping="Wrap" />
@@ -811,9 +817,9 @@
                   <ColumnDefinition Width="7" />
                   <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="GoRa" Text="25" ToolTip="Right ascension in degrees" />
+                <TextBox x:Name="GoRa" AutomationProperties.Name="Target right ascension (degrees)" Text="25" ToolTip="Right ascension in degrees" />
                 <TextBox
-                  x:Name="GoDec"
+                  x:Name="GoDec" AutomationProperties.Name="Target declination (degrees)"
                   Grid.Column="2"
                   Text="38"
                   ToolTip="Declination in degrees" />
@@ -827,7 +833,7 @@
               </Grid>
               <TextBlock
                 Text="RA / Dec in degrees · J2000"
-                Foreground="#677B91"
+                Foreground="{DynamicResource UiBrush677B91}"
                 FontSize="9"
                 Margin="0,5,0,0" />
             </StackPanel>
@@ -835,8 +841,8 @@
         </Border>
         <Border
           Grid.Row="1"
-          Background="#D9101722"
-          BorderBrush="#29394D"
+          Background="{DynamicResource UiBrushD9101722}"
+          BorderBrush="{DynamicResource UiBrush29394D}"
           BorderThickness="1"
           CornerRadius="6"
           HorizontalAlignment="Left"
@@ -846,17 +852,17 @@
           <StackPanel>
             <TextBlock
               x:Name="ViewCoordinates"
-              Foreground="#C6D9E6"
+              Foreground="{DynamicResource UiBrushC6D9E6}"
               FontFamily="Consolas"
               FontSize="12" />
             <TextBlock
               x:Name="ViewField"
-              Foreground="#8BE2C3"
+              Foreground="{DynamicResource UiBrush8BE2C3}"
               FontSize="10"
               Margin="0,4,0,0" />
             <TextBlock
               x:Name="ViewObserverTime"
-              Foreground="#8D9AAD"
+              Foreground="{DynamicResource UiBrush8D9AAD}"
               FontSize="10"
               Margin="0,5,0,0"
               Visibility="Collapsed" />
@@ -865,7 +871,7 @@
         <TextBlock
           Grid.Row="1"
           Text="Drag to explore  ·  Scroll to zoom  ·  Double-click image to inspect  ·  F to fit"
-          Foreground="#6F8298"
+          Foreground="{DynamicResource UiBrush6F8298}"
           HorizontalAlignment="Right"
           VerticalAlignment="Bottom"
           Margin="20,0,20,25"
@@ -879,8 +885,8 @@
     </Grid>
     <Border
       Grid.Row="2"
-      Background="#101722"
-      BorderBrush="#253044"
+      Background="{DynamicResource UiBrush101722}"
+      BorderBrush="{DynamicResource UiBrush253044}"
       BorderThickness="0,1,0,0">
       <Grid Margin="15,0">
         <Grid.ColumnDefinitions>
@@ -890,10 +896,10 @@
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
         <TextBlock
-          x:Name="StatusText"
+          x:Name="StatusText" services:Accessibility.LiveSetting="Polite"
           Text="Ready · Add your astronomical images to begin"
           VerticalAlignment="Center"
-          Foreground="#9AAABD"
+          Foreground="{DynamicResource UiBrush9AAABD}"
           FontSize="11"
           TextTrimming="CharacterEllipsis" />
         <ProgressBar

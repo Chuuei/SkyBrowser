@@ -112,6 +112,9 @@ public partial class OptionsWindow : Window
             AstapDatabaseInput.Text = options.AstapDatabaseDirectory;
             AstapTimeoutInput.Text = options.AstapTimeoutSeconds.ToString(CultureInfo.InvariantCulture);
             AstapFieldInput.Text = options.AstapFieldHeightDegrees.ToString("0.####", CultureInfo.InvariantCulture);
+            InterfaceScaleChoice.SelectedIndex = Math.Clamp((int)Math.Round((options.InterfaceScale - 1) * 4), 0, 4);
+            HighContrastChoice.IsChecked = options.UseHighContrast;
+            ReduceMotionChoice.IsChecked = options.ReduceMotion;
         }
         finally
         {
@@ -145,6 +148,9 @@ public partial class OptionsWindow : Window
 
         return new ApplicationOptions
         {
+            InterfaceScale = 1 + Math.Max(0, InterfaceScaleChoice.SelectedIndex) * 0.25,
+            UseHighContrast = HighContrastChoice.IsChecked == true,
+            ReduceMotion = ReduceMotionChoice.IsChecked == true,
             CacheDirectory = CacheDirectoryInput.Text.Trim(),
             CacheSizeGb = size,
             DefaultDisplayMode = (DisplayMode)StretchChoice.SelectedIndex,

@@ -45,6 +45,8 @@ jobs:
         run: dotnet build SkyBrowser.slnx -c Release --artifacts-path ./artifacts
       - name: Scientific, cache and WPF integration tests
         run: dotnet test tests/SkyBrowser.Tests -c Release --artifacts-path ./artifacts --no-build --logger 'trx;LogFileName=tests.trx' --results-directory ./artifacts/test-results
+      - name: Desktop accessibility and user interaction tests
+        run: dotnet test tests/SkyBrowser.UiTests -c Release --artifacts-path ./artifacts --no-build --logger 'trx;LogFileName=ui-tests.trx' --results-directory ./artifacts/test-results/ui
       - name: Publish and validate package
         run: |
           dotnet publish src/SkyBrowser.Desktop -c Release -p:PublishProfile=WinX64 --artifacts-path ./artifacts
@@ -56,7 +58,12 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: test-results
-          path: artifacts/test-results
+          path: |
+            artifacts/test-results
+            artifacts/ui-tests/**/accessibility-tree.txt
+            artifacts/ui-tests/**/window-*.png
+            artifacts/ui-tests/**/capture-error.txt
+            artifacts/ui-tests/**/cleanup-error.txt
           if-no-files-found: warn
           retention-days: 14
       - name: Prepare versioned binary and complete source assets

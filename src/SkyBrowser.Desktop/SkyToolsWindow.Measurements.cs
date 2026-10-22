@@ -7,6 +7,26 @@ namespace SkyBrowser.Desktop;
 
 public partial class SkyToolsWindow
 {
+    private void MeasureExactClicked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            double raA = Number(MeasureRaA), decA = Number(MeasureDecA);
+            double raB = Number(MeasureRaB), decB = Number(MeasureDecB);
+            if (decA is < -90 or > 90 || decB is < -90 or > 90)
+            {
+                throw new ArgumentException("Declinations must be between -90 and 90 degrees.");
+            }
+            _sky.BeginMeasurement();
+            _sky.PickMeasurementPoint(new(SkyCoordinate.Normalize(raA), decA));
+            _sky.PickMeasurementPoint(new(SkyCoordinate.Normalize(raB), decB));
+            SkyToolsStatus.Text = "Measured the supplied coordinates. Results are below.";
+        }
+        catch (ArgumentException exception)
+        {
+            SkyToolsStatus.Text = exception.Message;
+        }
+    }
     private void BeginMeasurementClicked(object sender, RoutedEventArgs e)
     {
         _sky.BeginMeasurement();

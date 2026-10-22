@@ -82,7 +82,9 @@ using their astrometry over an offline star, constellation and deep-sky map.
 | `src/SkyBrowser.Desktop/SkyToolsWindow.*.cs` | Feature-specific Surveys, Visibility, Measurements, Distances and Framing handlers; the shell owns shared lifetime |
 | `src/SkyBrowser.Desktop/Controls/VisibilityChart.cs` | Offline altitude chart, darkness/window shading and readouts |
 | `src/SkyBrowser.Desktop/Services/` | Window appearance and observer preferences |
+| `src/SkyBrowser.Desktop/Services/Accessibility*.cs` | Live announcements, focus, custom-view automation peers, contrast and bounded interface scaling |
 | `tests/SkyBrowser.Tests/` | xUnit scientific, cache, settings and real WPF integration tests |
+| `tests/SkyBrowser.UiTests/` | FlaUI/UIA3 executable-level accessibility and keyboard/mouse workflows |
 | `tests/SkyBrowser.CacheProbe/` | Separate-process persistence checks and performance probes |
 | `examples/` | User-supplied FITS/XISF images, including overlapping Horsehead fields |
 | `tools/Build-TargetCatalog.ps1` | Regenerates bundled deep-sky data from pinned sources |
@@ -129,6 +131,13 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   examples path when verifying image quality, placement or blending.
 - Desktop tests use a real WPF window on an STA dispatcher. Keep their shared
   `Application` lifetime: WPF permits only one `Application` per process.
+- `dotnet test tests\SkyBrowser.UiTests -c Release --artifacts-path .\artifacts`
+  runs the separate FlaUI/UIA3 suite on an unlocked interactive Windows desktop.
+  It launches the real executable with a unique `SKYBROWSER_DATA_DIRECTORY`
+  child-process override for settings/library/default caches. Never use the user's
+  actual profile. Keep these keyboard/mouse tests serial and separate from other
+  desktop tests; see `tests/SkyBrowser.UiTests/README.md`. Diagnostics stay under
+  ignored `artifacts/ui-tests`; CI uploads failure captures and tree dumps.
 - Tests cover cancellation and late callbacks as well as successful results.
   Preserve numerical/pixel comparisons, source preservation and separate-process
   cache checks when changing the associated implementation.
@@ -303,6 +312,18 @@ dotnet test tests\SkyBrowser.Tests -c Release --artifacts-path .\artifacts
   ASTAP results persist; transient layer/camera/target changes are not autosaved.
 
 ## UI behavior to preserve
+
+- Keep every input's accessible name, standard automation patterns and keyboard
+  behavior. Custom views expose read-only text equivalents through automation
+  peers. F1 opens the guide; F6 cycles major regions. Active dialogs return focus
+  to their opener. Status/result live regions debounce updates and do not announce
+  clock ticks or hover movements. Preserve coordinate-entry alternatives to
+  pointer measurement and pixel inspection.
+- `Styles/Palette.xaml` and dynamic brush references support Windows contrast
+  themes and the persisted Accessibility preferences. Keep interface scaling
+  bounded/scrollable with finite list viewports. Reduced motion stops automatic
+  blinking; manual comparison remains available. See `docs/accessibility.md`
+  for behavior, evidence and remaining assistive-technology acceptance work.
 
 - Sky tools must not download images on open, pan, startup or scene-time changes.
   Survey downloads are explicit allow-listed HTTPS CDS requests with bounded bodies,

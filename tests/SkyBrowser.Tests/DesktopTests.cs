@@ -49,6 +49,7 @@ public sealed partial class DesktopTests
                         Assert.Same(currentWindow, Application.Current.MainWindow);
                         Assert.Single(Application.Current.Windows.OfType<MainWindow>());
                         VerifyApplicationVersion(currentWindow);
+                        VerifyAccessibility(currentWindow);
                         Capture(currentWindow, "overview.png");
                         MeasureSkyPerformance(currentWindow);
                         await VerifyFirstRunSetup(currentWindow, directory);
@@ -235,6 +236,7 @@ public sealed partial class DesktopTests
                     finally
                     {
                         currentWindow.Close();
+                        SkyBrowser.Desktop.Services.Accessibility.ReleaseAutomationProviders();
                         Dispatcher.CurrentDispatcher.InvokeShutdown();
                     }
                 });
@@ -1965,10 +1967,10 @@ public sealed partial class DesktopTests
                 host.UpdateLayout();
                 Assert.Equal(Visibility.Visible, button.Visibility);
                 Assert.Same(expected, button.DataContext);
-                Assert.Equal(26, button.ActualWidth);
-                Assert.Equal(26, button.ActualHeight);
+                Assert.Equal(28, button.ActualWidth);
+                Assert.Equal(28, button.ActualHeight);
                 var origin = button.TranslatePoint(new(), sky);
-                foreach (var offset in new[] { new Vector(0, 0), new Vector(26, 0), new Vector(26, 26), new Vector(0, 26) })
+                foreach (var offset in new[] { new Vector(0, 0), new Vector(28, 0), new Vector(28, 28), new Vector(0, 28) })
                 {
                     Assert.Same(expected, sky.ImageAt(origin + offset));
                 }

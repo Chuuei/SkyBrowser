@@ -41,8 +41,9 @@ internal static class Program
         bool inspectionOnly = arguments.FirstOrDefault() == "--inspection-only";
         bool collectionOnly = arguments.FirstOrDefault() == "--collection-only";
         bool skyToolsOnly = arguments.FirstOrDefault() == "--sky-tools-only";
+        bool accessibilityOnly = arguments.FirstOrDefault() == "--accessibility-only";
         bool selectedImageOnly = arguments.FirstOrDefault() == "--selected-image-only";
-        if (inspectionOnly || collectionOnly || skyToolsOnly || selectedImageOnly)
+        if (inspectionOnly || collectionOnly || skyToolsOnly || selectedImageOnly || accessibilityOnly)
         {
             arguments = arguments[1..];
         }
@@ -62,7 +63,7 @@ internal static class Program
         {
             widePath = detailPath = sampleDirectory;
         }
-        if (!skyToolsOnly && (widePath is null || detailPath is null))
+        if (!skyToolsOnly && !accessibilityOnly && (widePath is null || detailPath is null))
         {
             Console.Error.WriteLine("Optional manual samples are missing. Supply a sample directory containing a plate-solved Horsehead .fits and a smaller overlapping IC434 .xisf. See docs/manual/README.md. No screenshots were changed.");
             return 2;
@@ -81,6 +82,13 @@ internal static class Program
         {
             try
             {
+                if (accessibilityOnly)
+                {
+                    await CaptureAccessibility(window, output);
+                    WriteManifest(output, merge: true);
+                    Console.WriteLine("Captured anonymous accessibility and Options demonstrations.");
+                    return;
+                }
                 if (skyToolsOnly)
                 {
                     await CaptureSkyTools(window, root, output);
@@ -545,6 +553,38 @@ internal static class Program
     private static void Hover(SkyViewport sky, Point? point)
     {
         sky.UpdateHover(point);
+    }
+
+    private static async Task CaptureAccessibility(MainWindow window, string output)
+    {
+        var defaults = new ApplicationOptions { CacheDirectory = DemoRoot + @"\Cache" };
+        var options = new OptionsWindow(defaults, DemoRoot + @"\Settings\settings.json", defaults)
+        {
+            Height = 720,
+            Owner = window,
+            ReadCacheStatistics = () => new(2, 20 * 1024 * 1024, defaults.CacheLimitBytes,
+                0, 0, DemoRoot + @"\Cache\previews-v1.sqlite3", null),
+            ClearCachePreviewsAsync = () => Task.CompletedTask
+        };
+        options.Show();
+        var tabs = (TabControl)options.FindName("SettingsTabs");
+        foreach (var (index, filename) in new[] { (0, "options-images.png"), (2, "options-cache.png"),
+            (3, "options-plate-solving.png"), (5, "options-accessibility.png") })
+        {
+            tabs.SelectedIndex = index;
+            if (index == 3)
+            {
+                ((TextBox)options.FindName("AstapPathInput")).Text = @"C:\Program Files\ASTAP\astap.exe";
+            }
+            await Ready();
+            Capture(options, filename, output);
+        }
+        options.Close();
+        var help = new AccessibilityHelpWindow { Owner = window };
+        help.Show();
+        await Ready();
+        Capture(help, "accessibility-help.png", output);
+        help.Close();
     }
 
     private static async Task Ready()

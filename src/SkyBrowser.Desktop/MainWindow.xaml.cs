@@ -104,6 +104,7 @@ public partial class MainWindow : Window
         _cache = startup.Cache;
         _optionsStore = startup.Store;
         _options = startup.Options;
+        Services.AccessibilityPreferences.Apply(_options);
         _ownsCache = startup.OwnsCache;
         _library = new(Path.Combine(Path.GetDirectoryName(_optionsStore.FilePath)!, "library-v1.sqlite3"));
         _imageLoader = CreateLoader(_cache, _options);
@@ -161,7 +162,8 @@ public partial class MainWindow : Window
         };
         Closed += (_, _) =>
         {
-            foreach (var layer in _comparisonSelection) { layer.PropertyChanged -= ComparisonPlacementChanged; }
+            foreach (var layer in _comparisonSelection)
+            { layer.PropertyChanged -= ComparisonPlacementChanged; }
             _comparisonSelection.Clear();
             _libraryWindow?.Close();
             if (_ownsCache)
@@ -236,6 +238,47 @@ public partial class MainWindow : Window
 
     private void WindowPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.Key == Key.F6)
+        {
+            int region = LayerList.IsKeyboardFocusWithin || CollectionSearch.IsKeyboardFocusWithin ? 0
+                : TargetFinder.IsKeyboardFocusWithin ? 1 : 2;
+            int next = (region + (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 2 : 1)) % 3;
+            if (next == 0)
+            {
+                CollectionSearch.Focus();
+            }
+            else if (next == 1)
+            {
+                TargetFinder.IsExpanded = true;
+                Dispatcher.BeginInvoke(() =>
+                {
+                    TargetSearch.Focus();
+                }, DispatcherPriority.Input);
+            }
+            else
+            {
+                Sky.Focus();
+            }
+            e.Handled = true;
+            return;
+        }
+        if (Keyboard.Modifiers == ModifierKeys.Control && e.Key is Key.O or Key.L or Key.OemComma)
+        {
+            if (e.Key == Key.O)
+            {
+                ImportClicked(this, new());
+            }
+            else if (e.Key == Key.L)
+            {
+                LibraryClicked(this, new());
+            }
+            else
+            {
+                OptionsClicked(this, new());
+            }
+            e.Handled = true;
+            return;
+        }
         if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
         {
             CollectionSearch.Focus();
@@ -324,6 +367,7 @@ public partial class MainWindow : Window
             bool observerChanged = requested.Observer != _options.Observer;
             bool cachedSurveysChanged = requested.ShowCachedSurveyImages != _options.ShowCachedSurveyImages;
             _options = requested;
+            Services.AccessibilityPreferences.Apply(requested);
             if (cacheChanged)
             {
                 _cache = next;

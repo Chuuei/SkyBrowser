@@ -12,14 +12,14 @@
   ShowInTaskbar="False">
   <Window.Resources>
     <Style TargetType="DataGridColumnHeader">
-      <Setter Property="Background" Value="#1C293A" />
-      <Setter Property="Foreground" Value="#B6C4D5" />
+      <Setter Property="Background" Value="{DynamicResource UiBrush1C293A}" />
+      <Setter Property="Foreground" Value="{DynamicResource UiBrushB6C4D5}" />
       <Setter Property="Padding" Value="8,9" />
       <Setter Property="BorderThickness" Value="0,0,1,1" />
-      <Setter Property="BorderBrush" Value="#344256" />
+      <Setter Property="BorderBrush" Value="{DynamicResource UiBrush344256}" />
     </Style>
     <Style TargetType="DataGridCell">
-      <Setter Property="Foreground" Value="#DFE8F2" />
+      <Setter Property="Foreground" Value="{DynamicResource UiBrushDFE8F2}" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Padding" Value="7,6" />
       <Setter Property="Template">
@@ -33,17 +33,17 @@
       </Setter>
       <Style.Triggers>
         <Trigger Property="IsSelected" Value="True">
-          <Setter Property="Background" Value="#24443F" />
-          <Setter Property="Foreground" Value="#EDF2F8" />
+          <Setter Property="Background" Value="{DynamicResource UiBrush24443F}" />
+          <Setter Property="Foreground" Value="{DynamicResource UiBrushEDF2F8}" />
         </Trigger>
       </Style.Triggers>
     </Style>
     <Style TargetType="DataGridRow">
-      <Setter Property="Background" Value="#101722" />
-      <Setter Property="Foreground" Value="#DFE8F2" />
+      <Setter Property="Background" Value="{DynamicResource UiBrush101722}" />
+      <Setter Property="Foreground" Value="{DynamicResource UiBrushDFE8F2}" />
       <Style.Triggers>
         <Trigger Property="IsSelected" Value="True">
-          <Setter Property="Background" Value="#24443F" />
+          <Setter Property="Background" Value="{DynamicResource UiBrush24443F}" />
         </Trigger>
       </Style.Triggers>
     </Style>
@@ -65,7 +65,7 @@
       <TextBlock
         Text="Image details"
         FontSize="11"
-        Foreground="#8D9AAD"
+        Foreground="{DynamicResource UiBrush8D9AAD}"
         Margin="0,0,0,5" />
       <TextBlock
         x:Name="ImageName"
@@ -73,7 +73,7 @@
         FontWeight="SemiBold"
         TextTrimming="CharacterEllipsis" />
       <TextBox
-        x:Name="FilePathText"
+        x:Name="FilePathText" AutomationProperties.Name="Original image file path"
         IsReadOnly="True"
         FontSize="11"
         Margin="0,10,0,0" />
@@ -85,8 +85,8 @@
         <ColumnDefinition />
       </Grid.ColumnDefinitions>
       <Border
-        Background="#0B121D"
-        BorderBrush="#293548"
+        Background="{DynamicResource UiBrush0B121D}"
+        BorderBrush="{DynamicResource UiBrush293548}"
         BorderThickness="1"
         Height="170"
         VerticalAlignment="Top"
@@ -95,7 +95,7 @@
       </Border>
       <StackPanel Grid.Column="2">
         <TextBox
-          x:Name="ImageFacts"
+          x:Name="ImageFacts" AutomationProperties.Name="Image dimensions and scientific format"
           IsReadOnly="True"
           TextWrapping="Wrap"
           Background="Transparent"
@@ -105,7 +105,7 @@
           MaxHeight="145"
           VerticalScrollBarVisibility="Auto" />
         <TextBox
-          x:Name="FileFacts"
+          x:Name="FileFacts" AutomationProperties.Name="Original file details"
           Text="Reading file information…"
           IsReadOnly="True"
           TextWrapping="Wrap"
@@ -113,7 +113,7 @@
           BorderThickness="0"
           Padding="0"
           FontSize="11"
-          Foreground="#8D9AAD"
+          Foreground="{DynamicResource UiBrush8D9AAD}"
           Margin="0,10,0,0"
           MaxHeight="60"
           VerticalScrollBarVisibility="Auto" />
@@ -132,7 +132,7 @@
       <DockPanel Grid.Column="1">
         <TextBlock
           Text="Search"
-          Foreground="#8D9AAD"
+          Foreground="{DynamicResource UiBrush8D9AAD}"
           VerticalAlignment="Center"
           Margin="0,0,9,0"
           FontSize="12" />
@@ -144,7 +144,7 @@
       </DockPanel>
     </Grid>
     <DataGrid
-      x:Name="MetadataGrid"
+      x:Name="MetadataGrid" AutomationProperties.Name="Image metadata"
       Grid.Row="3"
       AutoGenerateColumns="False"
       IsReadOnly="True"
@@ -154,10 +154,10 @@
       HeadersVisibility="Column"
       RowHeaderWidth="0"
       GridLinesVisibility="Horizontal"
-      HorizontalGridLinesBrush="#233044"
-      Background="#101722"
-      BorderBrush="#293548"
-      Foreground="#DFE8F2"
+      HorizontalGridLinesBrush="{DynamicResource UiBrush233044}"
+      Background="{DynamicResource UiBrush101722}"
+      BorderBrush="{DynamicResource UiBrush293548}"
+      Foreground="{DynamicResource UiBrushDFE8F2}"
       SelectionMode="Single"
       SelectionUnit="FullRow"
       EnableRowVirtualization="True"
@@ -193,10 +193,10 @@
       <TextBlock
         x:Name="MetadataCount"
         FontSize="11"
-        Foreground="#8D9AAD"
+        Foreground="{DynamicResource UiBrush8D9AAD}"
         TextWrapping="Wrap" />
       <TextBox
-        x:Name="SelectedMetadata"
+        x:Name="SelectedMetadata" AutomationProperties.Name="Selected metadata value"
         Text="Select a metadata row to read and copy its value."
         IsReadOnly="True"
         TextWrapping="Wrap"
@@ -213,7 +213,7 @@
       <TextBlock
         x:Name="FooterText"
         Text="Metadata belongs to the loaded image. Source files stay untouched."
-        Foreground="#73879C"
+        Foreground="{DynamicResource UiBrush73879C}"
         FontSize="11"
         VerticalAlignment="Center"
         TextWrapping="Wrap"

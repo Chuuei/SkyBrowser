@@ -3,7 +3,7 @@
   xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
   xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
   Visibility="Collapsed">
-  <Border Background="#101722" BorderBrush="#253044" BorderThickness="0,1,0,0" Padding="16,9">
+  <Border Background="{DynamicResource UiBrush101722}" BorderBrush="{DynamicResource UiBrush253044}" BorderThickness="0,1,0,0" Padding="16,9">
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
@@ -15,9 +15,9 @@
         <ColumnDefinition Width="Auto" />
       </Grid.ColumnDefinitions>
       <StackPanel Grid.ColumnSpan="2" Orientation="Horizontal" VerticalAlignment="Center">
-        <TextBlock Text="SCENE TIME" Foreground="#8D9AAD" FontSize="10" VerticalAlignment="Center" />
+        <TextBlock Text="SCENE TIME" Foreground="{DynamicResource UiBrush8D9AAD}" FontSize="10" VerticalAlignment="Center" />
         <TextBlock x:Name="TimeReadout" FontSize="12" Margin="12,0,0,0" VerticalAlignment="Center" />
-        <TextBlock x:Name="TimeMode" Foreground="#8BE2C3" FontSize="10" Margin="10,0,0,0" VerticalAlignment="Center" />
+        <TextBlock x:Name="TimeMode" Foreground="{DynamicResource UiBrush8BE2C3}" FontSize="10" Margin="10,0,0,0" VerticalAlignment="Center" />
       </StackPanel>
       <Button
         x:Name="LiveButton"
@@ -40,7 +40,7 @@
           <ColumnDefinition Width="*" />
           <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
-        <TextBlock x:Name="RangeStart" Foreground="#8D9AAD" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" />
+        <TextBlock x:Name="RangeStart" Foreground="{DynamicResource UiBrush8D9AAD}" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0" />
         <Slider
           x:Name="TimeSlider"
           Grid.Column="1"
@@ -52,11 +52,11 @@
           TickFrequency="60"
           IsMoveToPointEnabled="True"
           VerticalAlignment="Center"
-          Foreground="#8BE2C3"
+          Foreground="{DynamicResource UiBrush8BE2C3}"
           ValueChanged="TimeChanged"
           AutomationProperties.Name="Scene time offset in minutes"
           ToolTip="Drag backward or forward in time. Arrow keys: 1 minute; Page Up/Down: 1 hour. Times use your computer's time zone." />
-        <TextBlock x:Name="RangeEnd" Grid.Column="2" Foreground="#8D9AAD" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0" />
+        <TextBlock x:Name="RangeEnd" Grid.Column="2" Foreground="{DynamicResource UiBrush8D9AAD}" FontSize="10" VerticalAlignment="Center" Margin="8,0,0,0" />
       </Grid>
       <Button
         x:Name="NextDayButton"

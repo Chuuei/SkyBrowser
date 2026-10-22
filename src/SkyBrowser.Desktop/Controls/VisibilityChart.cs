@@ -8,12 +8,47 @@ namespace SkyBrowser.Desktop.Controls;
 
 public sealed class VisibilityChart : FrameworkElement
 {
+    private int _sampleIndex;
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
+        new Services.AccessibleViewPeer(this, () => SampleDescription);
+
+    public string SampleDescription => Report is { Samples.Length: > 0 } report
+        ? Describe(report.Samples[Math.Clamp(_sampleIndex, 0, report.Samples.Length - 1)])
+        : "No visibility calculation. Enter planning settings and choose Calculate visibility. Written event times and imaging windows appear below the chart.";
+
+    private static string Describe(VisibilitySample sample) =>
+        $"{sample.TimeUtc:yyyy-MM-dd HH:mm} UTC. Target altitude {sample.TargetAltitude:0.0} degrees; " +
+        $"Sun altitude {sample.SunAltitude:0.0} degrees; Moon altitude {sample.MoonAltitude:0.0} degrees. " +
+        $"Moon separation {sample.MoonSeparation:0.0} degrees; illuminated fraction {sample.MoonIllumination:P0}.";
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        if (Report is { Samples.Length: > 0 } report && e.Key is Key.Left or Key.Right or Key.Home or Key.End)
+        {
+            _sampleIndex = e.Key switch
+            {
+                Key.Home => 0,
+                Key.End => report.Samples.Length - 1,
+                Key.Left => Math.Max(0, _sampleIndex - 1),
+                _ => Math.Min(report.Samples.Length - 1, _sampleIndex + 1)
+            };
+            ToolTip = SampleDescription;
+            Services.AccessibleViewPeer.Notify(this);
+            e.Handled = true;
+        }
+        else
+        {
+            base.OnKeyDown(e);
+        }
+    }
     public VisibilityReport? Report
     {
         get;
         set
         {
             field = value;
+            _sampleIndex = 0;
+            Services.AccessibleViewPeer.Notify(this);
             if (value is null) { ToolTip = "Calculate visibility for the current planning settings."; }
             InvalidateVisual();
         }
@@ -22,6 +57,10 @@ public sealed class VisibilityChart : FrameworkElement
     public VisibilityChart()
     {
         MinHeight = 260;
+        Focusable = true;
+        System.Windows.Automation.AutomationProperties.SetName(this, "Visibility altitude chart");
+        System.Windows.Automation.AutomationProperties.SetHelpText(this,
+            "Left/Right read successive time samples. Home/End read the first/last sample. Written event times and imaging windows are below.");
         MouseMove += ReadTime;
         ToolTip = "Calculate a visibility report to inspect the altitude curves.";
     }
@@ -85,7 +124,7 @@ public sealed class VisibilityChart : FrameworkElement
         }
         var minimum = new Pen(new SolidColorBrush(Color.FromRgb(80, 123, 109)), 1) { DashStyle = DashStyles.Dash };
         dc.DrawLine(minimum, new(42, Y(report.Criteria.MinimumAltitude)), new(42 + width, Y(report.Criteria.MinimumAltitude)));
-        void Curve(Func<VisibilitySample, double> value, Color color)
+        void Curve(Func<VisibilitySample, double> value, Color color, DashStyle dash)
         {
             var geometry = new StreamGeometry();
             using (var context = geometry.Open())
@@ -94,10 +133,10 @@ public sealed class VisibilityChart : FrameworkElement
                 context.PolyLineTo(report.Samples.Skip(1).Select(s => new Point(X(s.TimeUtc), Y(value(s)))).ToArray(), true, false);
             }
             geometry.Freeze();
-            dc.DrawGeometry(null, new Pen(new SolidColorBrush(color), 1.6), geometry);
+            dc.DrawGeometry(null, new Pen(new SolidColorBrush(color), 1.6) { DashStyle = dash }, geometry);
         }
-        Curve(s => s.TargetAltitude, Color.FromRgb(139, 226, 195));
-        Curve(s => s.SunAltitude, Color.FromRgb(224, 180, 96));
-        Curve(s => s.MoonAltitude, Color.FromRgb(147, 179, 231));
+        Curve(s => s.TargetAltitude, Color.FromRgb(139, 226, 195), DashStyles.Solid);
+        Curve(s => s.SunAltitude, Color.FromRgb(224, 180, 96), DashStyles.Dash);
+        Curve(s => s.MoonAltitude, Color.FromRgb(147, 179, 231), DashStyles.Dot);
     }
 }

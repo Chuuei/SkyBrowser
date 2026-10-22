@@ -17,6 +17,16 @@ namespace SkyBrowser.Desktop.Controls;
 /// <summary>A GPU textured celestial sphere with a perspective camera fixed at its center.</summary>
 public sealed partial class SkyViewport : Grid
 {
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
+        new Services.AccessibleViewPeer(this, () => AccessibleDescription);
+
+    public string AccessibleDescription => $"Sky center: right ascension {Camera.Center.RightAscension:0.####} degrees, " +
+        $"declination {Camera.Center.Declination:0.####} degrees. Field of view {Camera.FieldOfView:0.###} degrees. " +
+        $"{Layers.Count} images. " + (SelectedLayer is { } selected ? $"Selected image: {selected.Name}. " : "No image selected. ") +
+        (Observer is null ? "Celestial atlas." : "Observer horizon view.") +
+        (IsMeasuring ? " Measurement active. Press Space to pick the center point; Escape cancels." : "") +
+        (ShowMoon ? $" Moon: {CurrentMoon.PhaseName}; {CurrentMoon.IlluminatedFraction:P0} illuminated. " +
+            $"Right ascension {CurrentMoon.Position.RaText}; declination {CurrentMoon.Position.DecText}." : "");
     private readonly SkyCatalog _catalog = new();
     private readonly Viewport3D _viewport = new();
     private readonly Grid _surveyViewports = new() { IsHitTestVisible = false };
@@ -43,8 +53,8 @@ public sealed partial class SkyViewport : Grid
     private readonly Button _openSourceButton = new()
     {
         Name = "OpenSourceButton",
-        Width = 26,
-        Height = 26,
+        Width = 28,
+        Height = 28,
         Padding = new(0),
         Visibility = Visibility.Collapsed,
         ToolTip = "Open original in default application",
@@ -198,6 +208,7 @@ public sealed partial class SkyViewport : Grid
             field = value;
             _annotations.InvalidateVisual();
             UpdateSourceButton();
+            Services.AccessibleViewPeer.Notify(this);
         }
     }
 
@@ -280,6 +291,10 @@ public sealed partial class SkyViewport : Grid
 
     public SkyViewport()
     {
+        System.Windows.Automation.AutomationProperties.SetName(this, "Sky atlas");
+        System.Windows.Automation.AutomationProperties.SetHelpText(this,
+            "Arrows pan; plus/minus zoom; Home resets; F fits the selected image; Enter inspects it; " +
+            "Space selects the image or measurement point at the center; Escape clears selection. F6 moves to target search and the image collection.");
         ClipToBounds = true;
         Focusable = true;
         Background = Brushes.Transparent;
@@ -1039,6 +1054,20 @@ public sealed partial class SkyViewport : Grid
         }
         switch (e.Key)
         {
+            case Key.Space when IsMeasuring:
+                PickMeasurementPoint(Camera.Center);
+                break;
+            case Key.Space:
+                var centerImage = ImageAt(new Point(ActualWidth / 2, ActualHeight / 2));
+                if (centerImage is not null)
+                {
+                    SelectedLayer = centerImage;
+                    LayerSelected?.Invoke(this, centerImage);
+                }
+                break;
+            case Key.Enter when SelectedLayer is { } selectedImage:
+                InspectImageRequested?.Invoke(this, selectedImage);
+                break;
             case Key.Left:
                 Camera.Pan(ActualWidth * 0.08, 0, ActualWidth);
                 break;
@@ -1073,6 +1102,7 @@ public sealed partial class SkyViewport : Grid
 
         Refresh();
         e.Handled = true;
+        Services.AccessibleViewPeer.Notify(this);
     }
 
 }

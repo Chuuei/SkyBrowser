@@ -27,6 +27,13 @@ retain CC-BY-SA-4.0, attribution and change descriptions. Keep its JSON and lice
 files accessible in distributions. External photographs are not project code and
 are neither relicensed nor bundled.
 
+The UI test project uses FlaUI.UIA3/Core 5.0.0 and
+Interop.UIAutomationClient 10.19041.0 under MIT licenses, plus MIT .NET support
+packages. These are development dependencies confined to `SkyBrowser.UiTests`;
+they are not referenced by or redistributed with the desktop application. Keep
+the upstream package licenses with any redistributed test binaries. See also
+the [third-party notices](../THIRD-PARTY-NOTICES.md#ui-test-dependencies-development-only).
+
 ## Native redistribution
 
 Magick.NET's NuGet license expression describes its wrapper, not every native

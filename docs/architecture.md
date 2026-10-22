@@ -118,6 +118,12 @@ metadata. Source photographs are never rewritten for display or caching.
 
 ## Extending and checking changes
 
+Accessibility is shared through the Window style, `Services/Accessibility.cs`
+(focus and debounced announcements) and `AccessibilityPreferences` (dynamic
+palette, bounded scaling and motion settings). Custom view peers read existing
+state rather than duplicate scientific models. Keep nonvisual coordinate/sample
+workflows available alongside rendered views; see [accessibility](accessibility.md).
+
 Add domain rules to Core when they can be expressed independently of controls.
 Keep handler orchestration in the owning feature file and rendering in its drawing
 implementation. Preserve a single owner for mutable state and cancellation rather
@@ -126,6 +132,11 @@ than copying it into each partial.
 Test domain transitions directly. Use the shared WPF integration scenario for
 window interactions, cancellation and rendering; WPF permits only one Application
 per process. Compare deterministic scene captures when moving drawing/input code.
+`tests/SkyBrowser.UiTests` adds a separate-process FlaUI/UIA3 layer: launch the real
+executable, locate controls by accessible role/name, and exercise keyboard and
+mouse workflows without constructing windows or calling handlers. These tests
+use isolated settings/library/cache directories and share desktop focus, so run
+them serially and separately from other desktop tests.
 The established scientific, persistence and source-preservation tests remain the
 regression contract. New files are included by the SDK project globs and ordinary
 Debug/Release builds need no extra generation step.

@@ -10,6 +10,10 @@ namespace SkyBrowser.Desktop.Controls;
 /// <summary>Offline, zoomable longitude/latitude map. Coordinates use east-positive longitude.</summary>
 public sealed class ObserverMap : FrameworkElement
 {
+    protected override System.Windows.Automation.Peers.AutomationPeer OnCreateAutomationPeer() =>
+        new Services.AccessibleViewPeer(this, () => Selection is { } location
+            ? $"Latitude {location.Latitude:0.######} degrees north; longitude {location.Longitude:0.######} degrees east. Zoom {_zoom:0.##} times."
+            : "No observing position selected. Enter latitude and longitude in the named fields or use arrow keys to select a position.");
     private sealed record Country(StreamGeometry Shape, string Name, Point Label);
 
     private static readonly Lazy<Country[]> Countries = new(LoadCountries);
@@ -31,6 +35,7 @@ public sealed class ObserverMap : FrameworkElement
             value?.Validate();
             field = value;
             InvalidateVisual();
+            Services.AccessibleViewPeer.Notify(this);
         }
     }
 
@@ -41,6 +46,8 @@ public sealed class ObserverMap : FrameworkElement
         ClipToBounds = true;
         Focusable = true;
         Cursor = Cursors.Cross;
+        System.Windows.Automation.AutomationProperties.SetHelpText(this,
+            "Arrow keys change the selected latitude and longitude. Plus/minus zoom; Home shows the world. Exact coordinates can be entered in the latitude and longitude fields.");
     }
 
     public Point Project(ObserverLocation location) => new(
@@ -107,7 +114,11 @@ public sealed class ObserverMap : FrameworkElement
     protected override void OnRender(DrawingContext dc)
     {
         base.OnRender(dc);
-        dc.DrawRectangle(Ocean, null, new Rect(RenderSize));
+        bool highContrast = Services.AccessibilityPreferences.HighContrast;
+        Brush ocean = highContrast ? SystemColors.WindowBrush : Ocean;
+        Brush land = highContrast ? SystemColors.WindowBrush : Land;
+        Brush ink = highContrast ? SystemColors.WindowTextBrush : Accent;
+        dc.DrawRectangle(ocean, null, new Rect(RenderSize));
         if (ActualWidth <= 0 || ActualHeight <= 0)
         {
             return;
@@ -116,7 +127,7 @@ public sealed class ObserverMap : FrameworkElement
         dc.PushClip(new RectangleGeometry(new Rect(RenderSize)));
         var transform = new MatrixTransform(Scale, 0, 0, Scale, ActualWidth / 2 - _center.X * Scale, ActualHeight / 2 + _center.Y * Scale);
         dc.PushTransform(transform);
-        var gridPen = new Pen(FrozenBrush("#1A3142"), 0.65 / Scale);
+        var gridPen = new Pen(highContrast ? SystemColors.GrayTextBrush : FrozenBrush("#1A3142"), 0.65 / Scale);
         double spacing = _zoom < 3 ? 30 : _zoom < 8 ? 10 : 2;
         for (double lon = -180; lon <= 180; lon += spacing)
         {
@@ -128,10 +139,10 @@ public sealed class ObserverMap : FrameworkElement
             dc.DrawLine(gridPen, new(-180, lat), new(180, lat));
         }
 
-        var borderPen = new Pen(FrozenBrush("#507183"), 0.7 / Scale);
+        var borderPen = new Pen(highContrast ? SystemColors.WindowTextBrush : FrozenBrush("#507183"), 0.7 / Scale);
         foreach (var country in Countries.Value)
         {
-            dc.DrawGeometry(Land, borderPen, country.Shape);
+            dc.DrawGeometry(land, borderPen, country.Shape);
         }
 
         dc.Pop();
@@ -152,7 +163,7 @@ public sealed class ObserverMap : FrameworkElement
                     FlowDirection.LeftToRight,
                     Font,
                     10,
-                    LabelBrush,
+                    highContrast ? SystemColors.WindowTextBrush : LabelBrush,
                     VisualTreeHelper.GetDpi(this)
                     .PixelsPerDip
                 );
@@ -171,12 +182,12 @@ public sealed class ObserverMap : FrameworkElement
         if (Selection is { } location)
         {
             var point = Project(location);
-            dc.DrawEllipse(Ocean, new Pen(Accent, 2), point, 7, 7);
-            dc.DrawEllipse(Accent, null, point, 3, 3);
-            dc.DrawLine(new Pen(Accent, 1), point + new Vector(-13, 0), point + new Vector(-9, 0));
-            dc.DrawLine(new Pen(Accent, 1), point + new Vector(9, 0), point + new Vector(13, 0));
-            dc.DrawLine(new Pen(Accent, 1), point + new Vector(0, -13), point + new Vector(0, -9));
-            dc.DrawLine(new Pen(Accent, 1), point + new Vector(0, 9), point + new Vector(0, 13));
+            dc.DrawEllipse(ocean, new Pen(ink, 2), point, 7, 7);
+            dc.DrawEllipse(ink, null, point, 3, 3);
+            dc.DrawLine(new Pen(ink, 1), point + new Vector(-13, 0), point + new Vector(-9, 0));
+            dc.DrawLine(new Pen(ink, 1), point + new Vector(9, 0), point + new Vector(13, 0));
+            dc.DrawLine(new Pen(ink, 1), point + new Vector(0, -13), point + new Vector(0, -9));
+            dc.DrawLine(new Pen(ink, 1), point + new Vector(0, 9), point + new Vector(0, 13));
         }
 
         dc.Pop();
@@ -244,6 +255,16 @@ public sealed class ObserverMap : FrameworkElement
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        if (e.Key is Key.Add or Key.OemPlus or Key.Subtract or Key.OemMinus or Key.Home)
+        {
+            if (e.Key == Key.Home)
+            { ResetView(); }
+            else
+            { Zoom(e.Key is Key.Add or Key.OemPlus ? 1.35 : 1 / 1.35); }
+            Services.AccessibleViewPeer.Notify(this);
+            e.Handled = true;
+            return;
+        }
         var current = Selection ?? new ObserverLocation(_center.Y, _center.X);
         double step = 1 / _zoom;
         ObserverLocation? next = e.Key switch

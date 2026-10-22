@@ -7,6 +7,7 @@
     <Project Path="src/SkyBrowser.Desktop/SkyBrowser.Desktop.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/SkyBrowser.UiTests/SkyBrowser.UiTests.csproj" />
     <Project Path="tests/SkyBrowser.CacheProbe/SkyBrowser.CacheProbe.csproj" />
     <Project Path="tests/SkyBrowser.Tests/SkyBrowser.Tests.csproj" />
   </Folder>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 - 2026-10-22
+
+- Add screen-reader names, standard UI Automation patterns and readable state for the sky, world map, 3D view and visibility chart, with polite status and validation announcements and restored focus after dialogs close.
+- Expand keyboard navigation with F6 regions, F1 accessibility help, application shortcuts, sky/map/chart controls, exact-coordinate measurements and scientific pixel inspection.
+- Add saved Accessibility options for 100–200% interface scaling, high contrast and reduced motion, while respecting Windows contrast and animation preferences. Improve focus visibility, text contrast and control sizes.
+- Add 17 executable-level FlaUI/UIA3 tests covering real keyboard/mouse workflows, accessible controls, live-region events, focus, persistence and enlarged high-contrast layouts; run them in Windows CI alongside the scientific and WPF tests.
+- Update the illustrated user manual and document accessibility support, verification and remaining assistive-technology assessment needs.
+
 ## 1.0.0 - 2026-10-21
 
 - Add **Forget ASTAP solution** for the selected image. Remove its saved local solve across restarts, restore file astrometry or show Needs placement, and preserve manual placement, previews and original files.

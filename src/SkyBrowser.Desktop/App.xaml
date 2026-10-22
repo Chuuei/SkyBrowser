@@ -6,13 +6,15 @@
   <Application.Resources>
     <ResourceDictionary>
       <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="/SkyBrowser;component/Styles/Palette.xaml" />
         <ResourceDictionary Source="/SkyBrowser;component/Styles/Controls.xaml" />
       </ResourceDictionary.MergedDictionaries>
       <Style TargetType="Window">
+        <Setter Property="services:Accessibility.Enabled" Value="True" />
         <Setter Property="services:WindowAppearance.UseDarkTitleBar" Value="True" />
         <Setter Property="Icon" Value="pack://application:,,,/SkyBrowser;component/Assets/SkyBrowser.ico" />
-        <Setter Property="Background" Value="#080E17" />
-        <Setter Property="Foreground" Value="#EDF2F8" />
+        <Setter Property="Background" Value="{DynamicResource UiBrush080E17}" />
+        <Setter Property="Foreground" Value="{DynamicResource UiBrushEDF2F8}" />
         <Setter Property="FontFamily" Value="Segoe UI" />
         <Setter Property="FontSize" Value="13" />
       </Style>

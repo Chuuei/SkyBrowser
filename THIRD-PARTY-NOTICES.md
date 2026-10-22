@@ -81,3 +81,13 @@ its native license texts and copyrights. Releases additionally supply the exact
 Magick.NET 15.0.0 native sources, dependency sources and rebuild materials in
 `XISFLib.NativeSources-Magick.NET-15.0.0.zip`, at the same release location as the
 binary. Read [licensing and source/relinking instructions](docs/licensing.md).
+
+## UI test dependencies (development only)
+
+`tests/SkyBrowser.UiTests` uses FlaUI.Core and FlaUI.UIA3 5.0.0
+(Copyright (c) 2016–2024) and Interop.UIAutomationClient 10.19041.0
+(Copyright (c) 2019 Roman), all under MIT licenses. Their complete license texts
+are included as `LICENSE.txt` in the respective NuGet packages. The transitive
+.NET support packages are MIT. These dependencies are confined to the test
+project and are not redistributed in the SkyBrowser application package.
+Preserve their package licenses when redistributing test binaries.

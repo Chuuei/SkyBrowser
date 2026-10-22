@@ -25,6 +25,7 @@ public partial class ImageInspectionWindow : Window
     private double _zoom = 1;
     private Point? _dragStart;
     private Point _startOffset;
+    private int _pixelX, _pixelY;
 
     public ImageInspectionWindow(SkyImageLayer layer, ImageLibrary? library = null)
     {
@@ -181,6 +182,10 @@ public partial class ImageInspectionWindow : Window
         {
             return;
         }
+        _pixelX = x;
+        _pixelY = y;
+        PixelX.Text = x.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        PixelY.Text = y.ToString(System.Globalization.CultureInfo.InvariantCulture);
         string samples = string.Join("   ", _inspection.Statistics.Select((s, c) => $"{s.Channel}: {_inspection.ReadSample(x, y, c)}"));
         var display = _inspection.Image.Preview;
         int offset = checked((y * display.Width + x) * 4);
@@ -198,6 +203,71 @@ public partial class ImageInspectionWindow : Window
             sky = "Sky coordinates unavailable at this pixel.";
         }
         PixelReadout.Text = $"X {x:N0}   Y {y:N0} (zero-based stored rows)   FITS pixel center ({x + 1}, {y + 1})\n{color}\nOriginal samples · {samples}\n{sky}";
+    }
+
+    private void ReadPixelClicked(object sender, RoutedEventArgs e)
+    {
+        if (_inspection is null)
+        {
+            StatusText.Text = "Wait for the image to finish loading.";
+            return;
+        }
+        if (!int.TryParse(PixelX.Text, out int x) || !int.TryParse(PixelY.Text, out int y) ||
+            x < 0 || y < 0 || x >= _selected.Width || y >= _selected.Height)
+        {
+            StatusText.Text = $"Enter X from 0 to {_selected.Width - 1} and Y from 0 to {_selected.Height - 1}.";
+            return;
+        }
+        _held = true;
+        ReadPixel(x, y);
+        PixelReadout.Focus();
+    }
+
+    private void ImageKeyDown(object sender, KeyEventArgs e)
+    {
+        if (_inspection is null)
+        {
+            return;
+        }
+        int step = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? 10 : 1;
+        switch (e.Key)
+        {
+            case Key.Left:
+                _pixelX = Math.Max(0, _pixelX - step);
+                break;
+            case Key.Right:
+                _pixelX = Math.Min(_selected.Width - 1, _pixelX + step);
+                break;
+            case Key.Up:
+                _pixelY = Math.Max(0, _pixelY - step);
+                break;
+            case Key.Down:
+                _pixelY = Math.Min(_selected.Height - 1, _pixelY + step);
+                break;
+            case Key.Home:
+                _pixelX = _pixelY = 0;
+                break;
+            case Key.End:
+                _pixelX = _selected.Width - 1;
+                _pixelY = _selected.Height - 1;
+                break;
+            case Key.Add or Key.OemPlus:
+                ChangeZoom(1.25);
+                e.Handled = true;
+                return;
+            case Key.Subtract or Key.OemMinus:
+                ChangeZoom(0.8);
+                e.Handled = true;
+                return;
+            default:
+                return;
+        }
+        _held = true;
+        ReadPixel(_pixelX, _pixelY);
+        Services.Accessibility.Announce(PixelReadout);
+        ImageScroll.ScrollToHorizontalOffset(_pixelX * FullImage.Width / _selected.Width - ImageScroll.ViewportWidth / 2);
+        ImageScroll.ScrollToVerticalOffset(_pixelY * FullImage.Height / _selected.Height - ImageScroll.ViewportHeight / 2);
+        e.Handled = true;
     }
 
     private void ReadAt(Point point)

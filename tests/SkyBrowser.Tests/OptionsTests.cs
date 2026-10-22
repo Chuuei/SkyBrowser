@@ -27,6 +27,9 @@ public sealed class OptionsTests
             {
                 CacheDirectory = Path.Combine(dir, "previews"),
                 CacheSizeGb = 1.5,
+                InterfaceScale = 1.5,
+                UseHighContrast = true,
+                ReduceMotion = true,
                 DefaultDisplayMode = DisplayMode.Finished,
                 DefaultFinishSettings = new()
                 {
@@ -151,6 +154,15 @@ public sealed class OptionsTests
             };
             store.Write(saved);
             ApplicationOptions[] invalid = [saved with
+            {
+                InterfaceScale = double.NaN
+            }, saved with
+            {
+                InterfaceScale = 0.99
+            }, saved with
+            {
+                InterfaceScale = 2.01
+            }, saved with
             {
                 CacheSizeGb = 0
             }, saved with

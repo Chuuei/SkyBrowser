@@ -28,6 +28,12 @@ Open `SkyBrowser.slnx` in Rider/Visual Studio and run `SkyBrowser.Desktop`; ordi
 Debug builds work after initializing dependencies. Python is only needed to
 regenerate the manual, not for normal builds or application publishing.
 
+For end-to-end keyboard/mouse workflows and Windows accessibility-tree checks,
+run the [FlaUI UI suite](../tests/SkyBrowser.UiTests/README.md) separately from the
+in-process WPF integration tests. It requires an unlocked interactive desktop,
+creates isolated profiles under `artifacts/ui-tests`, and runs serially in Windows
+CI. Failures include process-scoped screenshots and an accessibility-tree dump.
+
 `XisfLibraryRoot` can override the root for project builds. The solution explicitly
 includes the pinned dependency path; use the default layout for solution builds.
 Do not silently update the submodule to a moving branch or substitute a different package.

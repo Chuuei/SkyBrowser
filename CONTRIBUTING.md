@@ -18,6 +18,15 @@ Normal tests generate their own small scientific fixtures. Large external-image
 checks are optional. Desktop tests use real WPF windows and require Windows.
 Never test against a person's real settings or preview database.
 
+The separate [accessibility UI suite](tests/SkyBrowser.UiTests/README.md) launches
+the real executable and uses FlaUI/UIA3, accessible names/roles and keyboard/mouse
+input. Run it on an unlocked Windows desktop without using the mouse or keyboard
+while it runs:
+
+```powershell
+dotnet test tests\SkyBrowser.UiTests -c Release --artifacts-path .\artifacts
+```
+
 ## Changes and pull requests
 
 - Follow `.editorconfig` and the scientific/ownership contracts in `AGENTS.md`.

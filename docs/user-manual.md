@@ -2,7 +2,7 @@
 
 ## Beginner's user manual
 
-Explore your astronomical photographs in their place on the sky. SkyBrowser combines your FITS and XISF images with a simple star map. You can look around, compare photographs and return to your saved image folders later.
+Explore your FITS and XISF photographs on a star map, compare images and return to saved folders. For keyboard and accessibility help, see page 26 or press F1.
 
 <!-- figure height=95 crop=0,0,1424,881 markers=1:0.89:0.044;2:0.218:0.25;3:0.218:0.67;4:0.951:0.2 -->
 ![The main window, showing a wide Horsehead field and a smaller image of the same region.](manual/screenshots/main-window.png)
@@ -138,7 +138,7 @@ Expand **Sky background & cleanup** in Selected image. A lower sky-background ta
 
 Open **Options > Images**, choose a default stretch and background target, then **Save options**. Automatic uses only the background target, even when the cleanup boxes are checked.
 
-<!-- figure height=210 crop=24,138,720,508 -->
+<!-- figure height=210 crop=24,138,720,560 -->
 ![The Images tab with the default Automatic display and a 10% background target. Cleanup boxes apply to Dark sky + cleanup.](manual/screenshots/options-images.png)
 
 Saved per-image choices take precedence over global defaults. Saving Options does not reprocess the images already on screen. **Reset defaults** in Selected image applies your saved image defaults to that image.
@@ -208,6 +208,7 @@ Choose **Options** in the top bar. Use **Save options** to apply changes; **Canc
 | Cache | Where processed previews are stored and how much space they can use. |
 | Plate solving | ASTAP executable/database, time limit and image-height hint. |
 | Sky | Startup grid, constellations, labels, outlines and overlap blending. |
+| Accessibility | Interface size, contrast and reduced motion (page 26). |
 
 ## Let the cache do the repeated work
 
@@ -377,7 +378,7 @@ Use **Remove selected** (Ctrl/Shift for several) or **Remove all** to edit the l
 
 ## Solve an image without knowing its coordinates
 
-<!-- figure height=140 crop=20,90,700,415 -->
+<!-- figure height=140 crop=20,90,720,475 -->
 ![ASTAP executable, optional star database, time limit and image-height hint in Options.](manual/screenshots/options-plate-solving.png)
 
 1. Install ASTAP and a star database. In **Options → Plate solving**, browse to **astap.exe** or **astap_cli.exe**. The optional database folder is useful for databases installed elsewhere.
@@ -653,3 +654,39 @@ Without an observing location, the atlas shows the Moon from Earth's center at *
 To enable the Moon automatically at startup, choose **Options > Sky > Moon position and phase**, then **Save options**. The toolbar checkbox changes the current view; the Options checkbox sets your startup default.
 
 > **An illustration, not angular scale.** The marker stays small as you zoom, so it can be found without covering your photographs. Its crater texture is decorative; it does not model libration or eclipses. Sky-view exports retain the Moon when enabled. Turning **Labels** off hides its text while keeping the phase graphic.
+
+---
+
+# 25 / Accessibility and keyboard use
+
+Press **F1** in any window for a readable keyboard guide. **Options > Accessibility** provides interface size from 100% to 200%, high contrast colors and reduced motion. Choose **Save options** to keep these preferences. Windows contrast themes and disabled animations are also respected.
+
+## Read and reach the controls
+
+Interface size enlarges text and controls together. Enlarged content can be scrolled, and Tab brings the focused control into view. Focus outlines show where keyboard input will go. High contrast uses Windows window and text colors. Reduced motion keeps image comparisons still; **Switch frame** changes the displayed frame manually.
+
+| Key | Action |
+| --- | --- |
+| Tab / Shift+Tab | Move between controls; focused controls scroll into view. |
+| Arrows / Space | Choose list or tab items; toggle checkboxes and activate buttons. |
+| Escape | Cancel a dialog or an unfinished sky measurement. |
+| F6 / Shift+F6 | Cycle image collection, target search and sky view. |
+| Ctrl+F / Ctrl+O | Search the collection / add images. |
+| Ctrl+L / Ctrl+comma | Open the library / Options. |
+| F1 | Read the keyboard and accessibility guide. |
+
+## Explore without pointing at a picture
+
+Use **Find in the sky** to search a named target or enter RA/Dec in degrees. With the sky focused, arrows pan, plus/minus zoom, Home shows the overview, F fits the selected image and Enter opens its inspection. Space selects the image at the center or picks the center point during measurement.
+
+Enter latitude and longitude directly in the location window. The map also accepts arrow keys and exposes its selected coordinates to assistive tools. Visibility results include written event times and imaging windows. Focus the chart and use Left/Right to read time samples; Home/End select its first/last sample.
+
+In **Sky tools > Measurements**, enter both RA/Dec pairs and choose **Measure coordinates**, or choose catalogue targets. In the 3D view, use the searchable object list and **Select second target** to measure without clicking the map.
+
+Full-resolution inspection has **X/Y pixel inputs** and **Read pixel**. With the image focused, arrows move one stored pixel, Shift+arrows move ten, and Home/End select the first/last pixel. The readout reports displayed color, original scientific samples and available sky coordinates.
+
+## Screen readers and assistance
+
+Inputs have accessible names and standard roles. Custom views expose readable coordinates, selection or samples. Validation, status and results announce changes politely; constant clock updates and mouse hovering do not interrupt reading. Closing an active dialog restores focus to its opener.
+
+Automated checks cover these workflows. Actual behavior with a particular screen reader, magnifier, voice or switch setup still needs checking; this guide does not claim complete accessibility certification.

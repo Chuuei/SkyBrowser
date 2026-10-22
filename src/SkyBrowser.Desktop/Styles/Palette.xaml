@@ -1,0 +1,116 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <!-- Original colors; AccessibilityPreferences applies readable text and Windows contrast colors at runtime. -->
+  <Color x:Key="UiColor05080D">#05080D</Color>
+  <SolidColorBrush x:Key="UiBrush05080D" Color="{DynamicResource UiColor05080D}" />
+  <Color x:Key="UiColor080E17">#080E17</Color>
+  <SolidColorBrush x:Key="UiBrush080E17" Color="{DynamicResource UiColor080E17}" />
+  <Color x:Key="UiColor0A2925">#0A2925</Color>
+  <SolidColorBrush x:Key="UiBrush0A2925" Color="{DynamicResource UiColor0A2925}" />
+  <Color x:Key="UiColor0B121D">#0B121D</Color>
+  <SolidColorBrush x:Key="UiBrush0B121D" Color="{DynamicResource UiColor0B121D}" />
+  <Color x:Key="UiColor0D141F">#0D141F</Color>
+  <SolidColorBrush x:Key="UiBrush0D141F" Color="{DynamicResource UiColor0D141F}" />
+  <Color x:Key="UiColor101722">#101722</Color>
+  <SolidColorBrush x:Key="UiBrush101722" Color="{DynamicResource UiColor101722}" />
+  <Color x:Key="UiColor101B29">#101B29</Color>
+  <SolidColorBrush x:Key="UiBrush101B29" Color="{DynamicResource UiColor101B29}" />
+  <Color x:Key="UiColor142030">#142030</Color>
+  <SolidColorBrush x:Key="UiBrush142030" Color="{DynamicResource UiColor142030}" />
+  <Color x:Key="UiColor142131">#142131</Color>
+  <SolidColorBrush x:Key="UiBrush142131" Color="{DynamicResource UiColor142131}" />
+  <Color x:Key="UiColor172130">#172130</Color>
+  <SolidColorBrush x:Key="UiBrush172130" Color="{DynamicResource UiColor172130}" />
+  <Color x:Key="UiColor172332">#172332</Color>
+  <SolidColorBrush x:Key="UiBrush172332" Color="{DynamicResource UiColor172332}" />
+  <Color x:Key="UiColor182333">#182333</Color>
+  <SolidColorBrush x:Key="UiBrush182333" Color="{DynamicResource UiColor182333}" />
+  <Color x:Key="UiColor1B302F">#1B302F</Color>
+  <SolidColorBrush x:Key="UiBrush1B302F" Color="{DynamicResource UiColor1B302F}" />
+  <Color x:Key="UiColor1C293A">#1C293A</Color>
+  <SolidColorBrush x:Key="UiBrush1C293A" Color="{DynamicResource UiColor1C293A}" />
+  <Color x:Key="UiColor223347">#223347</Color>
+  <SolidColorBrush x:Key="UiBrush223347" Color="{DynamicResource UiColor223347}" />
+  <Color x:Key="UiColor233044">#233044</Color>
+  <SolidColorBrush x:Key="UiBrush233044" Color="{DynamicResource UiColor233044}" />
+  <Color x:Key="UiColor24443F">#24443F</Color>
+  <SolidColorBrush x:Key="UiBrush24443F" Color="{DynamicResource UiColor24443F}" />
+  <Color x:Key="UiColor253044">#253044</Color>
+  <SolidColorBrush x:Key="UiBrush253044" Color="{DynamicResource UiColor253044}" />
+  <Color x:Key="UiColor293548">#293548</Color>
+  <SolidColorBrush x:Key="UiBrush293548" Color="{DynamicResource UiColor293548}" />
+  <Color x:Key="UiColor29394D">#29394D</Color>
+  <SolidColorBrush x:Key="UiBrush29394D" Color="{DynamicResource UiColor29394D}" />
+  <Color x:Key="UiColor2A3A4D">#2A3A4D</Color>
+  <SolidColorBrush x:Key="UiBrush2A3A4D" Color="{DynamicResource UiColor2A3A4D}" />
+  <Color x:Key="UiColor2C3D52">#2C3D52</Color>
+  <SolidColorBrush x:Key="UiBrush2C3D52" Color="{DynamicResource UiColor2C3D52}" />
+  <Color x:Key="UiColor344256">#344256</Color>
+  <SolidColorBrush x:Key="UiBrush344256" Color="{DynamicResource UiColor344256}" />
+  <Color x:Key="UiColor344C5E">#344C5E</Color>
+  <SolidColorBrush x:Key="UiBrush344C5E" Color="{DynamicResource UiColor344C5E}" />
+  <Color x:Key="UiColor3B6F61">#3B6F61</Color>
+  <SolidColorBrush x:Key="UiBrush3B6F61" Color="{DynamicResource UiColor3B6F61}" />
+  <Color x:Key="UiColor3E786A">#3E786A</Color>
+  <SolidColorBrush x:Key="UiBrush3E786A" Color="{DynamicResource UiColor3E786A}" />
+  <Color x:Key="UiColor526B80">#526B80</Color>
+  <SolidColorBrush x:Key="UiBrush526B80" Color="{DynamicResource UiColor526B80}" />
+  <Color x:Key="UiColor587083">#587083</Color>
+  <SolidColorBrush x:Key="UiBrush587083" Color="{DynamicResource UiColor587083}" />
+  <Color x:Key="UiColor587F74">#587F74</Color>
+  <SolidColorBrush x:Key="UiBrush587F74" Color="{DynamicResource UiColor587F74}" />
+  <Color x:Key="UiColor64758C">#64758C</Color>
+  <SolidColorBrush x:Key="UiBrush64758C" Color="{DynamicResource UiColor64758C}" />
+  <Color x:Key="UiColor65758A">#65758A</Color>
+  <SolidColorBrush x:Key="UiBrush65758A" Color="{DynamicResource UiColor65758A}" />
+  <Color x:Key="UiColor677B91">#677B91</Color>
+  <SolidColorBrush x:Key="UiBrush677B91" Color="{DynamicResource UiColor677B91}" />
+  <Color x:Key="UiColor68BBA3">#68BBA3</Color>
+  <SolidColorBrush x:Key="UiBrush68BBA3" Color="{DynamicResource UiColor68BBA3}" />
+  <Color x:Key="UiColor6F8298">#6F8298</Color>
+  <SolidColorBrush x:Key="UiBrush6F8298" Color="{DynamicResource UiColor6F8298}" />
+  <Color x:Key="UiColor73879C">#73879C</Color>
+  <SolidColorBrush x:Key="UiBrush73879C" Color="{DynamicResource UiColor73879C}" />
+  <Color x:Key="UiColor78978E">#78978E</Color>
+  <SolidColorBrush x:Key="UiBrush78978E" Color="{DynamicResource UiColor78978E}" />
+  <Color x:Key="UiColor78978F">#78978F</Color>
+  <SolidColorBrush x:Key="UiBrush78978F" Color="{DynamicResource UiColor78978F}" />
+  <Color x:Key="UiColor7D8CA1">#7D8CA1</Color>
+  <SolidColorBrush x:Key="UiBrush7D8CA1" Color="{DynamicResource UiColor7D8CA1}" />
+  <Color x:Key="UiColor8BE2C3">#8BE2C3</Color>
+  <SolidColorBrush x:Key="UiBrush8BE2C3" Color="{DynamicResource UiColor8BE2C3}" />
+  <Color x:Key="UiColor8D9AAD">#8D9AAD</Color>
+  <SolidColorBrush x:Key="UiBrush8D9AAD" Color="{DynamicResource UiColor8D9AAD}" />
+  <Color x:Key="UiColor9AAABD">#9AAABD</Color>
+  <SolidColorBrush x:Key="UiBrush9AAABD" Color="{DynamicResource UiColor9AAABD}" />
+  <Color x:Key="UiColor9BADBE">#9BADBE</Color>
+  <SolidColorBrush x:Key="UiBrush9BADBE" Color="{DynamicResource UiColor9BADBE}" />
+  <Color x:Key="UiColorA2B6CA">#A2B6CA</Color>
+  <SolidColorBrush x:Key="UiBrushA2B6CA" Color="{DynamicResource UiColorA2B6CA}" />
+  <Color x:Key="UiColorA9BDCE">#A9BDCE</Color>
+  <SolidColorBrush x:Key="UiBrushA9BDCE" Color="{DynamicResource UiColorA9BDCE}" />
+  <Color x:Key="UiColorB4C5D4">#B4C5D4</Color>
+  <SolidColorBrush x:Key="UiBrushB4C5D4" Color="{DynamicResource UiColorB4C5D4}" />
+  <Color x:Key="UiColorB6C4D5">#B6C4D5</Color>
+  <SolidColorBrush x:Key="UiBrushB6C4D5" Color="{DynamicResource UiColorB6C4D5}" />
+  <Color x:Key="UiColorC3B88A">#C3B88A</Color>
+  <SolidColorBrush x:Key="UiBrushC3B88A" Color="{DynamicResource UiColorC3B88A}" />
+  <Color x:Key="UiColorC6D9E6">#C6D9E6</Color>
+  <SolidColorBrush x:Key="UiBrushC6D9E6" Color="{DynamicResource UiColorC6D9E6}" />
+  <Color x:Key="UiColorC7F3E5">#C7F3E5</Color>
+  <SolidColorBrush x:Key="UiBrushC7F3E5" Color="{DynamicResource UiColorC7F3E5}" />
+  <Color x:Key="UiColorD9101722">#D9101722</Color>
+  <SolidColorBrush x:Key="UiBrushD9101722" Color="{DynamicResource UiColorD9101722}" />
+  <Color x:Key="UiColorDE101722">#DE101722</Color>
+  <SolidColorBrush x:Key="UiBrushDE101722" Color="{DynamicResource UiColorDE101722}" />
+  <Color x:Key="UiColorDFE8F2">#DFE8F2</Color>
+  <SolidColorBrush x:Key="UiBrushDFE8F2" Color="{DynamicResource UiColorDFE8F2}" />
+  <Color x:Key="UiColorE3ECF7">#E3ECF7</Color>
+  <SolidColorBrush x:Key="UiBrushE3ECF7" Color="{DynamicResource UiColorE3ECF7}" />
+  <Color x:Key="UiColorE9BA7B">#E9BA7B</Color>
+  <SolidColorBrush x:Key="UiBrushE9BA7B" Color="{DynamicResource UiColorE9BA7B}" />
+  <Color x:Key="UiColorEDF2F8">#EDF2F8</Color>
+  <SolidColorBrush x:Key="UiBrushEDF2F8" Color="{DynamicResource UiColorEDF2F8}" />
+  <Color x:Key="UiColorFFE49B">#FFE49B</Color>
+  <SolidColorBrush x:Key="UiBrushFFE49B" Color="{DynamicResource UiColorFFE49B}" />
+</ResourceDictionary>
