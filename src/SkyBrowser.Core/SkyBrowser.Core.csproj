@@ -5,7 +5,7 @@
   <ItemGroup>
     <PackageReference Include="CosineKitty.AstronomyEngine" Version="2.1.19" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
-    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="15.0.0" GeneratePathProperty="true" />
+    <PackageReference Include="Magick.NET-Q16-AnyCPU" Version="15.1.0" GeneratePathProperty="true" />
     <ProjectReference Include="$(XisfLibraryRoot)\XISFLib\XISFLib.csproj" />
     <EmbeddedResource Include="Data\*.json" />
     <None Include="Data\LICENSE-*.txt" CopyToOutputDirectory="PreserveNewest" />
